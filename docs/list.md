@@ -35,7 +35,7 @@
 ---
 
 ## Module 02 — ML Basics to Advanced
-**Status:** `[~]` In Progress
+**Status:** `[x]` Completed
 **Guide:** `docs/02-ml-basics.md`
 **Code:** `src/02-ml/`
 
@@ -62,7 +62,7 @@
 ---
 
 ## Module 03 — Databases & Vector DBs
-**Status:** `[ ]` Not Started
+**Status:** `[~]` In Progress
 **Guide:** `docs/03-databases.md`
 **Code:** `src/03-databases/`
 
@@ -227,4 +227,4 @@
 
 ---
 
-*Last updated: Module 02 complete — ML Basics to Advanced*
+*Last updated: Module 03 complete — Databases & Vector DBs*
