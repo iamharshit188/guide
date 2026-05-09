@@ -106,7 +106,7 @@
 ---
 
 ## Module 05 — Deep Learning & MLOps
-**Status:** `[~]` In Progress
+**Status:** `[x]` Completed
 **Guide:** `docs/05-deep-learning.md`
 **Code:** `src/05-deep-learning/`
 
@@ -129,7 +129,7 @@
 ---
 
 ## Module 06 — GenAI Core
-**Status:** `[ ]` Not Started
+**Status:** `[~]` In Progress
 **Guide:** `docs/06-genai-core.md`
 **Code:** `src/06-genai/`
 
@@ -227,4 +227,4 @@
 
 ---
 
-*Last updated: Module 04 complete — Backend with Flask*
+*Last updated: Module 05 complete — Deep Learning & MLOps*

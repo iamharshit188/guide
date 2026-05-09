@@ -60,13 +60,13 @@ guide/
 | 02 | ML Basics to Advanced | ✅ COMPLETE | `docs/02-ml-basics.md` | `src/02-ml/` |
 | 03 | Databases & Vector DBs | ✅ COMPLETE | `docs/03-databases.md` | `src/03-databases/` |
 | 04 | Backend with Flask | ✅ COMPLETE | `docs/04-backend.md` | `src/04-backend/` |
-| 05 | Deep Learning & MLOps | ⬜ NOT STARTED | `docs/05-deep-learning.md` | `src/05-deep-learning/` |
+| 05 | Deep Learning & MLOps | ✅ COMPLETE | `docs/05-deep-learning.md` | `src/05-deep-learning/` |
 | 06 | GenAI Core | ⬜ NOT STARTED | `docs/06-genai-core.md` | `src/06-genai/` |
 | 07 | Transformers from Scratch | ⬜ NOT STARTED | `docs/07-transformers.md` | `src/07-transformer/` |
 | 08 | RAG Chatbot | ⬜ NOT STARTED | `docs/08-rag.md` | `src/08-rag/` |
 | 09 | Fine-Tuning (LoRA/QLoRA) | ⬜ NOT STARTED | `docs/09-finetuning.md` | `src/09-finetuning/` |
 
-**Next module to build: Module 05 — Deep Learning & MLOps**
+**Next module to build: Module 06 — GenAI Core**
 
 ---
 
@@ -198,6 +198,17 @@ Every time a module is completed:
 - **Gradient Boosting:** GBR/GBC from scratch (residual fitting), staged prediction, early stopping, XGBoost 2nd-order Taylor math
 - **Scripts:** `linear_regression.py`, `logistic_regression.py`, `evaluation.py`, `clustering.py`, `pca.py`, `random_forest.py`, `svm.py`, `gradient_boosting.py`
 
+### Module 05 — Deep Learning & MLOps (`docs/05-deep-learning.md`, `src/05-deep-learning/`)
+- **Backpropagation:** Full derivation — $\delta^{(L)} = \hat{y} - y$ (BCE+sigmoid), hidden $\delta^{(l)} = (W^{(l+1)T}\delta^{(l+1)}) \odot g'$, parameter gradients $\nabla W = \delta \mathbf{a}^T / m$
+- **Initialisation:** Zero symmetry failure, vanishing/exploding gradient causes, Xavier derivation ($\text{Var}[w] = 2/(n_{in}+n_{out})$), He ($2/n_{in}$), empirical stability comparison over 10 layers
+- **Activations:** ReLU/Sigmoid/Tanh/Softmax with gradients; numerically stable sigmoid and softmax implementations
+- **Optimizers:** SGD, Momentum (heavy ball), Nesterov, RMSProp (per-parameter adaptive LR), Adam (1st+2nd moment + bias correction), AdamW (decoupled weight decay); convergence benchmark on ill-conditioned quadratic + Rosenbrock
+- **LR Scheduling:** StepDecay, CosineAnnealing, WarmupCosine (transformer schedule), ReduceOnPlateau
+- **Regularisation:** Dropout (inverted dropout, inference mode), BatchNorm (batch-wise normalisation, running stats, $\gamma/\beta$), LayerNorm (sample-wise, no batch dependency)
+- **MLflow:** Experiment/Run/Param/Metric/Artifact/Model hierarchy; `log_params`, `log_metric(step=)`, `log_artifact`, `log_model`; autolog; model registry lifecycle (None→Staging→Production→Archived); local filesystem backend (zero server)
+- **Drift Detection:** KS test (empirical CDF, Kolmogorov distribution p-value), Chi-squared (categorical), PSI ($\sum(A-E)\ln(A/E)$), MMD (RBF kernel, unbiased estimator), Jensen-Shannon divergence; `DriftDetector` class; prediction drift as concept drift proxy; monitoring pipeline design
+- **Scripts:** `nn_numpy.py` (TwoLayerNN + DeepNN + gradient check + training loop), `optimizers.py` (6 optimizers + 3 schedulers + benchmarks), `mlflow_demo.py` (4-model experiment + registry + autolog + artifacts), `monitoring.py` (all 5 drift tests + DriftDetector + prediction drift demo)
+
 ### Module 04 — Backend with Flask (`docs/04-backend.md`, `src/04-backend/`)
 - **Flask Internals:** WSGI interface, request context lifecycle, thread-local `g` / `request` / `current_app`, `before_request` / `after_request` / `teardown_request` execution order
 - **App Factory:** `create_app(env)` pattern, `Config` class hierarchy (Base/Dev/Test/Prod), `from_object`, multi-environment isolation for testing
@@ -313,5 +324,5 @@ Files to create:
 
 ---
 
-*Last updated after: Module 04 complete (Backend with Flask)*
-*Next: Module 05 — Deep Learning & MLOps*
+*Last updated after: Module 05 complete (Deep Learning & MLOps)*
+*Next: Module 06 — GenAI Core*
