@@ -10,7 +10,7 @@
 ---
 
 ## Module 01 — Math for ML
-**Status:** `[~]` In Progress
+**Status:** `[x]` Completed
 **Guide:** [docs/01-math.md](01-math.md)
 **Code:** `src/01-math/`
 
@@ -35,7 +35,7 @@
 ---
 
 ## Module 02 — ML Basics to Advanced
-**Status:** `[ ]` Not Started
+**Status:** `[~]` In Progress
 **Guide:** `docs/02-ml-basics.md`
 **Code:** `src/02-ml/`
 
@@ -227,4 +227,4 @@
 
 ---
 
-*Last updated: Module 01 initialized — Math for ML*
+*Last updated: Module 02 complete — ML Basics to Advanced*
