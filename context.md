@@ -59,14 +59,14 @@ guide/
 | 01 | Math for ML | ✅ COMPLETE | `docs/01-math.md` | `src/01-math/` |
 | 02 | ML Basics to Advanced | ✅ COMPLETE | `docs/02-ml-basics.md` | `src/02-ml/` |
 | 03 | Databases & Vector DBs | ✅ COMPLETE | `docs/03-databases.md` | `src/03-databases/` |
-| 04 | Backend with Flask | ⬜ NOT STARTED | `docs/04-backend.md` | `src/04-backend/` |
+| 04 | Backend with Flask | ✅ COMPLETE | `docs/04-backend.md` | `src/04-backend/` |
 | 05 | Deep Learning & MLOps | ⬜ NOT STARTED | `docs/05-deep-learning.md` | `src/05-deep-learning/` |
 | 06 | GenAI Core | ⬜ NOT STARTED | `docs/06-genai-core.md` | `src/06-genai/` |
 | 07 | Transformers from Scratch | ⬜ NOT STARTED | `docs/07-transformers.md` | `src/07-transformer/` |
 | 08 | RAG Chatbot | ⬜ NOT STARTED | `docs/08-rag.md` | `src/08-rag/` |
 | 09 | Fine-Tuning (LoRA/QLoRA) | ⬜ NOT STARTED | `docs/09-finetuning.md` | `src/09-finetuning/` |
 
-**Next module to build: Module 04 — Backend with Flask**
+**Next module to build: Module 05 — Deep Learning & MLOps**
 
 ---
 
@@ -198,6 +198,16 @@ Every time a module is completed:
 - **Gradient Boosting:** GBR/GBC from scratch (residual fitting), staged prediction, early stopping, XGBoost 2nd-order Taylor math
 - **Scripts:** `linear_regression.py`, `logistic_regression.py`, `evaluation.py`, `clustering.py`, `pca.py`, `random_forest.py`, `svm.py`, `gradient_boosting.py`
 
+### Module 04 — Backend with Flask (`docs/04-backend.md`, `src/04-backend/`)
+- **Flask Internals:** WSGI interface, request context lifecycle, thread-local `g` / `request` / `current_app`, `before_request` / `after_request` / `teardown_request` execution order
+- **App Factory:** `create_app(env)` pattern, `Config` class hierarchy (Base/Dev/Test/Prod), `from_object`, multi-environment isolation for testing
+- **Blueprints:** URL-scoped routing, per-blueprint error handlers and `before_request`, versioned APIs (`/api/v1/` and `/api/v2/`)
+- **REST Design:** Status code table (200/201/204/400/401/403/404/409/422/429/500/503), consistent error response schema, URL-path versioning
+- **ML Serving:** Model registry (thread-safe with `RLock`), startup model loading, sklearn Pipeline pickle, PyTorch `state_dict` + TorchScript serialization, single + batch `/predict` endpoints, input validation (NaN/Inf/type checks), throughput benchmarking
+- **Middleware:** `hmac.compare_digest` timing-safe auth, Token Bucket rate limiting (capacity/rate/thread-safe), per-client `PerClientRateLimiter`, structured JSON request logging, `X-Request-ID` propagation
+- **Async Tasks:** Token Bucket math, Celery config (`ContextTask`, `task_acks_late`, `worker_prefetch_multiplier=1`), task state machine (PENDING→STARTED→SUCCESS/FAILURE/RETRY), `bind=True` retry pattern, 202/poll pattern, worker pool comparison (prefork/gevent/solo), in-process simulation (no Redis needed for demo)
+- **Scripts:** `app.py` (factory, blueprints, test client demo), `ml_serving.py` (registry, sklearn + torch endpoints, serialization), `middleware.py` (auth, rate limit, logging demos), `async_tasks.py` (simulated broker, task types, Flask poll API)
+
 ### Module 03 — Databases & Vector DBs (`docs/03-databases.md`, `src/03-databases/`)
 - **SQL:** B+ tree index internals, all join types + algorithms, composite index left-prefix rule, EXPLAIN QUERY PLAN, window functions (RANK/LAG/running total), CTEs, recursive CTEs, correlated subqueries
 - **NoSQL:** CAP theorem, PACELC, 5 NoSQL types with ML use cases, MongoDB aggregation pipeline ($match/$group/$project/$sort/$unwind)
@@ -303,5 +313,5 @@ Files to create:
 
 ---
 
-*Last updated after: Module 03 complete (Databases & Vector DBs)*
-*Next: Module 04 — Backend with Flask*
+*Last updated after: Module 04 complete (Backend with Flask)*
+*Next: Module 05 — Deep Learning & MLOps*

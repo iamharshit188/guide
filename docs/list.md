@@ -62,7 +62,7 @@
 ---
 
 ## Module 03 — Databases & Vector DBs
-**Status:** `[~]` In Progress
+**Status:** `[x]` Completed
 **Guide:** `docs/03-databases.md`
 **Code:** `src/03-databases/`
 
@@ -85,7 +85,7 @@
 ---
 
 ## Module 04 — Backend with Flask
-**Status:** `[ ]` Not Started
+**Status:** `[x]` Completed
 **Guide:** `docs/04-backend.md`
 **Code:** `src/04-backend/`
 
@@ -106,7 +106,7 @@
 ---
 
 ## Module 05 — Deep Learning & MLOps
-**Status:** `[ ]` Not Started
+**Status:** `[~]` In Progress
 **Guide:** `docs/05-deep-learning.md`
 **Code:** `src/05-deep-learning/`
 
@@ -227,4 +227,4 @@
 
 ---
 
-*Last updated: Module 03 complete — Databases & Vector DBs*
+*Last updated: Module 04 complete — Backend with Flask*
