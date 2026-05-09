@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI/ML Learning Platform</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Syntax highlighting -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/base16/onedark.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/cpp.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/sql.min.js"></script>
+
+  <!-- Math rendering -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+        processEscapes: true,
+      },
+      options: { skipHtmlTags: ["script", "noscript", "style", "textarea", "pre"] },
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+</head>
+<body>
+
+  <!-- ── Sidebar ── -->
+  <aside id="sidebar">
+    <div id="sidebar-header">
+      <div class="logo-block">
+        <span class="logo-tag">ML</span>
+        <h1>AI/ML Platform</h1>
+      </div>
+      <div id="progress-container">
+        <div id="progress-label"><span id="progress-count">0</span> / <span id="module-total">9</span> complete</div>
+        <div id="progress-bar-track">
+          <div id="progress-bar-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <nav id="module-nav">
+      <div class="nav-section-label">MODULES</div>
+      <ul id="module-list"></ul>
+    </nav>
+
+    <div id="sidebar-footer">
+      <button id="btn-roadmap" class="nav-btn active" data-view="roadmap">ROADMAP</button>
+      <button id="btn-reset" class="nav-btn danger" onclick="resetProgress()">RESET</button>
+    </div>
+  </aside>
+
+  <!-- ── Main Content ── -->
+  <main id="main">
+    <div id="topbar">
+      <div id="breadcrumb">Roadmap</div>
+      <div id="topbar-actions">
+        <button id="btn-complete" class="complete-btn hidden" onclick="toggleComplete()">
+          MARK COMPLETE
+        </button>
+      </div>
+    </div>
+
+    <div id="content-area">
+      <div id="welcome-screen">
+        <div class="welcome-card">
+          <div class="welcome-tag">START HERE</div>
+          <h2>AI/ML/GenAI/Backend<br>Learning Platform</h2>
+          <p>9 modules. Math to Fine-Tuning. Select a module to begin.</p>
+          <div class="welcome-grid" id="welcome-grid"></div>
+        </div>
+      </div>
+
+      <div id="doc-view" class="hidden">
+        <div id="doc-rendered"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
