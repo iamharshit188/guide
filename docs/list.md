@@ -129,7 +129,7 @@
 ---
 
 ## Module 06 — GenAI Core
-**Status:** `[~]` In Progress
+**Status:** `[x]` Completed
 **Guide:** `docs/06-genai-core.md`
 **Code:** `src/06-genai/`
 
@@ -153,7 +153,7 @@
 ---
 
 ## Module 07 — Transformers from Scratch
-**Status:** `[ ]` Not Started
+**Status:** `[~]` In Progress
 **Guide:** `docs/07-transformers.md`
 **Code:** `src/07-transformer/`
 
@@ -227,4 +227,4 @@
 
 ---
 
-*Last updated: Module 05 complete — Deep Learning & MLOps*
+*Last updated: Module 06 complete — GenAI Core*
