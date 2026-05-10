@@ -38,6 +38,7 @@ guide/
 │   ├── 05-deep-learning.md ← [COMPLETE]
 │   ├── 06-genai-core.md    ← [COMPLETE]
 │   ├── 07-transformers.md  ← [COMPLETE]
+│   ├── 08-rag.md           ← [COMPLETE]
 │   └── ...                 ← future modules land here
 ├── src/
 │   ├── requirements.txt    ← pinned deps for ALL 9 modules
@@ -52,6 +53,7 @@ guide/
 │   ├── 06-genai/           ← word2vec.py, attention.py, multihead_attention.py,
 │   │                          positional_encoding.py, kv_cache.py
 │   ├── 07-transformer/     ← tokenizer.py, model.py, model_numpy.py, model.cpp, train.py
+│   ├── 08-rag/             ← ingest.py, embed_store.py, retriever.py, generator.py, app.py, evaluate.py
 │   └── ...                 ← future src modules land here
 └── frontend/
     ├── index.html          ← Neo-Brutalism UI (marked.js + highlight.js + MathJax)
@@ -73,7 +75,7 @@ guide/
 | 06 | GenAI Core | ✅ COMPLETE | `docs/06-genai-core.md` | `src/06-genai/` |
 | 07 | Transformers from Scratch | ✅ COMPLETE | `docs/07-transformers.md` | `src/07-transformer/` |
 | 08 | RAG Chatbot | ✅ COMPLETE | `docs/08-rag.md` | `src/08-rag/` |
-| 09 | Fine-Tuning (LoRA/QLoRA) | ⬜ NOT STARTED | `docs/09-finetuning.md` | `src/09-finetuning/` |
+| 09 | Fine-Tuning (LoRA/QLoRA) | 🔄 IN PROGRESS | `docs/09-finetuning.md` | `src/09-finetuning/` |
 
 **Next module to build: Module 09 — Fine-Tuning (LoRA/QLoRA)**
 
@@ -273,21 +275,39 @@ Every time a module is completed:
 ## UPCOMING MODULES — EXACT FILE PLANS
 
 ### Module 09 — Fine-Tuning (LoRA/QLoRA) ← **BUILD THIS NEXT**
-Files to create:
+
+**Key math to derive in the guide:**
+- Full fine-tuning parameter count: all $W \in \mathbb{R}^{m \times n}$ updated → $\sum mn$ trainable params
+- LoRA: $W' = W_0 + \Delta W = W_0 + BA$, $B \in \mathbb{R}^{m \times r}$, $A \in \mathbb{R}^{r \times n}$, $r \ll \min(m,n)$
+- Trainable params: $r(m+n)$ vs $mn$ → reduction factor $mn / r(m+n)$
+- Initialisation: $A \sim \mathcal{N}(0, \sigma^2)$, $B = 0$ so $\Delta W = 0$ at init
+- Scaling: $\Delta W$ multiplied by $\alpha/r$ at forward pass ($\alpha$ is lora_alpha hyperparameter)
+- QLoRA: NF4 quantisation (4-bit normal float, optimal for normally distributed weights), double quantisation (quantise the quantisation constants), paged optimisers (offload optimizer states to CPU RAM)
+- NF4 data type: $2^4 = 16$ quantisation levels placed at quantiles of $\mathcal{N}(0,1)$ → minimises quantisation error for Gaussian weights
+- Perplexity: $\text{PPL} = \exp\left(-\frac{1}{T}\sum_{t=1}^T \log p_\theta(w_t | w_{<t})\right)$
+- BLEU: modified n-gram precision with brevity penalty; ROUGE-L: longest common subsequence recall
+
+**Files to create:**
 - `docs/09-finetuning.md`
-- `src/09-finetuning/lora_theory.py` — LoRA rank decomposition ($W = W_0 + BA$), parameter count math vs full fine-tuning
-- `src/09-finetuning/prepare_dataset.py` — instruction format, chat template, train/val split, tokenization
-- `src/09-finetuning/train_lora.py` — PEFT + SFTTrainer + LoRA config (r, alpha, target_modules)
-- `src/09-finetuning/train_qlora.py` — 4-bit BitsAndBytes + QLoRA full pipeline
-- `src/09-finetuning/evaluate.py` — perplexity, BLEU, ROUGE evaluation
-- `src/09-finetuning/merge_push.py` — merge LoRA adapters, push to Hub
+- `src/09-finetuning/lora_theory.py` — LoRA rank decomposition from scratch: $W' = W_0 + BA$, parameter count math (full vs LoRA vs QLoRA), forward pass with scaling factor $\alpha/r$, initialisation verification ($\Delta W = 0$ at step 0), rank sensitivity sweep, layer-wise parameter savings table
+- `src/09-finetuning/prepare_dataset.py` — instruction format (Alpaca / ChatML templates), chat template construction, tokenisation with truncation/padding, train/val split, data collator (left-pad for decoder-only), dataset statistics, sample display
+- `src/09-finetuning/train_lora.py` — PEFT LoRA config (r, lora_alpha, lora_dropout, target_modules), SFTTrainer setup (graceful skip without torch/transformers), training loop simulation from scratch showing gradient flow through frozen + LoRA layers, hyperparameter sensitivity table
+- `src/09-finetuning/train_qlora.py` — 4-bit BitsAndBytes config (graceful skip), QLoRA pipeline (quantise→add adapters→train), NF4 quantisation demo from scratch (show quantile placement), double quantisation walkthrough, memory comparison table (full FT vs LoRA vs QLoRA for LLaMA-7B)
+- `src/09-finetuning/evaluate.py` — perplexity from scratch (cross-entropy→exp), BLEU from scratch (n-gram precision + brevity penalty, $n \in \{1,2,3,4\}$), ROUGE-L from scratch (LCS dynamic programming), metric comparison table, sample generation quality assessment
+- `src/09-finetuning/merge_push.py` — LoRA adapter merging ($W_{\text{merged}} = W_0 + BA$), PEFT merge_and_unload simulation, Hub push (graceful skip), adapter inspection (rank, target modules, param count), before/after weight comparison
+
+**Critical implementation notes:**
+- All PyTorch/HuggingFace/PEFT scripts: graceful `try/except ImportError` — python3.14 has no torch wheel
+- From-scratch implementations must work with pure numpy (lora_theory.py, evaluate.py fully runnable)
+- train_lora.py and train_qlora.py: simulate the training loop structure in numpy/pure python, show real library code in commented blocks with graceful skip
+- merge_push.py: implement the weight merge math in numpy, wrap real PEFT call in try/except
 
 ---
 
 ## RULES FOR FUTURE SESSIONS (CRITICAL)
 
 1. **Read `docs/list.md`** to verify current module status before touching anything.
-2. **Never skip ahead** — complete modules in order (08 → 09).
+2. **Never skip ahead** — complete modules in order. Only Module 09 remains.
 3. **Pause after each module** and wait for user approval before starting the next.
 4. **No half-done modules** — every module must have BOTH the `.md` guide AND all `src/` scripts before committing.
 5. **Commit after every module** — use the HEREDOC commit format described above.
