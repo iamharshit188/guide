@@ -37,6 +37,7 @@ guide/
 │   ├── 04-backend.md       ← [COMPLETE]
 │   ├── 05-deep-learning.md ← [COMPLETE]
 │   ├── 06-genai-core.md    ← [COMPLETE]
+│   ├── 07-transformers.md  ← [COMPLETE]
 │   └── ...                 ← future modules land here
 ├── src/
 │   ├── requirements.txt    ← pinned deps for ALL 9 modules
@@ -50,6 +51,7 @@ guide/
 │   ├── 05-deep-learning/   ← nn_numpy.py, optimizers.py, mlflow_demo.py, monitoring.py
 │   ├── 06-genai/           ← word2vec.py, attention.py, multihead_attention.py,
 │   │                          positional_encoding.py, kv_cache.py
+│   ├── 07-transformer/     ← tokenizer.py, model.py, model_numpy.py, model.cpp, train.py
 │   └── ...                 ← future src modules land here
 └── frontend/
     ├── index.html          ← Neo-Brutalism UI (marked.js + highlight.js + MathJax)
@@ -69,11 +71,11 @@ guide/
 | 04 | Backend with Flask | ✅ COMPLETE | `docs/04-backend.md` | `src/04-backend/` |
 | 05 | Deep Learning & MLOps | ✅ COMPLETE | `docs/05-deep-learning.md` | `src/05-deep-learning/` |
 | 06 | GenAI Core | ✅ COMPLETE | `docs/06-genai-core.md` | `src/06-genai/` |
-| 07 | Transformers from Scratch | ⬜ NOT STARTED | `docs/07-transformers.md` | `src/07-transformer/` |
+| 07 | Transformers from Scratch | ✅ COMPLETE | `docs/07-transformers.md` | `src/07-transformer/` |
 | 08 | RAG Chatbot | ⬜ NOT STARTED | `docs/08-rag.md` | `src/08-rag/` |
 | 09 | Fine-Tuning (LoRA/QLoRA) | ⬜ NOT STARTED | `docs/09-finetuning.md` | `src/09-finetuning/` |
 
-**Next module to build: Module 07 — Transformers from Scratch**
+**Next module to build: Module 08 — RAG Chatbot**
 
 ---
 
@@ -227,6 +229,15 @@ Every time a module is completed:
 - **Async Tasks:** Celery config (`ContextTask`, `task_acks_late`, `worker_prefetch_multiplier=1`), task state machine (PENDING→STARTED→SUCCESS/FAILURE/RETRY), `bind=True` retry pattern, 202/poll pattern, worker pool comparison (prefork/gevent/solo), in-process simulation (no Redis needed for demo)
 - **Scripts:** `app.py` (factory, blueprints, test client demo), `ml_serving.py` (registry, sklearn + torch endpoints, serialization), `middleware.py` (auth, rate limit, logging demos), `async_tasks.py` (simulated broker, task types, Flask poll API)
 
+### Module 07 — Transformers from Scratch (`docs/07-transformers.md`, `src/07-transformer/`)
+- **BPE Tokenizer:** Corpus→word→char decomposition, pair counting, merge loop, encode/decode with stored rules, OOV via char fallback, step-by-step trace on `['low', 'lower', 'lowest']`, Tiktoken/SentencePiece comparison
+- **Architecture:** Encoder (`Pre-LN + MHA + FFN`) × $N_e$, Decoder (Masked-SA + Cross-Attn + FFN) × $N_d$, LayerNorm formula, Pre-LN vs Post-LN table, FFN ($d_{\text{ff}} = 4d$, ReLU/SwiGLU variants), residual connections
+- **Parameter count:** $12Ld^2$ per block derivation; GPT-2 small worked example — 85M transformer + 38.6M embed = 117M ✓
+- **Training:** Teacher forcing + exposure bias, transformer LR schedule ($d^{-0.5} \min(t^{-0.5}, t \cdot t_w^{-1.5})$), gradient clipping (global $\ell_2$ norm ≤ 1.0), label smoothing ($\epsilon=0.1$)
+- **Inference:** Greedy, beam search (length penalty $\alpha$), temperature/top-k/top-p table
+- **Variants table:** BERT (encoder, MLM), GPT (decoder, causal LM), T5 (enc-dec), LLaMA (RoPE + SwiGLU + GQA + RMSNorm), Mistral (GQA + sliding window)
+- **Scripts:** `tokenizer.py` (BPE from scratch, merge trace, round-trip), `model.py` (PyTorch enc-dec, Pre-LN, Xavier init, greedy decode, gradient norm demo), `model_numpy.py` (pure NumPy encoder, PyTorch equivalence check < 1e-4), `model.cpp` (C++17, matrix ops, MHA, LN, FFN, causal mask, compiles with g++), `train.py` (seq-reversal task, transformer schedule, label smoothing, gradient clipping, beam search, checkpointing)
+
 ### Module 06 — GenAI Core (`docs/06-genai-core.md`, `src/06-genai/`)
 - **Word2Vec skip-gram:** Skip-gram objective, negative sampling loss/gradients ($\mathcal{L}_{\text{NEG}}$), noise distribution $P_n \propto f^{3/4}$, numerical gradient check, cosine similarity nearest neighbours, analogy via $\mathbf{v}_b - \mathbf{v}_a + \mathbf{v}_c$, FastText subword $n$-gram decomposition
 - **Sentence Transformers:** Mean-pool SBERT, cosine similarity = L2 distance for unit-normalised vectors, use cases (semantic search, clustering, deduplication, cross-lingual)
@@ -251,16 +262,7 @@ Every time a module is completed:
 
 ## UPCOMING MODULES — EXACT FILE PLANS
 
-### Module 07 — Transformers from Scratch ← **BUILD THIS NEXT**
-Files to create:
-- `docs/07-transformers.md`
-- `src/07-transformer/tokenizer.py` — BPE from scratch (merge rules, vocab building)
-- `src/07-transformer/model.py` — full Transformer encoder-decoder (PyTorch): MHA, FFN, LayerNorm, residuals, masking
-- `src/07-transformer/model_numpy.py` — inference-only Transformer (pure NumPy, no autograd)
-- `src/07-transformer/model.cpp` — Transformer forward pass in C++
-- `src/07-transformer/train.py` — training loop, LR warmup, gradient clipping, checkpointing
-
-### Module 08 — RAG Chatbot
+### Module 08 — RAG Chatbot ← **BUILD THIS NEXT**
 Files to create:
 - `docs/08-rag.md`
 - `src/08-rag/ingest.py` — PDF/text loader, chunking strategies (fixed-size, recursive, semantic)
@@ -315,6 +317,6 @@ Files to create:
 
 ---
 
-*Last updated after: Module 06 complete (GenAI Core)*
-*Modules complete: 01, 02, 03, 04, 05, 06*
-*Next: Module 07 — Transformers from Scratch*
+*Last updated after: Module 07 complete (Transformers from Scratch)*
+*Modules complete: 01, 02, 03, 04, 05, 06, 07*
+*Next: Module 08 — RAG Chatbot*
