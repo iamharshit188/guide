@@ -4,21 +4,16 @@ from flask_cors import CORS
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 
-app = Flask(__name__, static_folder=os.path.join(BASE, "frontend"))
+app = Flask(__name__, static_folder=BASE)
 CORS(app)
 
 
 @app.route("/")
 def index():
-    return send_from_directory(app.static_folder, "index.html")
+    return send_from_directory(BASE, "index.html")
 
 
-@app.route("/<path:filename>")
-def static_files(filename):
-    return send_from_directory(app.static_folder, filename)
-
-
-@app.route("/api/docs/<path:filename>")
+@app.route("/docs/<path:filename>")
 def serve_doc(filename):
     docs_dir = os.path.join(BASE, "docs")
     filepath = os.path.join(docs_dir, filename)
@@ -29,14 +24,9 @@ def serve_doc(filename):
     return send_from_directory(docs_dir, filename, mimetype="text/plain; charset=utf-8")
 
 
-@app.route("/api/modules")
-def list_modules():
-    docs_dir = os.path.join(BASE, "docs")
-    files = sorted(
-        f for f in os.listdir(docs_dir)
-        if f.endswith(".md") and f != "list.md"
-    )
-    return jsonify(files)
+@app.route("/<path:filename>")
+def static_files(filename):
+    return send_from_directory(BASE, filename)
 
 
 if __name__ == "__main__":

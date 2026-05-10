@@ -127,7 +127,7 @@ async function openModule(file, label) {
   $("doc-rendered").innerHTML = `<p style="font-family:monospace;color:#888;">Loading ${file}…</p>`;
 
   try {
-    const res = await fetch(`/api/docs/${file}`);
+    const res = await fetch(`docs/${file}`);
     if (!res.ok) {
       if (res.status === 404) {
         renderNotReady(file, label);
