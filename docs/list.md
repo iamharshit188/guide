@@ -202,7 +202,7 @@
 ---
 
 ## Module 09 — Fine-Tuning
-**Status:** `[~]` In Progress
+**Status:** `[x]` Completed
 **Guide:** `docs/09-finetuning.md`
 **Code:** `src/09-finetuning/`
 
@@ -216,15 +216,15 @@
 | `src/09-finetuning/merge_push.py` | Merge LoRA adapters, push to Hub |
 
 ### Checklist
-- [ ] Full fine-tuning vs PEFT (parameter count analysis)
-- [ ] LoRA: mathematical derivation (W = W₀ + BA, rank selection)
-- [ ] QLoRA: NF4 quantization + double quantization
-- [ ] HuggingFace PEFT library configuration
-- [ ] Dataset preparation: instruction format, chat template
-- [ ] Training with trl SFTTrainer
-- [ ] Evaluation: perplexity, BLEU, ROUGE, human eval
-- [ ] Adapter merging and Hub deployment
+- [x] Full fine-tuning vs PEFT (parameter count analysis)
+- [x] LoRA: mathematical derivation (W = W₀ + BA, rank selection)
+- [x] QLoRA: NF4 quantization + double quantization
+- [x] HuggingFace PEFT library configuration
+- [x] Dataset preparation: instruction format, chat template
+- [x] Training with trl SFTTrainer
+- [x] Evaluation: perplexity, BLEU, ROUGE, human eval
+- [x] Adapter merging and Hub deployment
 
 ---
 
-*Last updated: Module 08 complete — RAG Chatbot*
+*Last updated: Module 09 complete — Fine-Tuning (LoRA/QLoRA)*
