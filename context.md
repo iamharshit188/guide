@@ -153,7 +153,7 @@ git commit -m "feat: complete <topic> module (NN)"
 Commit message body (HEREDOC) must include:
 - What the doc covers (topics in the markdown)
 - What each script covers (one line per file)
-- list.md status change (e.g., "Module 05 → completed, Module 06 → in progress")
+- list.md status change (e.g., "Module 07 → completed, Module 08 → in progress")
 
 **Never use `--amend`.** Always new commits.
 **Never `--no-verify`.**
@@ -229,24 +229,6 @@ Every time a module is completed:
 - **Async Tasks:** Celery config (`ContextTask`, `task_acks_late`, `worker_prefetch_multiplier=1`), task state machine (PENDING→STARTED→SUCCESS/FAILURE/RETRY), `bind=True` retry pattern, 202/poll pattern, worker pool comparison (prefork/gevent/solo), in-process simulation (no Redis needed for demo)
 - **Scripts:** `app.py` (factory, blueprints, test client demo), `ml_serving.py` (registry, sklearn + torch endpoints, serialization), `middleware.py` (auth, rate limit, logging demos), `async_tasks.py` (simulated broker, task types, Flask poll API)
 
-### Module 07 — Transformers from Scratch (`docs/07-transformers.md`, `src/07-transformer/`)
-- **BPE Tokenizer:** Corpus→word→char decomposition, pair counting, merge loop, encode/decode with stored rules, OOV via char fallback, step-by-step trace on `['low', 'lower', 'lowest']`, Tiktoken/SentencePiece comparison
-- **Architecture:** Encoder (`Pre-LN + MHA + FFN`) × $N_e$, Decoder (Masked-SA + Cross-Attn + FFN) × $N_d$, LayerNorm formula, Pre-LN vs Post-LN table, FFN ($d_{\text{ff}} = 4d$, ReLU/SwiGLU variants), residual connections
-- **Parameter count:** $12Ld^2$ per block derivation; GPT-2 small worked example — 85M transformer + 38.6M embed = 117M ✓
-- **Training:** Teacher forcing + exposure bias, transformer LR schedule ($d^{-0.5} \min(t^{-0.5}, t \cdot t_w^{-1.5})$), gradient clipping (global $\ell_2$ norm ≤ 1.0), label smoothing ($\epsilon=0.1$)
-- **Inference:** Greedy, beam search (length penalty $\alpha$), temperature/top-k/top-p table
-- **Variants table:** BERT (encoder, MLM), GPT (decoder, causal LM), T5 (enc-dec), LLaMA (RoPE + SwiGLU + GQA + RMSNorm), Mistral (GQA + sliding window)
-- **Scripts:** `tokenizer.py` (BPE from scratch, merge trace, round-trip), `model.py` (PyTorch enc-dec, Pre-LN, Xavier init, greedy decode, gradient norm demo), `model_numpy.py` (pure NumPy encoder, PyTorch equivalence check < 1e-4), `model.cpp` (C++17, matrix ops, MHA, LN, FFN, causal mask, compiles with g++), `train.py` (seq-reversal task, transformer schedule, label smoothing, gradient clipping, beam search, checkpointing)
-
-### Module 06 — GenAI Core (`docs/06-genai-core.md`, `src/06-genai/`)
-- **Word2Vec skip-gram:** Skip-gram objective, negative sampling loss/gradients ($\mathcal{L}_{\text{NEG}}$), noise distribution $P_n \propto f^{3/4}$, numerical gradient check, cosine similarity nearest neighbours, analogy via $\mathbf{v}_b - \mathbf{v}_a + \mathbf{v}_c$, FastText subword $n$-gram decomposition
-- **Sentence Transformers:** Mean-pool SBERT, cosine similarity = L2 distance for unit-normalised vectors, use cases (semantic search, clustering, deduplication, cross-lingual)
-- **Scaled dot-product attention:** $\text{Attention}(Q,K,V) = \text{softmax}(QK^\top/\sqrt{d_k})V$, variance scaling derivation, numerically stable softmax, causal mask ($-\infty$ additive), cross-attention, $O(n^2 d)$ complexity table
-- **Multi-head attention:** $W^Q, W^K, W^V, W^O$ projection matrices, head split/concat, GPT-2 parameter count worked example, MQA (shared K/V, $h\times$ cache reduction), GQA ($h/g\times$ reduction, used in LLaMA 2/3)
-- **Positional encoding:** Sinusoidal formula (sin/cos at $\omega_i = 1/10000^{2i/d}$), frequency spectrum, relative position property ($PE_{\text{pos}}^\top PE_{\text{pos}+k} \approx f(k)$), learned PE table, RoPE 2D rotation demo (relative offset preserved in dot product)
-- **KV cache:** Autoregressive generation loop with/without cache, FLOP comparison ($O(T^2 d)$ vs $O(Td)$ projection), memory formula $2 \times B \times T \times L \times h \times d_k \times 2$ bytes, GPT-3 ≈ 9.66 GB at $T=2048$, MQA/GQA/quantisation reduction table, PagedAttention virtual memory analogy
-- **Scripts:** `word2vec.py` (skip-gram NS + gradient check + analogy), `attention.py` (step-by-step + causal + cross), `multihead_attention.py` (MHA + MQA + GQA classes), `positional_encoding.py` (sinusoidal + learned + RoPE), `kv_cache.py` (timing benchmark + memory math + cache growth chart)
-
 ### Module 05 — Deep Learning & MLOps (`docs/05-deep-learning.md`, `src/05-deep-learning/`)
 - **Backpropagation:** Full derivation — $\delta^{(L)} = \hat{y} - y$ (BCE+sigmoid cancel), hidden $\delta^{(l)} = (W^{(l+1)T}\delta^{(l+1)}) \odot g'$, parameter gradients $\nabla W = \delta \mathbf{a}^T / m$
 - **Initialisation:** Zero symmetry failure, vanishing/exploding gradient causes, Xavier derivation ($\text{Var}[w] = 2/(n_{in}+n_{out})$), He ($2/n_{in}$), empirical stability comparison over 10 layers
@@ -257,6 +239,24 @@ Every time a module is completed:
 - **MLflow:** Experiment/Run/Param/Metric/Artifact/Model hierarchy; `log_params`, `log_metric(step=)`, `log_artifact`, `log_model`; autolog; model registry lifecycle (None→Staging→Production→Archived); local filesystem backend (zero server, temp dir)
 - **Drift Detection:** KS test (empirical CDF, Kolmogorov distribution p-value), Chi-squared (categorical), PSI ($\sum(A-E)\ln(A/E)$, rule of thumb: >0.2 = major), MMD (RBF kernel, unbiased estimator), JS divergence; `DriftDetector` class; prediction drift as concept drift proxy; monitoring pipeline design
 - **Scripts:** `nn_numpy.py` (TwoLayerNN + DeepNN + numerical gradient check + mini-batch training loop), `optimizers.py` (6 optimizers + 4 schedulers + convergence benchmarks), `mlflow_demo.py` (4-model experiment + registry + autolog + artifact logging), `monitoring.py` (all 5 drift tests + DriftDetector + prediction drift + scipy validation)
+
+### Module 06 — GenAI Core (`docs/06-genai-core.md`, `src/06-genai/`)
+- **Word2Vec skip-gram:** Skip-gram objective, negative sampling loss/gradients ($\mathcal{L}_{\text{NEG}}$), noise distribution $P_n \propto f^{3/4}$, numerical gradient check, cosine similarity nearest neighbours, analogy via $\mathbf{v}_b - \mathbf{v}_a + \mathbf{v}_c$, FastText subword $n$-gram decomposition
+- **Sentence Transformers:** Mean-pool SBERT, cosine similarity = L2 distance for unit-normalised vectors, use cases (semantic search, clustering, deduplication, cross-lingual)
+- **Scaled dot-product attention:** $\text{Attention}(Q,K,V) = \text{softmax}(QK^\top/\sqrt{d_k})V$, variance scaling derivation, numerically stable softmax, causal mask ($-\infty$ additive), cross-attention, $O(n^2 d)$ complexity table
+- **Multi-head attention:** $W^Q, W^K, W^V, W^O$ projection matrices, head split/concat, GPT-2 parameter count worked example, MQA (shared K/V, $h\times$ cache reduction), GQA ($h/g\times$ reduction, used in LLaMA 2/3)
+- **Positional encoding:** Sinusoidal formula (sin/cos at $\omega_i = 1/10000^{2i/d}$), frequency spectrum, relative position property ($PE_{\text{pos}}^\top PE_{\text{pos}+k} \approx f(k)$), learned PE table, RoPE 2D rotation demo (relative offset preserved in dot product)
+- **KV cache:** Autoregressive generation loop with/without cache, FLOP comparison ($O(T^2 d)$ vs $O(Td)$ projection), memory formula $2 \times B \times T \times L \times h \times d_k \times 2$ bytes, GPT-3 ≈ 9.66 GB at $T=2048$, MQA/GQA/quantisation reduction table, PagedAttention virtual memory analogy
+- **Scripts:** `word2vec.py` (skip-gram NS + gradient check + analogy), `attention.py` (step-by-step + causal + cross), `multihead_attention.py` (MHA + MQA + GQA classes), `positional_encoding.py` (sinusoidal + learned + RoPE), `kv_cache.py` (timing benchmark + memory math + cache growth chart)
+
+### Module 07 — Transformers from Scratch (`docs/07-transformers.md`, `src/07-transformer/`)
+- **BPE Tokenizer:** Corpus→word→char decomposition, pair counting, merge loop, encode/decode with stored rules, OOV via char fallback, step-by-step trace on `['low', 'lower', 'lowest']`, Tiktoken/SentencePiece comparison
+- **Architecture:** Encoder (Pre-LN + MHA + FFN) × $N_e$, Decoder (Masked-SA + Cross-Attn + FFN) × $N_d$, LayerNorm formula, Pre-LN vs Post-LN table, FFN ($d_{\text{ff}} = 4d$, ReLU/SwiGLU variants), residual connections
+- **Parameter count:** $12Ld^2$ per block derivation; GPT-2 small worked example — 85M transformer + 38.6M embed = 117M ✓
+- **Training:** Teacher forcing + exposure bias, transformer LR schedule ($d^{-0.5} \min(t^{-0.5}, t \cdot t_w^{-1.5})$), gradient clipping (global $\ell_2$ norm ≤ 1.0), label smoothing ($\epsilon=0.1$)
+- **Inference:** Greedy, beam search (length penalty $\alpha$), temperature/top-k/top-p table
+- **Variants table:** BERT (encoder, MLM), GPT (decoder, causal LM), T5 (enc-dec), LLaMA (RoPE + SwiGLU + GQA + RMSNorm), Mistral (GQA + sliding window)
+- **Scripts:** `tokenizer.py` (BPE from scratch, merge trace, round-trip), `model.py` (PyTorch enc-dec, Pre-LN, Xavier init, greedy decode — graceful skip without torch), `model_numpy.py` (pure NumPy encoder, PyTorch equivalence check < 1e-4), `model.cpp` (C++17 no deps, matmul/MHA/LN/FFN/causal mask, compiles with `g++ -O2 -std=c++17`), `train.py` (seq-reversal task, transformer LR schedule, label smoothing, gradient clipping, beam search, checkpoint save/load)
 
 ---
 
@@ -287,7 +287,7 @@ Files to create:
 ## RULES FOR FUTURE SESSIONS (CRITICAL)
 
 1. **Read `docs/list.md`** to verify current module status before touching anything.
-2. **Never skip ahead** — complete modules in order (06 → 07 → 08 → 09).
+2. **Never skip ahead** — complete modules in order (08 → 09).
 3. **Pause after each module** and wait for user approval before starting the next.
 4. **No half-done modules** — every module must have BOTH the `.md` guide AND all `src/` scripts before committing.
 5. **Commit after every module** — use the HEREDOC commit format described above.
@@ -302,6 +302,7 @@ Files to create:
    - Reals: $\mathbb{R}$
    - Distributions: $\mathcal{N}$, $\text{Uniform}$
 10. **Frontend automatically picks up new `.md` files** from `/docs/` — no frontend changes needed for new modules.
+11. **Python runtime:** System uses `python3.14` (no `python` alias). PyTorch has no wheel for 3.14 yet — all PyTorch scripts use graceful `try/except ImportError` and exit cleanly. Pure NumPy + stdlib scripts run fine.
 
 ---
 
