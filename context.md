@@ -34,6 +34,8 @@ guide/
 │   ├── 01-math.md          ← [COMPLETE]
 │   ├── 02-ml-basics.md     ← [COMPLETE]
 │   ├── 03-databases.md     ← [COMPLETE]
+│   ├── 04-backend.md       ← [COMPLETE]
+│   ├── 05-deep-learning.md ← [COMPLETE]
 │   └── ...                 ← future modules land here
 ├── src/
 │   ├── requirements.txt    ← pinned deps for ALL 9 modules
@@ -43,6 +45,8 @@ guide/
 │   │                          gradient_boosting.py
 │   ├── 03-databases/       ← sql_basics.py, nosql_patterns.py, chroma_demo.py,
 │   │                          pinecone_demo.py, faiss_demo.py
+│   ├── 04-backend/         ← app.py, ml_serving.py, middleware.py, async_tasks.py
+│   ├── 05-deep-learning/   ← nn_numpy.py, optimizers.py, mlflow_demo.py, monitoring.py
 │   └── ...                 ← future src modules land here
 └── frontend/
     ├── index.html          ← Neo-Brutalism UI (marked.js + highlight.js + MathJax)
@@ -144,7 +148,7 @@ git commit -m "feat: complete <topic> module (NN)"
 Commit message body (HEREDOC) must include:
 - What the doc covers (topics in the markdown)
 - What each script covers (one line per file)
-- list.md status change (e.g., "Module 02 → completed, Module 03 → in progress")
+- list.md status change (e.g., "Module 05 → completed, Module 06 → in progress")
 
 **Never use `--amend`.** Always new commits.
 **Never `--no-verify`.**
@@ -155,8 +159,8 @@ Commit message body (HEREDOC) must include:
 ## list.md UPDATE PROTOCOL
 
 Every time a module is completed:
-1. Change previous module status: `` `[~]` In Progress `` → `` `[x]` Completed ``
-2. Change current module status: `` `[ ]` Not Started `` → `` `[~]` In Progress ``
+1. Change completed module status: `` `[~]` In Progress `` → `` `[x]` Completed ``
+2. Change next module status: `` `[ ]` Not Started `` → `` `[~]` In Progress ``
 3. Update the last line: `*Last updated: Module NN complete — <Topic>*`
 
 ---
@@ -179,11 +183,11 @@ Every time a module is completed:
 
 ---
 
-## WHAT EACH COMPLETED MODULE COVERS (SUMMARY)
+## COMPLETED MODULES — DETAILED SUMMARIES
 
 ### Module 01 — Math for ML (`docs/01-math.md`, `src/01-math/`)
 - **Linear Algebra:** Scalars/vectors/matrices/tensors, L1/L2/L∞ norms, dot product, cosine similarity, projection, matrix multiply, transpose, inverse, determinant, eigendecomposition ($A = V\Lambda V^{-1}$), SVD ($A = U\Sigma V^T$), pseudoinverse, PCA via eigendecomp
-- **Calculus:** Partial derivatives, gradient vector, chain rule (crucial for backprop), Jacobian, Hessian, gradient descent update rule, numerical gradient check, LR sensitivity
+- **Calculus:** Partial derivatives, gradient vector, chain rule (crucial for backprop), Jacobian, Hessian, gradient descent update rule, numerical gradient check (central difference), LR sensitivity
 - **Probability:** Bayes theorem, conditional probability, Gaussian/Bernoulli/Categorical/Poisson distributions, MLE derivation, cross-entropy, KL divergence, Shannon entropy, covariance matrix, Mahalanobis distance
 - **Scripts:** `vectors.py`, `matrix_ops.py`, `calculus_demo.py`, `probability.py`
 
@@ -198,27 +202,6 @@ Every time a module is completed:
 - **Gradient Boosting:** GBR/GBC from scratch (residual fitting), staged prediction, early stopping, XGBoost 2nd-order Taylor math
 - **Scripts:** `linear_regression.py`, `logistic_regression.py`, `evaluation.py`, `clustering.py`, `pca.py`, `random_forest.py`, `svm.py`, `gradient_boosting.py`
 
-### Module 05 — Deep Learning & MLOps (`docs/05-deep-learning.md`, `src/05-deep-learning/`)
-- **Backpropagation:** Full derivation — $\delta^{(L)} = \hat{y} - y$ (BCE+sigmoid), hidden $\delta^{(l)} = (W^{(l+1)T}\delta^{(l+1)}) \odot g'$, parameter gradients $\nabla W = \delta \mathbf{a}^T / m$
-- **Initialisation:** Zero symmetry failure, vanishing/exploding gradient causes, Xavier derivation ($\text{Var}[w] = 2/(n_{in}+n_{out})$), He ($2/n_{in}$), empirical stability comparison over 10 layers
-- **Activations:** ReLU/Sigmoid/Tanh/Softmax with gradients; numerically stable sigmoid and softmax implementations
-- **Optimizers:** SGD, Momentum (heavy ball), Nesterov, RMSProp (per-parameter adaptive LR), Adam (1st+2nd moment + bias correction), AdamW (decoupled weight decay); convergence benchmark on ill-conditioned quadratic + Rosenbrock
-- **LR Scheduling:** StepDecay, CosineAnnealing, WarmupCosine (transformer schedule), ReduceOnPlateau
-- **Regularisation:** Dropout (inverted dropout, inference mode), BatchNorm (batch-wise normalisation, running stats, $\gamma/\beta$), LayerNorm (sample-wise, no batch dependency)
-- **MLflow:** Experiment/Run/Param/Metric/Artifact/Model hierarchy; `log_params`, `log_metric(step=)`, `log_artifact`, `log_model`; autolog; model registry lifecycle (None→Staging→Production→Archived); local filesystem backend (zero server)
-- **Drift Detection:** KS test (empirical CDF, Kolmogorov distribution p-value), Chi-squared (categorical), PSI ($\sum(A-E)\ln(A/E)$), MMD (RBF kernel, unbiased estimator), Jensen-Shannon divergence; `DriftDetector` class; prediction drift as concept drift proxy; monitoring pipeline design
-- **Scripts:** `nn_numpy.py` (TwoLayerNN + DeepNN + gradient check + training loop), `optimizers.py` (6 optimizers + 3 schedulers + benchmarks), `mlflow_demo.py` (4-model experiment + registry + autolog + artifacts), `monitoring.py` (all 5 drift tests + DriftDetector + prediction drift demo)
-
-### Module 04 — Backend with Flask (`docs/04-backend.md`, `src/04-backend/`)
-- **Flask Internals:** WSGI interface, request context lifecycle, thread-local `g` / `request` / `current_app`, `before_request` / `after_request` / `teardown_request` execution order
-- **App Factory:** `create_app(env)` pattern, `Config` class hierarchy (Base/Dev/Test/Prod), `from_object`, multi-environment isolation for testing
-- **Blueprints:** URL-scoped routing, per-blueprint error handlers and `before_request`, versioned APIs (`/api/v1/` and `/api/v2/`)
-- **REST Design:** Status code table (200/201/204/400/401/403/404/409/422/429/500/503), consistent error response schema, URL-path versioning
-- **ML Serving:** Model registry (thread-safe with `RLock`), startup model loading, sklearn Pipeline pickle, PyTorch `state_dict` + TorchScript serialization, single + batch `/predict` endpoints, input validation (NaN/Inf/type checks), throughput benchmarking
-- **Middleware:** `hmac.compare_digest` timing-safe auth, Token Bucket rate limiting (capacity/rate/thread-safe), per-client `PerClientRateLimiter`, structured JSON request logging, `X-Request-ID` propagation
-- **Async Tasks:** Token Bucket math, Celery config (`ContextTask`, `task_acks_late`, `worker_prefetch_multiplier=1`), task state machine (PENDING→STARTED→SUCCESS/FAILURE/RETRY), `bind=True` retry pattern, 202/poll pattern, worker pool comparison (prefork/gevent/solo), in-process simulation (no Redis needed for demo)
-- **Scripts:** `app.py` (factory, blueprints, test client demo), `ml_serving.py` (registry, sklearn + torch endpoints, serialization), `middleware.py` (auth, rate limit, logging demos), `async_tasks.py` (simulated broker, task types, Flask poll API)
-
 ### Module 03 — Databases & Vector DBs (`docs/03-databases.md`, `src/03-databases/`)
 - **SQL:** B+ tree index internals, all join types + algorithms, composite index left-prefix rule, EXPLAIN QUERY PLAN, window functions (RANK/LAG/running total), CTEs, recursive CTEs, correlated subqueries
 - **NoSQL:** CAP theorem, PACELC, 5 NoSQL types with ML use cases, MongoDB aggregation pipeline ($match/$group/$project/$sort/$unwind)
@@ -231,77 +214,82 @@ Every time a module is completed:
 - **FAISS:** FlatL2/FlatIP → IVFFlat → HNSWFlat → IndexPQ → IndexIVFPQ — full recall@10 vs QPS sweep, IndexIDMap, serialization, selection guide
 - **Scripts:** `sql_basics.py` (sqlite3, zero-install), `nosql_patterns.py` (pure Python, zero-install), `chroma_demo.py`, `pinecone_demo.py` (mock mode, zero-install), `faiss_demo.py`
 
+### Module 04 — Backend with Flask (`docs/04-backend.md`, `src/04-backend/`)
+- **Flask Internals:** WSGI interface, request context lifecycle, thread-local `g` / `request` / `current_app`, `before_request` / `after_request` / `teardown_request` execution order
+- **App Factory:** `create_app(env)` pattern, `Config` class hierarchy (Base/Dev/Test/Prod), `from_object`, multi-environment isolation for testing
+- **Blueprints:** URL-scoped routing, per-blueprint error handlers and `before_request`, versioned APIs (`/api/v1/` and `/api/v2/`)
+- **REST Design:** Status code table (200/201/204/400/401/403/404/409/422/429/500/503), consistent error response schema, URL-path versioning
+- **ML Serving:** Model registry (thread-safe with `RLock`), startup model loading, sklearn Pipeline pickle, PyTorch `state_dict` + TorchScript serialization, single + batch `/predict` endpoints, input validation (NaN/Inf/type checks), throughput benchmarking
+- **Middleware:** `hmac.compare_digest` timing-safe auth, Token Bucket rate limiting (capacity/rate/thread-safe), per-client `PerClientRateLimiter`, structured JSON request logging, `X-Request-ID` propagation
+- **Async Tasks:** Celery config (`ContextTask`, `task_acks_late`, `worker_prefetch_multiplier=1`), task state machine (PENDING→STARTED→SUCCESS/FAILURE/RETRY), `bind=True` retry pattern, 202/poll pattern, worker pool comparison (prefork/gevent/solo), in-process simulation (no Redis needed for demo)
+- **Scripts:** `app.py` (factory, blueprints, test client demo), `ml_serving.py` (registry, sklearn + torch endpoints, serialization), `middleware.py` (auth, rate limit, logging demos), `async_tasks.py` (simulated broker, task types, Flask poll API)
+
+### Module 05 — Deep Learning & MLOps (`docs/05-deep-learning.md`, `src/05-deep-learning/`)
+- **Backpropagation:** Full derivation — $\delta^{(L)} = \hat{y} - y$ (BCE+sigmoid cancel), hidden $\delta^{(l)} = (W^{(l+1)T}\delta^{(l+1)}) \odot g'$, parameter gradients $\nabla W = \delta \mathbf{a}^T / m$
+- **Initialisation:** Zero symmetry failure, vanishing/exploding gradient causes, Xavier derivation ($\text{Var}[w] = 2/(n_{in}+n_{out})$), He ($2/n_{in}$), empirical stability comparison over 10 layers
+- **Activations:** ReLU/Sigmoid/Tanh/Softmax with gradients; numerically stable sigmoid (no overflow) and softmax implementations
+- **Optimizers:** SGD, Momentum (heavy ball), Nesterov, RMSProp (per-parameter adaptive LR), Adam (1st+2nd moment + bias correction derivation), AdamW (decoupled weight decay); convergence benchmark on ill-conditioned quadratic + Rosenbrock
+- **LR Scheduling:** StepDecay, CosineAnnealing, WarmupCosine (transformer schedule), ReduceOnPlateau
+- **Regularisation:** Dropout (inverted dropout, inference mode), BatchNorm (batch-wise normalisation, running stats, $\gamma/\beta$ learnable), LayerNorm (sample-wise, no batch dependency — used in transformers)
+- **MLflow:** Experiment/Run/Param/Metric/Artifact/Model hierarchy; `log_params`, `log_metric(step=)`, `log_artifact`, `log_model`; autolog; model registry lifecycle (None→Staging→Production→Archived); local filesystem backend (zero server, temp dir)
+- **Drift Detection:** KS test (empirical CDF, Kolmogorov distribution p-value), Chi-squared (categorical), PSI ($\sum(A-E)\ln(A/E)$, rule of thumb: >0.2 = major), MMD (RBF kernel, unbiased estimator), JS divergence; `DriftDetector` class; prediction drift as concept drift proxy; monitoring pipeline design
+- **Scripts:** `nn_numpy.py` (TwoLayerNN + DeepNN + numerical gradient check + mini-batch training loop), `optimizers.py` (6 optimizers + 4 schedulers + convergence benchmarks), `mlflow_demo.py` (4-model experiment + registry + autolog + artifact logging), `monitoring.py` (all 5 drift tests + DriftDetector + prediction drift + scipy validation)
+
 ---
 
-## UPCOMING MODULE PLAN (do not deviate from this)
+## UPCOMING MODULES — EXACT FILE PLANS
 
-### Module 04 — Backend with Flask
-Files to create:
-- `docs/04-backend.md`
-- `src/04-backend/app.py` — Flask app factory pattern, blueprints, error handlers
-- `src/04-backend/ml_serving.py` — load sklearn/torch model, /predict endpoint
-- `src/04-backend/middleware.py` — auth token check, rate limiting, request logging middleware
-- `src/04-backend/async_tasks.py` — Celery + Redis task queue pattern
-
-### Module 05 — Deep Learning & MLOps
-Files to create:
-- `docs/05-deep-learning.md`
-- `src/05-deep-learning/nn_numpy.py` — 2-layer NN forward + backprop, pure NumPy
-- `src/05-deep-learning/optimizers.py` — SGD/Momentum/RMSProp/Adam from scratch
-- `src/05-deep-learning/mlflow_demo.py` — experiment tracking, model registry
-- `src/05-deep-learning/monitoring.py` — data drift detection
-
-### Module 06 — GenAI Core
+### Module 06 — GenAI Core ← **BUILD THIS NEXT**
 Files to create:
 - `docs/06-genai-core.md`
-- `src/06-genai/attention.py` — scaled dot-product attention from scratch (NumPy)
-- `src/06-genai/multihead_attention.py` — MHA with projection matrices
-- `src/06-genai/positional_encoding.py` — sinusoidal PE + learned PE
-- `src/06-genai/word2vec.py` — skip-gram + negative sampling
-- `src/06-genai/kv_cache.py` — KV cache simulation + memory analysis
+- `src/06-genai/attention.py` — scaled dot-product attention from scratch (NumPy): $\text{Attention}(Q,K,V) = \text{softmax}(QK^T/\sqrt{d_k})V$
+- `src/06-genai/multihead_attention.py` — MHA with $W^Q, W^K, W^V, W^O$ projection matrices, head concatenation
+- `src/06-genai/positional_encoding.py` — sinusoidal PE ($\sin/\cos$ at different frequencies) + learned PE comparison
+- `src/06-genai/word2vec.py` — skip-gram with negative sampling, training loop, cosine similarity eval
+- `src/06-genai/kv_cache.py` — KV cache simulation, memory footprint math, generation with/without cache comparison
 
 ### Module 07 — Transformers from Scratch
 Files to create:
 - `docs/07-transformers.md`
-- `src/07-transformer/tokenizer.py` — BPE from scratch
-- `src/07-transformer/model.py` — full Transformer encoder-decoder (PyTorch)
-- `src/07-transformer/model_numpy.py` — inference-only Transformer (NumPy)
+- `src/07-transformer/tokenizer.py` — BPE from scratch (merge rules, vocab building)
+- `src/07-transformer/model.py` — full Transformer encoder-decoder (PyTorch): MHA, FFN, LayerNorm, residuals, masking
+- `src/07-transformer/model_numpy.py` — inference-only Transformer (pure NumPy, no autograd)
 - `src/07-transformer/model.cpp` — Transformer forward pass in C++
-- `src/07-transformer/train.py` — training loop, LR warmup, checkpointing
+- `src/07-transformer/train.py` — training loop, LR warmup, gradient clipping, checkpointing
 
 ### Module 08 — RAG Chatbot
 Files to create:
 - `docs/08-rag.md`
-- `src/08-rag/ingest.py` — PDF/text loader, chunking strategies
+- `src/08-rag/ingest.py` — PDF/text loader, chunking strategies (fixed-size, recursive, semantic)
 - `src/08-rag/embed_store.py` — embed chunks → ChromaDB
-- `src/08-rag/retriever.py` — cosine similarity + MMR + hybrid retrieval
+- `src/08-rag/retriever.py` — cosine similarity + MMR + hybrid BM25+dense retrieval
 - `src/08-rag/generator.py` — context injection + prompt template + LLM call
 - `src/08-rag/app.py` — full RAG pipeline Flask API
 - `src/08-rag/evaluate.py` — RAGAS: faithfulness, answer relevancy, context recall
 
-### Module 09 — Fine-Tuning
+### Module 09 — Fine-Tuning (LoRA/QLoRA)
 Files to create:
 - `docs/09-finetuning.md`
-- `src/09-finetuning/lora_theory.py` — LoRA rank decomposition, parameter count math
-- `src/09-finetuning/prepare_dataset.py` — instruction format, tokenization
-- `src/09-finetuning/train_lora.py` — PEFT + SFTTrainer + LoRA config
-- `src/09-finetuning/train_qlora.py` — 4-bit BitsAndBytes + QLoRA pipeline
-- `src/09-finetuning/evaluate.py` — perplexity, BLEU, ROUGE
-- `src/09-finetuning/merge_push.py` — merge adapters, push to Hub
+- `src/09-finetuning/lora_theory.py` — LoRA rank decomposition ($W = W_0 + BA$), parameter count math vs full fine-tuning
+- `src/09-finetuning/prepare_dataset.py` — instruction format, chat template, train/val split, tokenization
+- `src/09-finetuning/train_lora.py` — PEFT + SFTTrainer + LoRA config (r, alpha, target_modules)
+- `src/09-finetuning/train_qlora.py` — 4-bit BitsAndBytes + QLoRA full pipeline
+- `src/09-finetuning/evaluate.py` — perplexity, BLEU, ROUGE evaluation
+- `src/09-finetuning/merge_push.py` — merge LoRA adapters, push to Hub
 
 ---
 
 ## RULES FOR FUTURE SESSIONS (CRITICAL)
 
-1. **Read `docs/list.md`** to check current progress before starting any module.
-2. **Never skip ahead** — complete modules in order (04 → 05 → ... → 09).
+1. **Read `docs/list.md`** to verify current module status before touching anything.
+2. **Never skip ahead** — complete modules in order (06 → 07 → 08 → 09).
 3. **Pause after each module** and wait for user approval before starting the next.
-4. **No half-done modules** — every module must have BOTH the `.md` guide AND all `src/` scripts.
+4. **No half-done modules** — every module must have BOTH the `.md` guide AND all `src/` scripts before committing.
 5. **Commit after every module** — use the HEREDOC commit format described above.
-6. **Update `context.md`** — after completing each module, update the progress table here and the "completed module summary" section.
+6. **Update `context.md`** — after completing each module: move it from "UPCOMING" to "COMPLETED SUMMARIES", update the progress table, update the footer timestamps.
 7. **No AI attribution anywhere** — no "Claude", no "Anthropic", no "AI-generated" in any file.
 8. **No matplotlib GUI** — all script output is terminal-printable only.
-9. **Math notation consistency** — use the same LaTeX conventions as modules 01-03:
+9. **Math notation consistency** — use the same LaTeX conventions as existing modules:
    - Weight vectors: $\mathbf{w}$
    - Matrices: $A$, $W$, $\Sigma$
    - Loss: $\mathcal{L}$
@@ -319,10 +307,11 @@ Files to create:
 2. Run: git log --oneline -5   (verify recent commits)
 3. Check docs/list.md for current module status.
 4. Ask user which module to proceed with (or they will tell you).
-5. Build the next module: doc first outline → full content → all src scripts → list.md update → commit.
+5. Build the next module: doc first → all src scripts → list.md update → context.md update → commit.
 ```
 
 ---
 
 *Last updated after: Module 05 complete (Deep Learning & MLOps)*
+*Modules complete: 01, 02, 03, 04, 05*
 *Next: Module 06 — GenAI Core*
