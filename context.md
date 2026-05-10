@@ -36,6 +36,7 @@ guide/
 │   ├── 03-databases.md     ← [COMPLETE]
 │   ├── 04-backend.md       ← [COMPLETE]
 │   ├── 05-deep-learning.md ← [COMPLETE]
+│   ├── 06-genai-core.md    ← [COMPLETE]
 │   └── ...                 ← future modules land here
 ├── src/
 │   ├── requirements.txt    ← pinned deps for ALL 9 modules
@@ -47,6 +48,8 @@ guide/
 │   │                          pinecone_demo.py, faiss_demo.py
 │   ├── 04-backend/         ← app.py, ml_serving.py, middleware.py, async_tasks.py
 │   ├── 05-deep-learning/   ← nn_numpy.py, optimizers.py, mlflow_demo.py, monitoring.py
+│   ├── 06-genai/           ← word2vec.py, attention.py, multihead_attention.py,
+│   │                          positional_encoding.py, kv_cache.py
 │   └── ...                 ← future src modules land here
 └── frontend/
     ├── index.html          ← Neo-Brutalism UI (marked.js + highlight.js + MathJax)
@@ -65,12 +68,12 @@ guide/
 | 03 | Databases & Vector DBs | ✅ COMPLETE | `docs/03-databases.md` | `src/03-databases/` |
 | 04 | Backend with Flask | ✅ COMPLETE | `docs/04-backend.md` | `src/04-backend/` |
 | 05 | Deep Learning & MLOps | ✅ COMPLETE | `docs/05-deep-learning.md` | `src/05-deep-learning/` |
-| 06 | GenAI Core | ⬜ NOT STARTED | `docs/06-genai-core.md` | `src/06-genai/` |
+| 06 | GenAI Core | ✅ COMPLETE | `docs/06-genai-core.md` | `src/06-genai/` |
 | 07 | Transformers from Scratch | ⬜ NOT STARTED | `docs/07-transformers.md` | `src/07-transformer/` |
 | 08 | RAG Chatbot | ⬜ NOT STARTED | `docs/08-rag.md` | `src/08-rag/` |
 | 09 | Fine-Tuning (LoRA/QLoRA) | ⬜ NOT STARTED | `docs/09-finetuning.md` | `src/09-finetuning/` |
 
-**Next module to build: Module 06 — GenAI Core**
+**Next module to build: Module 07 — Transformers from Scratch**
 
 ---
 
@@ -224,6 +227,15 @@ Every time a module is completed:
 - **Async Tasks:** Celery config (`ContextTask`, `task_acks_late`, `worker_prefetch_multiplier=1`), task state machine (PENDING→STARTED→SUCCESS/FAILURE/RETRY), `bind=True` retry pattern, 202/poll pattern, worker pool comparison (prefork/gevent/solo), in-process simulation (no Redis needed for demo)
 - **Scripts:** `app.py` (factory, blueprints, test client demo), `ml_serving.py` (registry, sklearn + torch endpoints, serialization), `middleware.py` (auth, rate limit, logging demos), `async_tasks.py` (simulated broker, task types, Flask poll API)
 
+### Module 06 — GenAI Core (`docs/06-genai-core.md`, `src/06-genai/`)
+- **Word2Vec skip-gram:** Skip-gram objective, negative sampling loss/gradients ($\mathcal{L}_{\text{NEG}}$), noise distribution $P_n \propto f^{3/4}$, numerical gradient check, cosine similarity nearest neighbours, analogy via $\mathbf{v}_b - \mathbf{v}_a + \mathbf{v}_c$, FastText subword $n$-gram decomposition
+- **Sentence Transformers:** Mean-pool SBERT, cosine similarity = L2 distance for unit-normalised vectors, use cases (semantic search, clustering, deduplication, cross-lingual)
+- **Scaled dot-product attention:** $\text{Attention}(Q,K,V) = \text{softmax}(QK^\top/\sqrt{d_k})V$, variance scaling derivation, numerically stable softmax, causal mask ($-\infty$ additive), cross-attention, $O(n^2 d)$ complexity table
+- **Multi-head attention:** $W^Q, W^K, W^V, W^O$ projection matrices, head split/concat, GPT-2 parameter count worked example, MQA (shared K/V, $h\times$ cache reduction), GQA ($h/g\times$ reduction, used in LLaMA 2/3)
+- **Positional encoding:** Sinusoidal formula (sin/cos at $\omega_i = 1/10000^{2i/d}$), frequency spectrum, relative position property ($PE_{\text{pos}}^\top PE_{\text{pos}+k} \approx f(k)$), learned PE table, RoPE 2D rotation demo (relative offset preserved in dot product)
+- **KV cache:** Autoregressive generation loop with/without cache, FLOP comparison ($O(T^2 d)$ vs $O(Td)$ projection), memory formula $2 \times B \times T \times L \times h \times d_k \times 2$ bytes, GPT-3 ≈ 9.66 GB at $T=2048$, MQA/GQA/quantisation reduction table, PagedAttention virtual memory analogy
+- **Scripts:** `word2vec.py` (skip-gram NS + gradient check + analogy), `attention.py` (step-by-step + causal + cross), `multihead_attention.py` (MHA + MQA + GQA classes), `positional_encoding.py` (sinusoidal + learned + RoPE), `kv_cache.py` (timing benchmark + memory math + cache growth chart)
+
 ### Module 05 — Deep Learning & MLOps (`docs/05-deep-learning.md`, `src/05-deep-learning/`)
 - **Backpropagation:** Full derivation — $\delta^{(L)} = \hat{y} - y$ (BCE+sigmoid cancel), hidden $\delta^{(l)} = (W^{(l+1)T}\delta^{(l+1)}) \odot g'$, parameter gradients $\nabla W = \delta \mathbf{a}^T / m$
 - **Initialisation:** Zero symmetry failure, vanishing/exploding gradient causes, Xavier derivation ($\text{Var}[w] = 2/(n_{in}+n_{out})$), He ($2/n_{in}$), empirical stability comparison over 10 layers
@@ -239,16 +251,7 @@ Every time a module is completed:
 
 ## UPCOMING MODULES — EXACT FILE PLANS
 
-### Module 06 — GenAI Core ← **BUILD THIS NEXT**
-Files to create:
-- `docs/06-genai-core.md`
-- `src/06-genai/attention.py` — scaled dot-product attention from scratch (NumPy): $\text{Attention}(Q,K,V) = \text{softmax}(QK^T/\sqrt{d_k})V$
-- `src/06-genai/multihead_attention.py` — MHA with $W^Q, W^K, W^V, W^O$ projection matrices, head concatenation
-- `src/06-genai/positional_encoding.py` — sinusoidal PE ($\sin/\cos$ at different frequencies) + learned PE comparison
-- `src/06-genai/word2vec.py` — skip-gram with negative sampling, training loop, cosine similarity eval
-- `src/06-genai/kv_cache.py` — KV cache simulation, memory footprint math, generation with/without cache comparison
-
-### Module 07 — Transformers from Scratch
+### Module 07 — Transformers from Scratch ← **BUILD THIS NEXT**
 Files to create:
 - `docs/07-transformers.md`
 - `src/07-transformer/tokenizer.py` — BPE from scratch (merge rules, vocab building)
@@ -312,6 +315,6 @@ Files to create:
 
 ---
 
-*Last updated after: Module 05 complete (Deep Learning & MLOps)*
-*Modules complete: 01, 02, 03, 04, 05*
-*Next: Module 06 — GenAI Core*
+*Last updated after: Module 06 complete (GenAI Core)*
+*Modules complete: 01, 02, 03, 04, 05, 06*
+*Next: Module 07 — Transformers from Scratch*
