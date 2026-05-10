@@ -153,7 +153,7 @@
 ---
 
 ## Module 07 — Transformers from Scratch
-**Status:** `[~]` In Progress
+**Status:** `[x]` Completed
 **Guide:** `docs/07-transformers.md`
 **Code:** `src/07-transformer/`
 
@@ -177,7 +177,7 @@
 ---
 
 ## Module 08 — RAG Chatbot
-**Status:** `[ ]` Not Started
+**Status:** `[~]` In Progress
 **Guide:** `docs/08-rag.md`
 **Code:** `src/08-rag/`
 
@@ -227,4 +227,4 @@
 
 ---
 
-*Last updated: Module 06 complete — GenAI Core*
+*Last updated: Module 07 complete — Transformers from Scratch*
