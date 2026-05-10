@@ -72,10 +72,10 @@ guide/
 | 05 | Deep Learning & MLOps | ✅ COMPLETE | `docs/05-deep-learning.md` | `src/05-deep-learning/` |
 | 06 | GenAI Core | ✅ COMPLETE | `docs/06-genai-core.md` | `src/06-genai/` |
 | 07 | Transformers from Scratch | ✅ COMPLETE | `docs/07-transformers.md` | `src/07-transformer/` |
-| 08 | RAG Chatbot | ⬜ NOT STARTED | `docs/08-rag.md` | `src/08-rag/` |
+| 08 | RAG Chatbot | ✅ COMPLETE | `docs/08-rag.md` | `src/08-rag/` |
 | 09 | Fine-Tuning (LoRA/QLoRA) | ⬜ NOT STARTED | `docs/09-finetuning.md` | `src/09-finetuning/` |
 
-**Next module to build: Module 08 — RAG Chatbot**
+**Next module to build: Module 09 — Fine-Tuning (LoRA/QLoRA)**
 
 ---
 
@@ -258,21 +258,21 @@ Every time a module is completed:
 - **Variants table:** BERT (encoder, MLM), GPT (decoder, causal LM), T5 (enc-dec), LLaMA (RoPE + SwiGLU + GQA + RMSNorm), Mistral (GQA + sliding window)
 - **Scripts:** `tokenizer.py` (BPE from scratch, merge trace, round-trip), `model.py` (PyTorch enc-dec, Pre-LN, Xavier init, greedy decode — graceful skip without torch), `model_numpy.py` (pure NumPy encoder, PyTorch equivalence check < 1e-4), `model.cpp` (C++17 no deps, matmul/MHA/LN/FFN/causal mask, compiles with `g++ -O2 -std=c++17`), `train.py` (seq-reversal task, transformer LR schedule, label smoothing, gradient clipping, beam search, checkpoint save/load)
 
+### Module 08 — RAG Chatbot (`docs/08-rag.md`, `src/08-rag/`)
+- **Architecture:** RAG pipeline (retrieve → inject → generate), parametric vs non-parametric knowledge, RAG vs fine-tuning comparison table
+- **Chunking:** Fixed-size (sliding window, $w=512$, $o=50$), recursive character splitting (paragraph→sentence→word fallback), semantic chunking (cosine similarity between adjacent sentence embeddings, split at $\text{sim} < \tau$)
+- **Embedding:** TF-IDF from scratch (vocab fit, IDF = $\log((N+1)/(df+1))+1$, random projection to dense), ChromaDB ingestion (graceful skip), batch upsert, cosine similarity matrix
+- **Retrieval:** Dense (brute-force cosine), BM25 from scratch ($k_1=1.5$, $b=0.75$, IDF Robertson variant), hybrid RRF ($\text{RRF}(d) = \sum 1/(k+r)$, $k=60$), hybrid linear ($\alpha$ interpolation with min-max normalisation), MMR (greedy $\lambda$-blend of relevance and anti-redundancy)
+- **Generation:** Context window budget analysis (~4 chars/token), prompt template (context-first, explicit "I don't know"), mock LLM (token overlap sentence extraction), OpenAI-compatible wrapper (graceful skip), citation formatting with source metadata
+- **Flask API:** `POST /ingest`, `POST /query` (strategy parameter), `GET /collection`, `DELETE /collection`; strategy selector (dense/bm25/hybrid/mmr); in-process pipeline state; `--serve` flag to start server
+- **Evaluation:** Faithfulness (sentence-level recall > 0.2 threshold), Answer Relevancy (embedding cosine similarity), Context Precision (BM25 overlap + Average Precision), Context Recall (GT sentence support), RAGEvaluator aggregate over test sets, metric comparison table (which need GT labels)
+- **Scripts:** `ingest.py` (3 chunking strategies + TXT/PDF loader + stats + strategy comparison), `embed_store.py` (TFIDFEmbedder + InMemoryVectorStore + ChromaStore + batch benchmark), `retriever.py` (BM25 + DenseRetriever + HybridRetriever + MMR + latency benchmark), `generator.py` (prompt templates + budget analysis + MockLLM + OpenAI wrapper + citation formatter), `app.py` (full pipeline + Flask routes + CLI demo + latency benchmark), `evaluate.py` (all 4 RAGAS metrics from scratch + RAGEvaluator + token F1 vs embedding sim comparison)
+
 ---
 
 ## UPCOMING MODULES — EXACT FILE PLANS
 
-### Module 08 — RAG Chatbot ← **BUILD THIS NEXT**
-Files to create:
-- `docs/08-rag.md`
-- `src/08-rag/ingest.py` — PDF/text loader, chunking strategies (fixed-size, recursive, semantic)
-- `src/08-rag/embed_store.py` — embed chunks → ChromaDB
-- `src/08-rag/retriever.py` — cosine similarity + MMR + hybrid BM25+dense retrieval
-- `src/08-rag/generator.py` — context injection + prompt template + LLM call
-- `src/08-rag/app.py` — full RAG pipeline Flask API
-- `src/08-rag/evaluate.py` — RAGAS: faithfulness, answer relevancy, context recall
-
-### Module 09 — Fine-Tuning (LoRA/QLoRA)
+### Module 09 — Fine-Tuning (LoRA/QLoRA) ← **BUILD THIS NEXT**
 Files to create:
 - `docs/09-finetuning.md`
 - `src/09-finetuning/lora_theory.py` — LoRA rank decomposition ($W = W_0 + BA$), parameter count math vs full fine-tuning
@@ -318,6 +318,6 @@ Files to create:
 
 ---
 
-*Last updated after: Module 07 complete (Transformers from Scratch)*
-*Modules complete: 01, 02, 03, 04, 05, 06, 07*
-*Next: Module 08 — RAG Chatbot*
+*Last updated after: Module 08 complete (RAG Chatbot)*
+*Modules complete: 01, 02, 03, 04, 05, 06, 07, 08*
+*Next: Module 09 — Fine-Tuning (LoRA/QLoRA)*

@@ -177,7 +177,7 @@
 ---
 
 ## Module 08 — RAG Chatbot
-**Status:** `[~]` In Progress
+**Status:** `[x]` Completed
 **Guide:** `docs/08-rag.md`
 **Code:** `src/08-rag/`
 
@@ -202,7 +202,7 @@
 ---
 
 ## Module 09 — Fine-Tuning
-**Status:** `[ ]` Not Started
+**Status:** `[~]` In Progress
 **Guide:** `docs/09-finetuning.md`
 **Code:** `src/09-finetuning/`
 
@@ -227,4 +227,4 @@
 
 ---
 
-*Last updated: Module 07 complete — Transformers from Scratch*
+*Last updated: Module 08 complete — RAG Chatbot*
