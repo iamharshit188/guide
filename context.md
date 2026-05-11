@@ -17,11 +17,11 @@
 - Local dev: `python server.py` → `http://localhost:3000`
 
 **Current status as of 2026-05-11:**
-- ✅ All 9 modules COMPLETE (guides + scripts + prerequisites sections + resources sections)
+- ✅ All 13 modules COMPLETE (guides + scripts + prerequisites sections + resources sections)
 - ✅ GitHub Pages 404 bug FIXED (`.md` link intercept in `app.js`)
-- 🔲 Projects section NOT started (9 project guides + frontend changes needed)
-- 🔲 Modules 10–13 NOT started (Agents, Deployment, RLHF, Multimodal)
-- 🔲 Content polish NOT started (Q&A banks, cheat sheets, DT section, etc.)
+- ✅ Projects section COMPLETE (9 project guides in `docs/projects/` + frontend: `app.js`, `index.html`, `style.css`)
+- ✅ Modules 10–13 COMPLETE (Agents, Deployment, RLHF, Multimodal)
+- ✅ Content polish COMPLETE (Q&A banks 01–04, cheat sheets all modules, DT section, Redis, gRPC, reranking, ONNX export)
 
 **Session boot sequence:**
 ```
@@ -403,6 +403,8 @@ Fix these in any order when time permits:
 ---
 
 *Last updated: 2026-05-11*
-*Modules complete: 01–09 (ALL). Each has Prerequisites + Resources sections.*
-*Recent: 404 fix in app.js (link intercept), Prerequisites + Resources added to all 9 modules*
-*Open: TODO 1 (Projects), TODO 2 (Modules 10–13), TODO 3 (content polish)*
+*ALL TODOs COMPLETE: 13 modules + 9 projects + content polish*
+*Modules 01–13: guides + scripts + Q&A banks + cheat sheets*
+*Projects: 9 guides in docs/projects/ + frontend (app.js, index.html, style.css)*
+*Content polish: DT section (02), Redis (03), gRPC (04), ONNX export (05), reranking (08)*
+*Open: nothing — platform is fully built*
