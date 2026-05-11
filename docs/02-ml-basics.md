@@ -457,4 +457,69 @@ Split only if $\text{Gain} > 0$.
 
 ---
 
+## Interview Reference — ML Basics
+
+### Q: What is the bias-variance tradeoff and how do you diagnose each?
+
+Generalization error = $\text{Bias}^2 + \text{Variance} + \text{Irreducible noise}$. High bias (underfitting): training error ≈ validation error, both high → model too simple. High variance (overfitting): training error low, validation error high → model too complex. Diagnosis: learning curves (plot train/val error vs. training set size). Fix: high bias → more features, deeper model, less regularization. High variance → more data, regularization, dropout, bagging.
+
+### Q: Why does logistic regression output a probability and not just a class label?
+
+The sigmoid $\sigma(z) = 1/(1+e^{-z})$ squashes the linear output $z = \mathbf{w}^\top\mathbf{x} + b$ to $(0,1)$, which can be interpreted as $P(y=1|x)$ under a Bernoulli model. This allows calibrated probability estimates (not just class labels) and enables threshold tuning: changing the decision boundary from 0.5 to some $\tau$ adjusts precision/recall tradeoff without retraining.
+
+### Q: What is the kernel trick in SVMs?
+
+Mapping data to a high-dimensional feature space $\phi(x)$ allows linear separation of non-linearly separable data. The kernel trick avoids computing $\phi(x)$ explicitly: the dual SVM only needs $\phi(x_i)^\top\phi(x_j) = K(x_i, x_j)$, which can be computed cheaply. RBF kernel: $K(x,z) = \exp(-\gamma\|x-z\|^2)$ implicitly maps to infinite-dimensional space. Time complexity is $O(n^2)$ for kernel matrix, $O(n^3)$ for training.
+
+### Q: How does Gini differ from entropy as a splitting criterion in decision trees?
+
+Both measure node impurity. Gini: $G = 1 - \sum_k p_k^2$, range $[0, 1-1/K]$, computationally cheaper (no log). Entropy: $H = -\sum_k p_k\log_2 p_k$, range $[0, \log_2 K]$, slightly more sensitive to class imbalance. In practice, they almost always produce identical trees. CART uses Gini by default; ID3/C4.5 use Information Gain (entropy-based).
+
+### Q: What is gradient boosting and how does it differ from bagging?
+
+Bagging trains trees **in parallel** on bootstrap samples → reduces variance. Boosting trains trees **sequentially**, each fitting the residuals (negative gradient of loss) of the ensemble so far → reduces bias. XGBoost loss: $\mathcal{L} = \sum_i l(y_i, \hat{y}_i) + \sum_k\Omega(f_k)$ where $\Omega(f) = \gamma T + \frac{1}{2}\lambda\|w\|^2$ regularizes tree complexity.
+
+### Q: When would you use DBSCAN over K-Means?
+
+K-Means requires knowing $K$, assumes spherical clusters, is sensitive to outliers (outliers join the nearest centroid). DBSCAN: no $K$ required, discovers arbitrary shapes, marks outliers as noise (points not in any dense region). DBSCAN fails in high dimensions (curse of dimensionality kills density estimates) and with highly variable density clusters ($\epsilon$ is global).
+
+### Q: What does PCA maximize / minimize?
+
+PCA finds the projection directions that **maximize variance** of projected data (equivalently, minimize reconstruction error). The first PC is $\mathbf{u}_1 = \arg\max_{\|\mathbf{u}\|=1} \mathbf{u}^\top C \mathbf{u}$ where $C = \frac{1}{n}X^\top X$ is the covariance matrix. Solution: $\mathbf{u}_1$ = eigenvector of $C$ with largest eigenvalue. PCA assumes the signal is in directions of high variance — fails when important variation is low-variance or non-linear.
+
+### Q: How does XGBoost prevent overfitting?
+
+1. **Shrinkage (learning rate $\eta$):** scale each new tree contribution by $\eta$ — leaves more room for future trees to correct. 2. **Column subsampling:** like Random Forests, randomly sample features at each split. 3. **L1/L2 regularization on leaf weights** ($\lambda\|w\|^2 + \alpha|w|$). 4. **Max depth / min child weight:** structural constraints. 5. **Early stopping:** monitor validation loss; stop if no improvement for $N$ rounds.
+
+### Q: What is precision-recall tradeoff and when do you optimize each?
+
+Precision = TP/(TP+FP): fraction of positive predictions that are correct. Recall = TP/(TP+FN): fraction of actual positives caught. Tradeoff: raising the decision threshold increases precision (fewer false positives) but decreases recall (miss more positives). Optimize precision when false positives are costly (spam filter). Optimize recall when false negatives are costly (cancer screening). F1 = harmonic mean when both matter equally.
+
+---
+
+## Cheat Sheet — ML Basics
+
+| Concept | Formula / Key Fact |
+|---------|-------------------|
+| Linear regression OLS | $\hat{\mathbf{w}} = (X^\top X)^{-1}X^\top y$ |
+| Ridge (L2) | $\hat{\mathbf{w}} = (X^\top X + \lambda I)^{-1}X^\top y$; shrinks all weights |
+| Lasso (L1) | Induces sparsity; no closed form → coordinate descent |
+| Logistic sigmoid | $\sigma(z) = 1/(1+e^{-z})$; $\sigma'(z) = \sigma(1-\sigma)$ |
+| Binary cross-entropy | $\mathcal{L} = -[y\log\hat{p} + (1-y)\log(1-\hat{p})]$ |
+| SVM primal | $\min \frac{1}{2}\|\mathbf{w}\|^2$ s.t. $y_i(\mathbf{w}^\top\mathbf{x}_i+b) \geq 1$ |
+| RBF kernel | $K(x,z) = \exp(-\gamma\|x-z\|^2)$ |
+| Gini impurity | $G = 1 - \sum_k p_k^2$ |
+| Information gain | $\text{IG} = H(S) - \frac{|S_L|}{|S|}H(S_L) - \frac{|S_R|}{|S|}H(S_R)$ |
+| RF feature subset | $m = \lfloor\sqrt{d}\rfloor$ (classification), $\lfloor d/3\rfloor$ (regression) |
+| OOB error | ~36.8% of training points not in each bootstrap → free validation |
+| XGBoost leaf weight | $w_j^* = -G_j/(H_j + \lambda)$ |
+| K-Means update | centroid = mean of assigned points; repeat until convergence |
+| PCA | eigenvectors of covariance $C = X^\top X/n$; ordered by eigenvalue |
+| Precision | TP / (TP + FP) |
+| Recall | TP / (TP + FN) |
+| F1 | $2 \cdot \frac{P \cdot R}{P + R}$ |
+| ROC-AUC | P(score(pos) > score(neg)); 0.5=random, 1.0=perfect |
+
+---
+
 *Next: [Module 03 — Databases & Vector DBs](03-databases.md)*

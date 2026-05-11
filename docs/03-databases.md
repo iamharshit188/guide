@@ -444,6 +444,124 @@ gpu_index = faiss.index_cpu_to_gpu(res, 0, cpu_index)
 
 ---
 
+## 9. Redis — Caching Layer for ML Systems
+
+Redis is an in-memory key-value store used as a caching layer between ML services and backends. Common patterns: embedding cache (avoid re-encoding the same query), prediction cache (memoize expensive model calls), session store for RAG conversation history.
+
+### 9.1 Key Patterns
+
+**Embedding cache:** Hash the query string → store (embedding vector, TTL) as Redis key. Subsequent identical queries skip the model call.
+
+```python
+import hashlib, json, numpy as np
+
+def get_or_compute_embedding(query: str, model, redis_client, ttl: int = 3600):
+    key = "emb:" + hashlib.sha256(query.encode()).hexdigest()[:16]
+    cached = redis_client.get(key)
+    if cached:
+        return np.frombuffer(cached, dtype=np.float32)
+    emb = model.encode(query).astype(np.float32)
+    redis_client.setex(key, ttl, emb.tobytes())
+    return emb
+```
+
+**LRU cache with max memory:** Redis evicts least-recently-used keys when `maxmemory` is reached.
+
+```
+# redis.conf (or via CONFIG SET)
+maxmemory 2gb
+maxmemory-policy allkeys-lru
+```
+
+### 9.2 Pipeline Batching
+
+Every `redis.get()` is a round-trip (~0.1ms on localhost, ~1ms on network). For bulk ops, pipeline batches multiple commands into one round-trip:
+
+```python
+pipe = redis_client.pipeline()
+for key in keys:
+    pipe.get(key)
+results = pipe.execute()   # one round-trip for N commands
+```
+
+### 9.3 Connection Pooling
+
+```python
+import redis
+pool = redis.ConnectionPool(host="localhost", port=6379, db=0,
+                            max_connections=20, decode_responses=False)
+client = redis.Redis(connection_pool=pool)
+```
+
+Never create a new connection per request — connection pools amortize TCP handshake overhead.
+
+### 9.4 Interview Trade-offs
+
+| Property | Detail |
+|----------|--------|
+| Persistence | RDB snapshots (periodic) + AOF (append-only log); both optional |
+| Data structures | Strings, Lists, Sets, Sorted Sets, Hashes, HyperLogLog, Streams |
+| Cache invalidation | TTL-based; or explicit `DEL`/`UNLINK`; or keyspace notifications |
+| Consistency | Single-threaded command execution → no race conditions on atomic ops |
+| Cluster scaling | Hash slots (16384); shards 0-5460, 5461-10922, 10923-16383 |
+| vs. Memcached | Redis has persistence, richer data types, pub/sub, Lua scripting |
+
+---
+
+## Interview Reference — Databases & Vector DBs
+
+### Q: What is a B+ tree index and why does SQL use it?
+
+B+ trees keep all data in leaf nodes (connected as a linked list) and use internal nodes only for routing. This enables both equality lookup ($O(\log n)$) and range scans ($O(\log n + k)$ for $k$ results — just traverse the leaf linked list). B+ tree depth stays $\leq 4$ for billions of rows with branching factor ~200.
+
+### Q: What does EXPLAIN tell you and which metrics matter?
+
+`EXPLAIN ANALYZE` shows actual vs. estimated row counts, execution time, and access methods per node. Key signals: **Seq Scan** on a large table (missing index), **Nested Loop** with large outer set (O(n²) risk), large row count estimation errors (stale statistics → run `ANALYZE`). Cost units are arbitrary — compare relative values, not absolute.
+
+### Q: What is the CAP theorem?
+
+A distributed system can guarantee at most two of: **Consistency** (every read sees the latest write), **Availability** (every request gets a response), **Partition tolerance** (system works despite network partition). Since partitions are unavoidable in distributed networks, the real choice is CP (prefer consistency, may refuse requests) vs. AP (prefer availability, may return stale data). Cassandra = AP; HBase = CP; DynamoDB = tunable.
+
+### Q: How does HNSW handle approximate nearest neighbor search?
+
+HNSW builds a multi-layer graph. Layer 0 has all nodes with short-range edges; higher layers have fewer nodes with long-range edges. Search: enter at highest layer, greedily traverse toward query, descend to lower layers, repeat. This approximates a skip list in high dimensions. Time: $O(\log n)$ per query; Space: $O(n \log n)$. Approximate because greedy search may not find the true global optimum.
+
+### Q: What is the difference between dense and sparse retrieval?
+
+Dense: embed query and documents into $\mathbb{R}^d$; compute cosine similarity. Captures semantic meaning; fails on rare terms (out-of-vocab). Sparse: BM25 or TF-IDF; exact term matching; fast with inverted index; fails on synonyms. Hybrid = weighted sum of both scores — best of both worlds. Most production RAG systems use hybrid search.
+
+### Q: What is product quantization in FAISS?
+
+PQ splits the $d$-dimensional vector into $M$ sub-vectors of $d/M$ dimensions each. Each sub-vector is quantized to one of $K=256$ centroids. Result: each vector stored as $M$ bytes instead of $d \times 4$ bytes → $4d/M$ compression. Distance computed as sum of pre-computed sub-distance table lookups → fast. IVF-PQ = coarse clustering (IVF) + fine quantization (PQ).
+
+### Q: What is a TTL and how does cache invalidation work in Redis?
+
+TTL (time-to-live): Redis automatically deletes a key after `N` seconds. Set via `SETEX key ttl value` or `EXPIRE key ttl`. Cache invalidation strategies: (1) TTL only — simplest, accepts staleness up to TTL. (2) Write-through — update cache on every DB write. (3) Cache-aside — read cache first; on miss, load from DB and populate cache. (4) Write-behind — write to cache, async flush to DB.
+
+---
+
+## Cheat Sheet — Databases & Vector DBs
+
+| Concept | Key Fact |
+|---------|----------|
+| B+ tree | $O(\log n)$ lookup + range scan; leaf linked list |
+| Composite index | Leftmost prefix rule: index (a,b,c) helps queries on a, (a,b), (a,b,c) but not b alone |
+| EXPLAIN ANALYZE | Seq Scan = no index used; Hash Join = large unsorted sets |
+| CAP theorem | Pick 2: Consistency / Availability / Partition tolerance |
+| Eventual consistency | Writes propagate over time; reads may see stale data |
+| Cosine similarity | $\cos(\mathbf{a},\mathbf{b}) = \mathbf{a}\cdot\mathbf{b}$ for unit vectors |
+| HNSW | Multi-layer graph; $O(\log n)$ approx-ANN; tuned by `ef_construction`, `M` |
+| IVF | K-means clusters; search only `nprobe` nearest clusters |
+| PQ compression | Split $d$-dim into $M$ sub-vectors × 256 centroids = $M$ bytes/vector |
+| ChromaDB | Local dev RAG; simple Python API; default HNSW |
+| Pinecone | Managed; sparse-dense hybrid; namespaces for multi-tenancy |
+| FAISS IndexFlatL2 | Exact brute-force; reference baseline |
+| Redis LRU | `maxmemory-policy allkeys-lru`; evicts least-recently-used on OOM |
+| Redis pipeline | Batch N commands → 1 round-trip |
+| TTL | `SETEX key seconds value`; auto-delete after expiry |
+
+---
+
 ## Resources
 
 ### SQL

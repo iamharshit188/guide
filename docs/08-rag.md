@@ -394,7 +394,57 @@ Without an LLM evaluator, approximate each metric:
 
 ---
 
-## 8. Interview Q&A
+## 8. Reranking
+
+Retrieve 20 candidates with a fast bi-encoder (dense/BM25), then rerank with a slower but more accurate cross-encoder to keep the top 5. This two-stage approach balances recall (retrieval) and precision (reranking).
+
+### 8.1 Why Bi-Encoder Retrieval Fails
+
+Bi-encoder embeds query and documents **independently**: $s = \cos(\mathbf{q}, \mathbf{d})$. The dot product sees no interaction between query and document tokens — it only measures direction similarity in embedding space. Two semantically distant sentences can have similar embeddings if they use the same words in different contexts.
+
+### 8.2 Cross-Encoder Reranking
+
+A cross-encoder concatenates query and document and passes them through a single transformer: `[CLS] query [SEP] document [SEP]`. The [CLS] output is fed to a linear head → relevance score. Every query-document token pair attends to each other → far richer interaction, much higher accuracy.
+
+```python
+from sentence_transformers import CrossEncoder
+
+reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+
+def rerank(query: str, candidates: list[str], top_k: int = 5) -> list[str]:
+    pairs = [(query, doc) for doc in candidates]
+    scores = reranker.predict(pairs)        # shape (n_candidates,)
+    ranked = sorted(zip(scores, candidates), reverse=True)
+    return [doc for _, doc in ranked[:top_k]]
+
+# Usage in RAG pipeline
+candidates = retriever.get_top_k(query, k=20)   # fast bi-encoder
+final_docs  = rerank(query, candidates, top_k=5)  # slow cross-encoder
+```
+
+### 8.3 ColBERT — Late Interaction
+
+ColBERT computes per-token embeddings for both query and document:
+- Query: $Q = [q_1, \ldots, q_m] \in \mathbb{R}^{m \times d}$
+- Document: $D = [d_1, \ldots, d_n] \in \mathbb{R}^{n \times d}$
+
+Score: $S(q,d) = \sum_{i=1}^{m} \max_{j=1}^{n} q_i \cdot d_j$
+
+Each query token finds its best matching document token (MaxSim). This is faster than full cross-encoder (document embeddings pre-computable) but more expressive than bi-encoder (token-level interaction).
+
+### 8.4 Reranking in Production
+
+| Stage | Model | Candidates | Latency | Accuracy |
+|-------|-------|-----------|---------|---------|
+| Retrieval | Bi-encoder + BM25 hybrid | Top 100 | ~10ms | Moderate |
+| Reranking | Cross-encoder MiniLM | Top 100 → 5 | ~50ms | High |
+| Prompt | GPT-4 / Claude | Top 5 | ~1000ms | — |
+
+Trade-off: cross-encoder is $O(k)$ transformer forward passes vs. $O(1)$ ANN search — use smallest effective reranker (MiniLM-L-6 ≈ 22M params is standard).
+
+---
+
+## 9. Interview Q&A
 
 **Q: What is the difference between RAG and fine-tuning for domain adaptation?**
 Fine-tuning bakes knowledge into weights — expensive to update, can catastrophically forget. RAG externalises knowledge — update the document store without touching model weights. RAG provides source attribution; fine-tuned models cannot cite evidence. Use RAG for frequently-updated knowledge bases; use fine-tuning for style/format adaptation or domain-specific reasoning patterns.

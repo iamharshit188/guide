@@ -49,6 +49,7 @@
 | `src/02-ml/random_forest.py` | Bagging, feature importance, OOB error |
 | `src/02-ml/svm.py` | Kernel trick, dual form, soft margin |
 | `src/02-ml/gradient_boosting.py` | XGBoost math, residuals, shrinkage |
+| `src/02-ml/decision_tree.py` | CART from scratch, Gini/entropy, pruning, feature importance |
 
 ### Checklist
 - [ ] Linear & Logistic Regression
@@ -117,6 +118,7 @@
 | `src/05-deep-learning/mlflow_demo.py` | Experiment tracking, model registry, artifact logging |
 | `src/05-deep-learning/docker_serve/` | Dockerfile + Flask model server |
 | `src/05-deep-learning/monitoring.py` | Data drift detection with Evidently |
+| `src/05-deep-learning/onnx_export.py` | ONNX graph structure, sklearn Pipeline → ONNX, NumPy MLP → ONNX, onnxruntime inference |
 
 ### Checklist
 - [ ] Neural networks from scratch (NumPy)
@@ -320,4 +322,4 @@
 
 ---
 
-*Last updated: Module 13 complete — Multimodal Models*
+*Last updated: Content polish complete — Q&A banks, cheat sheets, DT section, Redis, gRPC, reranking, ONNX export*

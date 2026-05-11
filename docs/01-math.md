@@ -387,4 +387,66 @@ When $H(P)$ is constant (fixed labels), minimizing cross-entropy = minimizing KL
 
 ---
 
+## Interview Reference — Math for ML
+
+### Q: Why does matrix multiplication require the inner dimensions to match?
+
+$AB$ requires $A \in \mathbb{R}^{m \times k}$, $B \in \mathbb{R}^{k \times n}$. Each output element $C_{ij} = \sum_{l=1}^{k} A_{il} B_{lj}$ is a dot product of row $i$ of $A$ with column $j$ of $B$ — so both must have length $k$. This is not a convention; it is the definition of the operation.
+
+### Q: What does the determinant tell you geometrically?
+
+$|\det(A)|$ is the scaling factor of volumes under the linear map $A$. $\det(A) = 0$: the map collapses space (rank-deficient, no inverse). $\det(A) < 0$: the map includes a reflection (orientation reversal). For a $2 \times 2$ matrix, $\det = ad - bc$ = area of the parallelogram formed by the columns.
+
+### Q: What is an eigenvalue and why do we care?
+
+$A\mathbf{v} = \lambda\mathbf{v}$: $\mathbf{v}$ is a direction unchanged by $A$ (only scaled by $\lambda$). Applications in ML: PCA uses eigenvectors of the covariance matrix (principal components); spectral clustering uses eigenvectors of the graph Laplacian; stability analysis of gradient descent uses eigenvalues of the Hessian.
+
+### Q: When is a matrix positive semi-definite (PSD)?
+
+$M \in \mathbb{R}^{n \times n}$ is PSD iff $\mathbf{x}^\top M \mathbf{x} \geq 0$ for all $\mathbf{x}$, equivalently iff all eigenvalues $\lambda_i \geq 0$. Covariance matrices are always PSD. Hessian PSD ↔ convex function. Kernel matrices are PSD by construction (Mercer's theorem).
+
+### Q: What does SVD give you that eigendecomposition doesn't?
+
+Eigendecomposition ($A = Q\Lambda Q^{-1}$) requires $A$ to be square and diagonalizable. SVD ($A = U\Sigma V^\top$) works for any $m \times n$ matrix. $U$ = left singular vectors (column space), $V$ = right singular vectors (row space), $\Sigma$ = singular values (square roots of eigenvalues of $A^\top A$). SVD is the backbone of PCA, LSA, matrix completion, and pseudoinverse computation.
+
+### Q: What is the chain rule and why is it essential for backpropagation?
+
+$\frac{\partial \mathcal{L}}{\partial w} = \frac{\partial \mathcal{L}}{\partial z} \cdot \frac{\partial z}{\partial w}$ (scalar case). For composite functions $f \circ g$: $\nabla_w \mathcal{L} = J_g^\top \nabla_z \mathcal{L}$, where $J_g$ is the Jacobian of $g$ w.r.t. $w$. Backpropagation is just repeated application of the chain rule from output to input — no new math.
+
+### Q: What is the difference between MLE and MAP estimation?
+
+MLE: $\hat{\theta} = \arg\max_\theta \log P(D|\theta)$ — finds parameters that maximize likelihood of observed data. MAP: $\hat{\theta} = \arg\max_\theta [\log P(D|\theta) + \log P(\theta)]$ — adds a log-prior term. With a Gaussian prior on $\theta$, MAP = MLE + L2 regularization ($\lambda\|\theta\|^2$). With a Laplace prior, MAP = MLE + L1.
+
+### Q: Why is KL divergence not a metric?
+
+$\text{KL}(P \| Q) \neq \text{KL}(Q \| P)$ — it is asymmetric. Also, triangle inequality does not hold. It measures "extra bits needed to code samples from $P$ using an optimal code for $Q$." In VI, minimizing $\text{KL}(q \| p)$ (forward) gives mean-seeking approximations; minimizing $\text{KL}(p \| q)$ (reverse) gives mode-seeking approximations.
+
+### Q: What is the relationship between cross-entropy loss and log-likelihood?
+
+Binary cross-entropy $\mathcal{L} = -[y \log \hat{p} + (1-y)\log(1-\hat{p})]$ is exactly the negative log-likelihood under a Bernoulli model. Minimizing cross-entropy = maximizing log-likelihood. For multi-class: categorical cross-entropy = negative log-likelihood under a Categorical model. This is why CE loss is the natural choice for classification.
+
+---
+
+## Cheat Sheet — Math for ML
+
+| Concept | Formula / Key Fact |
+|---------|-------------------|
+| Dot product | $\mathbf{a} \cdot \mathbf{b} = \|\mathbf{a}\|\|\mathbf{b}\|\cos\theta$ |
+| Cosine similarity | $\cos\theta = \frac{\mathbf{a} \cdot \mathbf{b}}{\|\mathbf{a}\|\|\mathbf{b}\|}$ |
+| L2 norm | $\|\mathbf{x}\|_2 = \sqrt{\sum_i x_i^2}$ |
+| Eigendecomp | $A\mathbf{v} = \lambda\mathbf{v}$; $A = Q\Lambda Q^{-1}$ (square diagonalizable) |
+| SVD | $A = U\Sigma V^\top$; works any shape; $\sigma_i = \sqrt{\lambda_i(A^\top A)}$ |
+| PSD matrix | All eigenvalues $\geq 0$; $\mathbf{x}^\top M\mathbf{x} \geq 0$ always |
+| Chain rule | $\frac{d\mathcal{L}}{dw} = \frac{d\mathcal{L}}{dz}\frac{dz}{dw}$ → backprop |
+| Gradient descent | $\theta \leftarrow \theta - \alpha\nabla_\theta\mathcal{L}$ |
+| Bayes theorem | $P(\theta\|D) = \frac{P(D\|\theta)P(\theta)}{P(D)}$ |
+| MLE | $\arg\max_\theta \log P(D\|\theta)$ |
+| MAP | MLE + $\log P(\theta)$; Gaussian prior → L2 reg |
+| KL divergence | $\text{KL}(P\|Q) = \sum_x P(x)\log\frac{P(x)}{Q(x)} \geq 0$; not symmetric |
+| Cross-entropy | $H(p,q) = -\sum_x p(x)\log q(x) = H(p) + \text{KL}(p\|q)$ |
+| Gaussian | $\mathcal{N}(\mu,\sigma^2)$: mean $\mu$, variance $\sigma^2$, 68-95-99.7 rule |
+| Variance | $\text{Var}(X) = \mathbb{E}[X^2] - (\mathbb{E}[X])^2$ |
+
+---
+
 *Next: [Module 02 — ML Basics to Advanced](02-ml-basics.md)*

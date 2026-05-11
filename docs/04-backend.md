@@ -798,6 +798,156 @@ app.wsgi_app = TimingMiddleware(app.wsgi_app)
 
 ---
 
+## 13. gRPC for ML Serving
+
+gRPC (Google Remote Procedure Call) uses Protocol Buffers (protobuf) over HTTP/2. Advantages over REST for ML serving: binary encoding (~5-10× smaller payloads than JSON), multiplexed streams (no head-of-line blocking), bidirectional streaming, strongly typed contracts, generated client/server stubs.
+
+### 13.1 Protocol Buffers
+
+```proto
+// prediction.proto
+syntax = "proto3";
+
+service Predictor {
+  rpc Predict (PredictRequest) returns (PredictResponse);
+  rpc PredictStream (stream PredictRequest) returns (stream PredictResponse);
+}
+
+message PredictRequest {
+  repeated float features = 1;
+  string model_version = 2;
+}
+
+message PredictResponse {
+  float score = 1;
+  string label = 2;
+  float latency_ms = 3;
+}
+```
+
+Compile: `python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. prediction.proto`
+
+### 13.2 Server Implementation
+
+```python
+import grpc, time, threading
+import prediction_pb2, prediction_pb2_grpc
+
+class PredictorServicer(prediction_pb2_grpc.PredictorServicer):
+    def __init__(self, model):
+        self.model = model
+
+    def Predict(self, request, context):
+        t0 = time.perf_counter()
+        features = list(request.features)
+        score = float(self.model.predict_proba([features])[0, 1])
+        label = "positive" if score > 0.5 else "negative"
+        return prediction_pb2.PredictResponse(
+            score=score, label=label,
+            latency_ms=(time.perf_counter()-t0)*1000
+        )
+
+    def PredictStream(self, request_iterator, context):
+        for request in request_iterator:
+            yield self.Predict(request, context)
+
+def serve(model, port=50051):
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    prediction_pb2_grpc.add_PredictorServicer_to_server(
+        PredictorServicer(model), server
+    )
+    server.add_insecure_port(f"[::]:{port}")
+    server.start()
+    server.wait_for_termination()
+```
+
+### 13.3 Client
+
+```python
+import grpc
+import prediction_pb2, prediction_pb2_grpc
+
+channel = grpc.insecure_channel("localhost:50051")
+stub    = prediction_pb2_grpc.PredictorStub(channel)
+
+# Unary
+response = stub.Predict(prediction_pb2.PredictRequest(
+    features=[1.2, 0.5, -0.3], model_version="v1"
+))
+print(response.score, response.label)
+
+# Client streaming
+def feature_generator():
+    for row in dataset:
+        yield prediction_pb2.PredictRequest(features=row)
+
+for response in stub.PredictStream(feature_generator()):
+    print(response.label)
+```
+
+### 13.4 REST vs. gRPC for ML Serving
+
+| Dimension | REST (JSON) | gRPC (protobuf) |
+|-----------|-------------|-----------------|
+| Encoding | Text (JSON) | Binary (protobuf) |
+| Payload size | Baseline | ~5-10× smaller |
+| Latency | Higher (serialization) | Lower |
+| Streaming | SSE / chunked | Native bidirectional |
+| Schema | OpenAPI (optional) | Protobuf (required) |
+| Browser support | Native | Requires grpc-web |
+| Tooling | Universal | Requires code-gen |
+| Use case | Public APIs, browser clients | Internal microservices |
+
+gRPC is preferred for high-throughput internal services (model servers, feature stores). REST is preferred for public APIs and browser clients.
+
+---
+
+## Interview Reference — Backend with Flask (Extended)
+
+### Q: What is WSGI and how does it differ from ASGI?
+
+WSGI (PEP 3333): synchronous interface. A WSGI app is a callable `app(environ, start_response)` → returns an iterable of byte strings. One request per call, one thread per concurrent request. Flask, Django (classic) are WSGI. ASGI: async interface used by FastAPI, Starlette. Supports WebSockets, long-polling, and concurrent requests within a single thread via `async/await`. For ML serving: WSGI + Gunicorn is simpler; ASGI needed for streaming inference or WebSocket chat interfaces.
+
+### Q: How would you version a REST API?
+
+URL versioning: `/v1/predict`, `/v2/predict` — simplest, most explicit. Header versioning: `Accept: application/vnd.api+json; version=2` — cleaner URLs, harder to cache. Query param: `?version=2` — least REST-compliant. Strategy: URL versioning is standard for breaking changes; keep v1 alive until all clients migrate. Never remove v1 without deprecation period + monitoring.
+
+### Q: What is a circuit breaker and when do you use it?
+
+Circuit breaker wraps external calls (model server, DB, 3rd-party API). States: CLOSED (normal, passes calls through) → OPEN (after N failures in T seconds, rejects calls immediately, returns fallback) → HALF-OPEN (after reset_timeout, allows one probe call to check recovery). Prevents cascading failures when a downstream service is down. Library: `circuitbreaker`, `tenacity`, or implement with `threading.Lock`.
+
+### Q: How does Celery distribute work and what is a broker?
+
+Celery workers pull tasks from a message broker (Redis queue or RabbitMQ exchange). Client calls `task.delay(args)` → serializes task to broker. Worker dequeues, executes, stores result in backend (another Redis key). Concurrency: each worker runs N concurrent tasks (threaded, greenlet, or prefork depending on `--pool`). For CPU-bound ML inference: use prefork (separate processes, GIL-free).
+
+### Q: How do you prevent race conditions when serving ML models in Flask?
+
+Flask on Gunicorn with multiple workers: each worker loads its own model copy — no shared state, no race conditions. Within a single process: if you reload a model at runtime, use a `threading.Lock` to prevent reads during model swap. For zero-downtime model updates in production: use A/B routing (blue-green) — spin up new worker with new model, shift traffic, then kill old worker. Never `model = new_model` without a lock in a threaded app.
+
+---
+
+## Cheat Sheet — Backend with Flask
+
+| Concept | Key Fact |
+|---------|----------|
+| Flask request lifecycle | Routing → before_request → view → after_request → teardown |
+| `g` object | Per-request storage; dies at end of request |
+| `current_app` | Proxy to the active app; usable outside app context via `app_context()` |
+| App factory | `create_app(config)` returns configured Flask instance; enables testing |
+| Blueprint | Logical grouping of routes; prefix: `Blueprint("api", url_prefix="/api/v1")` |
+| `@app.errorhandler` | Catch specific HTTP codes; return JSON error responses |
+| Marshmallow | Schema → `load()` validates input; `dump()` serializes output |
+| Celery task | `@celery.task` decorator; call with `.delay()` or `.apply_async()` |
+| Gunicorn workers | `2 × CPU + 1` sync workers; `--worker-class geventlet` for async |
+| REST status codes | 200 OK, 201 Created, 400 Bad Request, 401 Unauth, 404 Not Found, 422 Validation, 500 Server Error |
+| WSGI | Synchronous; one thread per request; use with Gunicorn |
+| ASGI | Async; use with Uvicorn + FastAPI for streaming / WebSockets |
+| gRPC | Protobuf binary; HTTP/2; bidirectional streaming; for internal ML serving |
+| Circuit breaker | CLOSED → OPEN (after N failures) → HALF-OPEN (probe) → CLOSED |
+| SQL injection prevention | Parameterized queries only; never f-string SQL |
+
+---
+
 ## Resources
 
 ### Flask & Python Web
