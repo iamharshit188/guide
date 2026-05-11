@@ -227,4 +227,27 @@
 
 ---
 
-*Last updated: Module 09 complete — Fine-Tuning (LoRA/QLoRA)*
+## Module 10 — LLM Agents & Tool Use
+**Status:** `[x]` Completed
+**Guide:** `docs/10-agents.md`
+**Code:** `src/10-agents/`
+
+| Script | Covers |
+|--------|--------|
+| `src/10-agents/react_agent.py` | ReAct loop, tool dispatch, error recovery, self-consistency |
+| `src/10-agents/tool_calling.py` | JSON Schema tool registry, parallel dispatch, multi-turn loop |
+| `src/10-agents/agent_memory.py` | Buffer, summary, entity, combined memory systems |
+| `src/10-agents/agent_eval.py` | Trajectory accuracy, tool F1, answer F1, benchmark suite |
+
+### Checklist
+- [x] ReAct: Thought/Action/Observation loop
+- [x] Tool schemas (OpenAI function calling format)
+- [x] Chain-of-thought (zero-shot, few-shot, self-consistency)
+- [x] Multi-step planning (plan-then-execute, hierarchical)
+- [x] Agent memory: buffer, summary, entity
+- [x] Error recovery with observation injection
+- [x] Agent evaluation: trajectory accuracy, tool F1, answer F1
+
+---
+
+*Last updated: Module 10 complete — LLM Agents & Tool Use*
