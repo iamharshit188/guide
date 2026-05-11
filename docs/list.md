@@ -273,4 +273,26 @@
 
 ---
 
-*Last updated: Module 11 complete — Deployment & Production ML*
+## Module 12 — RLHF & Alignment
+**Status:** `[x]` Completed
+**Guide:** `docs/12-rlhf.md`
+**Code:** `src/12-rlhf/`
+
+| Script | Covers |
+|--------|--------|
+| `src/12-rlhf/reward_model.py` | Bradley-Terry loss, RM training, margin loss, length bias, normalization |
+| `src/12-rlhf/ppo_scratch.py` | PPO clip objective, GAE, KL penalty, value function, tabular MDP demo |
+| `src/12-rlhf/dpo.py` | DPO loss derivation, implicit reward, IPO/KTO/SimPO variants, training sim |
+| `src/12-rlhf/evaluate_alignment.py` | Win-rate (bootstrap CI), RM accuracy, MT-Bench sim, CAI, reward hacking |
+
+### Checklist
+- [x] Reward modeling: Bradley-Terry, margin loss, length bias, normalization
+- [x] PPO: clip objective, GAE, value function, KL penalty, entropy bonus
+- [x] DPO: derivation from optimal RLHF solution, implicit reward, training
+- [x] DPO variants: IPO, KTO, SimPO
+- [x] Constitutional AI: critique-revision loop
+- [x] Evaluation: win-rate, RM accuracy, MT-Bench, reward hacking detection
+
+---
+
+*Last updated: Module 12 complete — RLHF & Alignment*
