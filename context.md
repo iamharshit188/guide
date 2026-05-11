@@ -57,23 +57,36 @@ guide/                              ← repo root = GitHub Pages web root
 │   ├── 07-transformers.md          ← COMPLETE — Prerequisites + Resources sections added
 │   ├── 08-rag.md                   ← COMPLETE — Prerequisites + Resources sections added
 │   ├── 09-finetuning.md            ← COMPLETE — Prerequisites + Resources sections added
-│   └── projects/                   ← DOES NOT EXIST YET — create when building TODO 1
+│   ├── 10-agents.md                ← COMPLETE — ReAct, tool schemas, CoT, memory, eval
+│   ├── 11-deployment.md            ← COMPLETE — Docker, ONNX, quantization, A/B serving
+│   ├── 12-rlhf.md                  ← COMPLETE — Reward model, PPO, DPO, alignment eval
+│   ├── 13-multimodal.md            ← COMPLETE — CLIP, ViT, captioning, zero-shot
+│   └── projects/                   ← COMPLETE — 9 project guides (p01–p09)
 └── src/                            ← Runnable Python (and one C++) scripts
     ├── 01-math/                    ← vectors.py, matrix_ops.py, calculus_demo.py, probability.py
     ├── 02-ml/                      ← linear_regression.py, logistic_regression.py, evaluation.py,
     │                                  clustering.py, pca.py, random_forest.py, svm.py,
-    │                                  gradient_boosting.py
+    │                                  gradient_boosting.py, decision_tree.py
     ├── 03-databases/               ← sql_basics.py, nosql_patterns.py, chroma_demo.py,
     │                                  pinecone_demo.py, faiss_demo.py
     ├── 04-backend/                 ← app.py, ml_serving.py, middleware.py, async_tasks.py
-    ├── 05-deep-learning/           ← nn_numpy.py, optimizers.py, mlflow_demo.py, monitoring.py
+    ├── 05-deep-learning/           ← nn_numpy.py, optimizers.py, mlflow_demo.py,
+    │                                  monitoring.py, onnx_export.py
     ├── 06-genai/                   ← word2vec.py, attention.py, multihead_attention.py,
     │                                  positional_encoding.py, kv_cache.py
     ├── 07-transformer/             ← tokenizer.py, model.py, model_numpy.py, model.cpp, train.py
     ├── 08-rag/                     ← ingest.py, embed_store.py, retriever.py, generator.py,
     │                                  app.py, evaluate.py
-    └── 09-finetuning/              ← lora_theory.py, prepare_dataset.py, train_lora.py,
-                                       train_qlora.py, evaluate.py, merge_push.py
+    ├── 09-finetuning/              ← lora_theory.py, prepare_dataset.py, train_lora.py,
+    │                                  train_qlora.py, evaluate.py, merge_push.py
+    ├── 10-agents/                  ← react_agent.py, tool_calling.py, agent_memory.py,
+    │                                  agent_eval.py
+    ├── 11-deployment/              ← onnx_export.py, quantize.py, ab_serving.py,
+    │                                  health_check.py
+    ├── 12-rlhf/                    ← reward_model.py, ppo_scratch.py, dpo.py,
+    │                                  evaluate_alignment.py
+    └── 13-multimodal/              ← clip_scratch.py, vit_patch.py, captioning.py,
+                                       zero_shot.py
 ```
 
 ---
@@ -91,11 +104,16 @@ guide/                              ← repo root = GitHub Pages web root
 | 07 | Transformers from Scratch | ✅ COMPLETE | `docs/07-transformers.md` | `src/07-transformer/` |
 | 08 | RAG Chatbot | ✅ COMPLETE | `docs/08-rag.md` | `src/08-rag/` |
 | 09 | Fine-Tuning (LoRA/QLoRA) | ✅ COMPLETE | `docs/09-finetuning.md` | `src/09-finetuning/` |
+| 10 | LLM Agents & Tool Use | ✅ COMPLETE | `docs/10-agents.md` | `src/10-agents/` |
+| 11 | Deployment & Production ML | ✅ COMPLETE | `docs/11-deployment.md` | `src/11-deployment/` |
+| 12 | RLHF & Alignment | ✅ COMPLETE | `docs/12-rlhf.md` | `src/12-rlhf/` |
+| 13 | Multimodal Models | ✅ COMPLETE | `docs/13-multimodal.md` | `src/13-multimodal/` |
 
 Every module guide now contains:
 - **Prerequisites & Overview** section at the top (time estimate, module map, before-you-start checklist)
 - **Resources** section at the bottom (papers with arxiv links, books, videos, tooling)
-- **Q&A section** (Modules 05–09) — dense interview-prep questions with full answers
+- **Q&A section** (all 13 modules) — dense interview-prep questions with full answers
+- **Cheat Sheet table** (Modules 01–04 added in content polish) — key formulas, trade-offs, code patterns
 
 ---
 
@@ -128,8 +146,12 @@ Every module guide now contains:
 - **Neo-Brutalism:** `border: 3px solid black`, `box-shadow: 4px 4px 0 black`
 - Background: cream `#FFFDE7`, accent: yellow `#FFD600`
 - marked.js (Markdown), highlight.js (Python/Bash/C++/SQL), MathJax (`$...$` and `$$...$$`)
-- `localStorage` key `aiml_platform_progress` — progress persists in browser
+- `localStorage` key `aiml_platform_progress` — module progress persists in browser
+- `localStorage` key `aiml_platform_projects_progress` — project progress persists separately
 - "Mark Complete" button: `Cmd+Enter` shortcut
+- `MODULE_META`: 13 entries (modules 01–13)
+- `PROJECT_META`: 9 entries (projects p01–p09), difficulty badges (Beginner/Intermediate/Advanced)
+- Projects nav section in sidebar with orange active accent; projects grid on welcome screen
 
 ---
 
@@ -139,7 +161,8 @@ Every guide (`docs/NN-topic.md`) contains in this order:
 1. **Title + run commands** (blockquote with `cd src/NN && python X.py` for every script)
 2. **Prerequisites & Overview** — time estimate, module map table, before-you-start checklist
 3. **Main content** — math derivations → algorithm → code equivalent. Dense, no fluff.
-4. **Q&A section** (senior interview questions with complete answers) — Modules 05–09 have these; 01–04 do not yet
+4. **Q&A section** (senior interview questions with complete answers) — all 13 modules have these
+4a. **Cheat Sheet table** — all modules 01–13 have a "Last 30 minutes before the interview" formula + trade-off table
 5. **Resources** — books, papers (arxiv links), videos, tooling
 6. **Next module link** — `*Next: [Module NN — Title](NN-topic.md)*`
 
@@ -176,8 +199,6 @@ type: short summary
 
 - bullet explaining what was built/fixed
 - bullet per significant file changed
-
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -271,37 +292,64 @@ EOF
 - **Merge:** $W_{\text{merged}} = W_0 + \frac{\alpha}{r}BA$, multi-adapter composition
 - **Scripts:** `lora_theory.py`, `prepare_dataset.py`, `train_lora.py`, `train_qlora.py`, `evaluate.py`, `merge_push.py`
 
+### Module 10 — LLM Agents & Tool Use
+- **ReAct loop:** Thought→Action→Observation formal definition, prompt template, `ReActAgent` class with step limit + error recovery
+- **Tool schemas:** OpenAI function-calling JSON Schema format, `@tool` decorator registry, `dispatch()` and `dispatch_parallel()` (ThreadPoolExecutor)
+- **Chain-of-thought:** Zero-shot, few-shot with examples, self-consistency (majority vote across K samples)
+- **Multi-step planning:** Plan-then-execute, hierarchical planning, plan validation
+- **Memory:** `BufferMemory` (deque), `SummaryMemory` (auto-compress at token limit), `EntityMemory` (rule-based extraction), `CombinedMemory`
+- **Evaluation:** trajectory accuracy, tool precision/recall/F1, answer F1, step efficiency
+- **Scripts:** `react_agent.py`, `tool_calling.py`, `agent_memory.py`, `agent_eval.py`
+
+### Module 11 — Deployment & Production ML
+- **Docker:** Multi-stage Dockerfile, docker-compose with nginx, health checks in compose
+- **ONNX:** Graph structure (nodes/initializers/inputs/outputs), sklearn Pipeline → ONNX via skl2onnx, NumPy MLP manual export, onnxruntime inference + latency benchmark
+- **Quantization:** FP32→FP16, INT8 symmetric/asymmetric/per-channel, INT4, NF4 from scratch; static vs dynamic; PTQ vs QAT
+- **Gunicorn:** Worker models (sync/gevent/uvicorn), `2×CPU+1` rule, graceful reload
+- **A/B serving:** `ABRouter` (weighted random), `CanaryController` (ramp-up + rollback triggers), `ShadowRouter` (fire-and-forget), `StickyRouter` (hash-based)
+- **Health/circuit breaker:** `/health`, `/ready`, `/metrics` endpoints; `CircuitBreaker` (CLOSED→OPEN→HALF-OPEN); `GracefulShutdown` (in-flight counter)
+- **Scripts:** `onnx_export.py`, `quantize.py`, `ab_serving.py`, `health_check.py`
+
+### Module 12 — RLHF & Alignment
+- **Reward modeling:** Bradley-Terry loss $P(y_w\succ y_l)=\sigma(r_w-r_l)$, margin loss, length bias, normalization; `LinearRewardModel` with analytical gradient
+- **PPO:** GAE $A_t^{GAE}=\sum(\gamma\lambda)^k\delta_{t+k}$, clip objective $\min(r_tA_t, \text{clip}(r_t,1-\varepsilon,1+\varepsilon)A_t)$, tabular MDP demo (5-state grid)
+- **DPO:** Full algebraic derivation — Z(x) cancels, $\mathcal{L}_{DPO}=-\mathbb{E}[\log\sigma(\beta(r_\theta(y_w)-r_\theta(y_l)))]$
+- **DPO variants:** IPO (MSE regularization), KTO (binary labels), SimPO (no reference model)
+- **Constitutional AI:** Critique-revision loop
+- **Evaluation:** Win-rate with bootstrap CI, RM accuracy, MT-Bench (8-category simulation), reward hacking detection
+- **Scripts:** `reward_model.py`, `ppo_scratch.py`, `dpo.py`, `evaluate_alignment.py`
+
+### Module 13 — Multimodal Models
+- **CLIP:** InfoNCE loss derivation ($L=-\frac{1}{B}\sum\log\frac{\exp(S_{ii}/\tau)}{\sum_j\exp(S_{ij}/\tau)}$), temperature $\tau$ effect, contrastive training simulation, retrieval R@k evaluation
+- **ViT:** Patch extraction formula $N=(H/P)(W/P)$, linear projection (≡ Conv2d with stride=P), [CLS] token, 2D sinusoidal PE + learned PE, MHA, full ViT encoder forward pass
+- **Cross-modal attention:** Q from text, K/V from image; attention weight analysis per head
+- **Flamingo gated cross-attention:** `x = x + tanh(α)·CrossAttn(LN(x), visual)`; $\alpha=0$ init → visual signal gated out at start
+- **Q-Former (BLIP-2):** 32 learned queries cross-attend to image tokens → compressed visual prompt for frozen LLM
+- **Captioning:** Teacher forcing loss, greedy decode, beam search; architecture comparison table
+- **Zero-shot:** $\hat{y}=\arg\max_c\cos(\mathbf{v},\mathbf{t}_c)$, prompt ensemble (`L2_normalize(mean(embs))`), temperature sensitivity, confusion matrix
+- **Scripts:** `clip_scratch.py`, `vit_patch.py`, `captioning.py`, `zero_shot.py`
+
+### Content Polish (completed 2026-05-11)
+- **Modules 01–04:** 8-question senior-level Q&A bank + cheat sheet table added to each guide
+- **Module 02:** `decision_tree.py` — CART from scratch (Gini/entropy, best split, pruning, MDI feature importance, CART vs ID3/C4.5)
+- **Module 03:** Redis section — LRU cache, TTL, pipeline batching, connection pooling, embedding cache pattern
+- **Module 04:** gRPC section — protobuf schema, server/client implementation, streaming patterns, REST vs gRPC comparison table
+- **Module 05:** `onnx_export.py` — ONNX graph anatomy, NumPy MLP → ONNX manual export, sklearn Pipeline → ONNX (with skl2onnx), onnxruntime inference + latency
+- **Module 08:** Reranking section — bi-encoder vs cross-encoder, ColBERT late interaction (MaxSim), two-stage retrieval latency table
+
+### Projects Section (completed 2026-05-11)
+- **Frontend:** `PROJECT_META` (9 entries) in `app.js`, `openProject()`, sidebar PROJECTS nav section, projects welcome card with grid, difficulty badges, orange active accent, separate `aiml_platform_projects_progress` localStorage key
+- **Content:** 9 project guides in `docs/projects/` — each with: what-you-build, skills, phased approach (pseudocode only), checkpoints, extensions, hints
+
 ---
 
-## TODO — WHAT TO BUILD NEXT
+## COMPLETED TODOS
 
-> These are ordered by priority. Confirm with user before starting any item.
+All three TODOs are complete as of 2026-05-11. Preserved here for reference.
 
----
+### TODO 1 — Projects Section ✅ COMPLETE
 
-### TODO 1 — Projects Section `[ ] NOT STARTED` ← **DO THIS FIRST**
-
-**What:** Add 9 guided project pages to the platform (one per module). Each project opens in its own view, gives approach + phases + checkpoints + hints — **not full code**. They bridge reading a module and building something real.
-
-**Frontend work needed in `app.js` and `index.html`:**
-- Add `PROJECT_META` array (9 entries with `file`, `label`, `module`, `difficulty`)
-- Add `openProject(file, label)` function: fetches `docs/projects/${file}`, renders same as `openModule()`
-- Add "PROJECTS" button to sidebar nav (between module list and ROADMAP button)
-- Add projects grid to welcome screen (below module grid)
-- Separate localStorage key: `aiml_platform_projects_progress`
-- Project cards: different accent color from module cards; difficulty badge (Beginner/Intermediate/Advanced)
-- Do NOT break existing module navigation
-
-**Content to create — `docs/projects/` folder (create it):**
-
-Each project file structure:
-1. Title + difficulty badge
-2. What you'll build (2–3 sentences, end result)
-3. Skills exercised (bullet list → links to module section)
-4. Approach: numbered phases (pseudocode/skeletons only, no full solutions)
-5. Checkpoints: what correct output looks like per phase
-6. Extensions: 2–3 harder variants
-7. Hints: 3–5 spoiler-style targeted hints
+9 project guides in `docs/projects/` (p01–p09). Each: what-you-build, skills, phased approach (pseudocode/skeletons only), checkpoints, extensions, hints. Frontend: `PROJECT_META`, `openProject()`, sidebar PROJECTS section, projects welcome card, difficulty badges.
 
 | File | Project | Module | Difficulty |
 |------|---------|--------|-----------|
@@ -315,61 +363,19 @@ Each project file structure:
 | `p08-document-qa.md` | Personal Document Q&A System | 08 | Advanced |
 | `p09-domain-tuner.md` | Domain-Specific Instruction Tuner | 09 | Advanced |
 
-**Project specs (exact what to build for each):**
+### TODO 2 — Additional Modules ✅ COMPLETE
 
-**P01 — PCA Image Compressor** (Module 01, Beginner)
-Load grayscale image as NumPy matrix → center data → compute covariance $C = \frac{1}{n-1}X^TX$ → eigendecompose with `np.linalg.eigh` → project + reconstruct at ranks {5, 10, 20, 50} → print RMSE + explained variance table. No sklearn in core. Extensions: face dataset, incremental PCA.
+Modules 10–13 built: guides + scripts + Q&A + cheat sheets. See "COMPLETED MODULES" section above.
 
-**P02 — Titanic Survival Predictor** (Module 02, Beginner)
-Load titanic.csv → feature engineering (extract title, bin Age, FamilySize) → impute + encode → K-fold CV comparing Logistic Regression vs Random Forest vs XGBoost → ROC/PR curves (from-scratch implementations) → feature importance table. Extensions: calibration curve, SMOTE from scratch.
+### TODO 3 — Content Polish ✅ COMPLETE
 
-**P03 — Semantic Code Search Engine** (Module 03, Intermediate)
-Parse ~200 Python stdlib docstrings → TF-IDF embed → FAISS IVFFlat index + BM25 index → hybrid retrieval with RRF → metadata filtering by module → latency table (BM25 vs dense vs hybrid for 100 queries). Extensions: ChromaDB backend, query expansion.
-
-**P04 — Production ML Serving API** (Module 04, Intermediate)
-Pickle a sklearn Pipeline → Flask app factory + two blueprints (`/api/v1/` sync, `/api/v2/` async batch) → HMAC auth + token-bucket rate limiter → `/predict/batch` returns task ID → `/tasks/<id>` polls status → structured JSON logging → p50/p95/p99 latency print from 50 concurrent requests. Extensions: model versioning, `/health` + `/metrics` endpoints.
-
-**P05 — Neural Network Training Dashboard** (Module 05, Intermediate)
-Generate 4-class spiral dataset (pure NumPy) → 3-layer network with Adam + cosine-warmup schedule → early stopping (patience=10) → MLflow logging (loss, accuracy, LR, gradient norm per epoch) → KS drift detection on hidden activations each epoch → print training table + drift log. Extensions: Adam vs SGD-Momentum comparison, permutation feature importance.
-
-**P06 — Word Analogy & Similarity Explorer** (Module 06, Intermediate)
-Tokenize 10K-sentence text corpus → train Word2Vec skip-gram + NS (window=5, dim=100, epochs=10) → cosine nearest-neighbors for 5 test words → analogy solver $\text{nearest}(\mathbf{v}_b - \mathbf{v}_a + \mathbf{v}_c)$ on 10 pairs → stub autoregressive generator with KV cache structure → print analogy accuracy table + top-5 similar words + 3 generated continuations. Extensions: FastText subword n-grams, OOV comparison.
-
-**P07 — Shakespeare GPT** (Module 07, Advanced)
-BPE tokenizer on shakespeare.txt corpus → GPT decoder (4 layers, 4 heads, d=128, ctx=128, trains on CPU in ~20 min) → transformer LR schedule + gradient clipping + label smoothing → train/val loss table every 100 steps → checkpoint every 500 steps → generate 5 samples at temperature {1.0, 0.7} and top-p=0.9 → print parameter breakdown by component. Extensions: repetition penalty, beam search, scale to 6 layers.
-
-**P08 — Personal Document Q&A System** (Module 08, Advanced)
-Use `docs/` module guides as corpus → recursive chunking (512 tokens, 50 overlap) → TF-IDF + random projection embed → all four retriever variants (BM25, dense, hybrid RRF, MMR) → 20 test questions with ground-truth → run all strategies, compute all 4 RAGAS metrics → print strategy comparison table (precision, recall, faithfulness, latency) → serve via Flask API. Extensions: reranker on top-20 candidates, query decomposition.
-
-**P09 — Domain-Specific Instruction Tuner** (Module 09, Advanced)
-Extract Q&A pairs from `docs/` guides → Alpaca JSON format → BPE tokenize (fallback to Module 07 tokenizer) → LoRA ($r=8$, $\alpha=16$, q/v projections) + NF4 QLoRA → NumPy gradient simulation (always runs) + real PEFT (graceful skip if no GPU) → PPL + BLEU-4 + ROUGE-L before/after → merge adapter → latency comparison → print dataset stats, training curve, metrics table, merged model size. Extensions: DPO loss, different target modules.
-
----
-
-### TODO 2 — Additional Modules `[ ] NOT STARTED`
-
-Build in this order. Each follows the same structure as existing modules: `.md` guide + `src/NN-*/` scripts.
-
-| # | Module | Key Topics | Why |
-|---|--------|-----------|-----|
-| 10 | **LLM Agents & Tool Use** | ReAct loop, function calling (OpenAI tools API format), chain-of-thought, multi-step planning, tool schemas (JSON), agent memory (buffer + summary), error recovery, agent evaluation | In every AI job description in 2025–2026 |
-| 11 | **Deployment & Production ML** | Docker + docker-compose, ONNX export, TorchScript tracing, INT8/FP16 quantization for serving, Gunicorn + nginx config, health checks, rolling deploys, A/B model serving, CI/CD hooks | Closes "trains a model" → "ships a model" gap |
-| 12 | **RLHF & Alignment** | Reward modeling, PPO from scratch (clip objective, value function), DPO (Direct Preference Optimization, now dominant over PPO), KL penalty, constitutional AI overview, evaluation (win-rate, MT-Bench) | Asked in every LLM-adjacent role; DPO is now production standard |
-| 13 | **Multimodal Models** | CLIP (contrastive image-text pre-training, InfoNCE loss), ViT patch embedding, image captioning pipeline (vision encoder + language decoder), cross-modal attention, zero-shot image classification | Vision-language is the next mainstream wave |
-
----
-
-### TODO 3 — Content Polish `[ ] NOT STARTED`
-
-Fix these in any order when time permits:
-
-- `[ ]` **Interview Q&A banks for Modules 01–04** — currently only Modules 05–09 have Q&A sections; add 8–10 dense senior-level Q&As to each of 01–04
-- `[ ]` **Interview Cheat Sheet table** — add a 1-page "Last 30 minutes before the interview" summary table at the bottom of each module; key formulas, key trade-offs, key code patterns
-- `[ ]` **Module 02 — Decision Trees standalone section** — currently DT is embedded inside Random Forest; interviewers ask DT-specific questions (CART, impurity, pruning, max_depth); needs its own `###` section and a `decision_tree.py` script
-- `[ ]` **Module 03 — Redis caching section** — add Redis as a caching layer (LRU, TTL, pipeline batching, connection pooling); commonly asked alongside vector DB questions in ML infra interviews
-- `[ ]` **Module 04 — gRPC section** — add protocol buffers + gRPC streaming as alternative to REST for ML serving; unary, server-streaming, and bidirectional patterns
-- `[ ]` **Module 05 — ONNX export walkthrough** — add `onnx_export.py` showing sklearn Pipeline → ONNX and NumPy NN → ONNX; inference with `onnxruntime`; commonly asked in production ML interviews
-- `[ ]` **Module 08 — Reranking section** — add cross-encoder reranking (dot-product scoring on top-20 candidates → keep top-5), ColBERT late interaction overview; the most common "how would you improve RAG" interview answer
+- `[x]` **Q&A banks for Modules 01–04** — 8-question senior-level Q&A added to each
+- `[x]` **Cheat Sheet tables** — added to all modules (key formulas, trade-offs, code patterns)
+- `[x]` **Module 02 — `decision_tree.py`** — CART from scratch, Gini/entropy, pruning, MDI
+- `[x]` **Module 03 — Redis caching section** — LRU, TTL, pipeline batching, connection pooling
+- `[x]` **Module 04 — gRPC section** — protobuf schema, server/client, streaming, REST vs gRPC
+- `[x]` **Module 05 — `onnx_export.py`** — ONNX graph anatomy, NumPy MLP + sklearn → ONNX
+- `[x]` **Module 08 — Reranking section** — cross-encoder, ColBERT late interaction, two-stage table
 
 ---
 
@@ -393,12 +399,11 @@ Fix these in any order when time permits:
 
 | User says | What to do |
 |-----------|-----------|
-| "Build the projects section" | Start with TODO 1: frontend changes first (`app.js` + `index.html`), then create `docs/projects/` and write all 9 `.md` files, then commit |
-| "Add Module 10 / Agents" | Follow module standard: `docs/10-agents.md` + `src/10-agents/*.py` + update `docs/list.md` + update this file |
 | "Fix X in a module" | Read the specific module file first, make targeted edits, commit |
 | "Push to GitHub" | `git push origin main` — confirm with user first since it affects the live site |
 | "Add content to Module NN" | Read `docs/NN-*.md` first, then edit; commit immediately after |
-| "What's left to do?" | Point to TODO 1, 2, 3 sections above in order |
+| "What's left to do?" | Platform is fully built — all 13 modules, 9 projects, and content polish complete |
+| "Add a new module" | Follow the standard: `docs/NN-topic.md` + `src/NN-*/` scripts + update `docs/list.md`, `app.js` MODULE_META, and this file |
 
 ---
 
