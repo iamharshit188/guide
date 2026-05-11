@@ -10,8 +10,8 @@
 ## 2. REPOSITORY STRUCTURE
 - `index.html`, `style.css`, `app.js`: Frontend SPA (Dark Neo-brutalism, static GH Pages compatible).
 - `server.py`: Local Flask dev server (port 3000).
-- `docs/`: Markdown guides (`01-math.md` to `13-multimodal.md`), `list.md` (roadmap), `projects/` (p01 to p09).
-- `src/`: Runnable Python/C++ scripts matching modules (`src/01-math/` to `src/13-multimodal/`).
+- `docs/`: Markdown guides (`01-math.md` to `14-frontend.md`), `list.md` (roadmap), `projects/` (p01 to p16).
+- `src/`: Runnable Python/JS/C++ scripts matching modules (`src/01-math/` to `src/14-frontend/`).
 
 ## 3. CURRICULUM & MODULE DETAILED SPECS
 *Strategy: Start with intuitive basics and real-world examples for beginners, then escalate to rigorous math/derivations. Every concept must answer "Why do we need this?" before showing the math.*
