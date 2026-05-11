@@ -351,15 +351,19 @@ const CODE_META = [
 ];
 
 const PROJECT_META = [
-  { file: "p01-pca-compressor.md",     label: "PCA Image Compressor",        module: "01", difficulty: "Beginner"     },
-  { file: "p02-titanic-pipeline.md",   label: "Titanic Survival Predictor",  module: "02", difficulty: "Beginner"     },
+  { file: "p01-pca-compressor.md",     label: "PCA Image Compressor",        module: "01", difficulty: "Starter"      },
+  { file: "p02-titanic-pipeline.md",   label: "Titanic Survival Pipeline",   module: "02", difficulty: "Starter"      },
   { file: "p03-semantic-search.md",    label: "Semantic Code Search Engine", module: "03", difficulty: "Intermediate" },
   { file: "p04-ml-api.md",             label: "Production ML Serving API",   module: "04", difficulty: "Intermediate" },
   { file: "p05-training-dashboard.md", label: "NN Training Dashboard",       module: "05", difficulty: "Intermediate" },
   { file: "p06-word-analogy.md",       label: "Word Analogy Explorer",       module: "06", difficulty: "Intermediate" },
   { file: "p07-gpt-shakespeare.md",    label: "Shakespeare GPT",             module: "07", difficulty: "Advanced"     },
   { file: "p08-document-qa.md",        label: "Personal Document Q&A",       module: "08", difficulty: "Advanced"     },
-  { file: "p09-domain-tuner.md",       label: "Domain-Specific Tuner",       module: "09", difficulty: "Advanced"     },
+  { file: "p09-domain-tuner.md",       label: "Domain-Specific Tuner",       module: "09", difficulty: "Expert"       },
+  { file: "p10-crypto-bot-agent.md",   label: "Multi-Agent Crypto Analyst",  module: "10", difficulty: "Expert"       },
+  { file: "p11-ab-test-deploy.md",     label: "A/B Testing Deployment API",  module: "11", difficulty: "Advanced"     },
+  { file: "p12-small-rlhf.md",         label: "Mini-RLHF Preference Tuner",  module: "12", difficulty: "Expert"       },
+  { file: "p13-multimodal-search.md",  label: "Image-Text Hybrid Search",    module: "13", difficulty: "Expert"       },
 ];
 
 // ── State ───────────────────────────────────────────────────────
