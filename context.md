@@ -23,6 +23,7 @@
 - ✅ Modules 10–13 COMPLETE (Agents, Deployment, RLHF, Multimodal)
 - ✅ Content polish COMPLETE (Q&A banks 01–04, cheat sheets all modules, DT section, Redis, gRPC, reranking, ONNX export)
 - ✅ UI revamp COMPLETE (loading screen, greeting bar, smooth transitions, mobile sidebar, footer, accessibility)
+- ✅ Dark Mode Neo-Brutalism COMPLETE (Space Grotesk/Outfit/JetBrains Mono fonts, dark palette, tabbed sidebar)
 
 **Session boot sequence:**
 ```
@@ -144,15 +145,16 @@ Every module guide now contains:
 - Serves `index.html` from root; `docs/*.md` as `text/plain`
 
 ### Design System
-- **Neo-Brutalism:** `border: 3px solid black`, `box-shadow: 4px 4px 0 black`
-- Background: cream `#FFFDE7`, accent: yellow `#FFD600`
+- **Dark Neo-Brutalism:** `border: 3px solid var(--gray-line)` and spring UI transitions.
+- Background: Pure black `#050505` & Soft black `#121212`, Accent: Electric yellow `#E6FF00`
+- Typography: Space Grotesk (headers), Outfit (body), JetBrains Mono (code)
 - marked.js (Markdown), highlight.js (Python/Bash/C++/SQL), MathJax (`$...$` and `$$...$$`)
 - `localStorage` key `aiml_platform_progress` — module progress persists in browser
 - `localStorage` key `aiml_platform_projects_progress` — project progress persists separately
 - "Mark Complete" button: `Cmd+Enter` shortcut
 - `MODULE_META`: 13 entries (modules 01–13)
 - `PROJECT_META`: 9 entries (projects p01–p09), difficulty badges (Beginner/Intermediate/Advanced)
-- Projects nav section in sidebar with orange active accent; projects grid on welcome screen
+- Sidebar UI: Tabbed navigation (MODULES / PROJECTS) dynamically toggled via JS; projects grid on welcome screen
 
 ### UI Features (added 2026-05-11)
 - **Loading screen:** Full-screen black overlay, pulsing `ML` logo, shimmer scan bar, blinking status text; minimum 1.4 s display (even if init is instant); fades out with CSS opacity transition
@@ -348,7 +350,7 @@ EOF
 - **Module 08:** Reranking section — bi-encoder vs cross-encoder, ColBERT late interaction (MaxSim), two-stage retrieval latency table
 
 ### Projects Section (completed 2026-05-11)
-- **Frontend:** `PROJECT_META` (9 entries) in `app.js`, `openProject()`, sidebar PROJECTS nav section, projects welcome card with grid, difficulty badges, orange active accent, separate `aiml_platform_projects_progress` localStorage key
+- **Frontend:** `PROJECT_META` (9 entries) in `app.js`, `openProject()`, sidebar tab navigation (Modules vs Projects), projects welcome card with grid, difficulty badges, orange active accent, separate `aiml_platform_projects_progress` localStorage key
 - **Content:** 9 project guides in `docs/projects/` — each with: what-you-build, skills, phased approach (pseudocode only), checkpoints, extensions, hints
 
 ---
@@ -422,5 +424,5 @@ Modules 10–13 built: guides + scripts + Q&A + cheat sheets. See "COMPLETED MOD
 *Modules 01–13: guides + scripts + Q&A banks + cheat sheets*
 *Projects: 9 guides in docs/projects/ + frontend (app.js, index.html, style.css)*
 *Content polish: DT section (02), Redis (03), gRPC (04), ONNX export (05), reranking (08)*
-*UI revamp: loading screen, greeting bar, smooth transitions, mobile sidebar, footer, accessibility*
+*UI revamp: loading screen, greeting bar, smooth transitions, dark mode neo-brutalism, tabbed sidebar*
 *Open: nothing — platform is fully built*
