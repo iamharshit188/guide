@@ -22,6 +22,7 @@
 - ✅ Projects section COMPLETE (9 project guides in `docs/projects/` + frontend: `app.js`, `index.html`, `style.css`)
 - ✅ Modules 10–13 COMPLETE (Agents, Deployment, RLHF, Multimodal)
 - ✅ Content polish COMPLETE (Q&A banks 01–04, cheat sheets all modules, DT section, Redis, gRPC, reranking, ONNX export)
+- ✅ UI revamp COMPLETE (loading screen, greeting bar, smooth transitions, mobile sidebar, footer, accessibility)
 
 **Session boot sequence:**
 ```
@@ -152,6 +153,15 @@ Every module guide now contains:
 - `MODULE_META`: 13 entries (modules 01–13)
 - `PROJECT_META`: 9 entries (projects p01–p09), difficulty badges (Beginner/Intermediate/Advanced)
 - Projects nav section in sidebar with orange active accent; projects grid on welcome screen
+
+### UI Features (added 2026-05-11)
+- **Loading screen:** Full-screen black overlay, pulsing `ML` logo, shimmer scan bar, blinking status text; minimum 1.4 s display (even if init is instant); fades out with CSS opacity transition
+- **Greeting bar:** Time-aware greeting ("Good morning/afternoon/evening/Working late, Harshit") + live stats (`X/13 modules · Y/9 projects · Z% complete`); updates on every progress change; sits at top of welcome screen in black bar with yellow text
+- **Smooth transitions:** `fadeContent()` wraps all view switches (module open, project open, roadmap return) with a 180 ms opacity fade; module/project grid cards stagger-animate in with 35 ms per-card delay (`wmc-enter` keyframe); welcome cards slide up on load
+- **Mobile sidebar:** Hamburger button (animates ☰ → ✕) slides sidebar in via CSS `translateX`; dim overlay behind sidebar; tap overlay or press `Escape` to close; `--sidebar-w: 0` on mobile so main takes full width
+- **Footer:** `Made with ❤️ by Harshit and AI` — fixed at bottom of `#main`, always visible; `flex-shrink: 0` below scrollable content area
+- **Accessibility:** Skip-to-content link (keyboard-visible only), `tabindex="0"` + `Enter`/`Space` key handlers on all nav/grid items, ARIA roles (`navigation`, `progressbar`, `status`, `contentinfo`, `live`, `listitem`), `aria-expanded` on hamburger, all decorative elements `aria-hidden`
+- **Color fixes:** `.wmc-9` (cyan), `.wmc-10` (pink), `.wmc-11` (teal), `.wmc-12` (indigo) — the missing left-border accent stripes for modules 09–13
 
 ---
 
@@ -408,8 +418,9 @@ Modules 10–13 built: guides + scripts + Q&A + cheat sheets. See "COMPLETED MOD
 ---
 
 *Last updated: 2026-05-11*
-*ALL TODOs COMPLETE: 13 modules + 9 projects + content polish*
+*ALL TODOs COMPLETE: 13 modules + 9 projects + content polish + UI revamp*
 *Modules 01–13: guides + scripts + Q&A banks + cheat sheets*
 *Projects: 9 guides in docs/projects/ + frontend (app.js, index.html, style.css)*
 *Content polish: DT section (02), Redis (03), gRPC (04), ONNX export (05), reranking (08)*
+*UI revamp: loading screen, greeting bar, smooth transitions, mobile sidebar, footer, accessibility*
 *Open: nothing — platform is fully built*
