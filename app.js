@@ -14,6 +14,10 @@ const MODULE_META = [
   { file: "07-transformers.md",   label: "Transformers from Scratch", tag: "07" },
   { file: "08-rag.md",            label: "RAG Chatbot",              tag: "08" },
   { file: "09-finetuning.md",     label: "Fine-Tuning",              tag: "09" },
+  { file: "10-agents.md",         label: "LLM Agents & Tool Use",    tag: "10" },
+  { file: "11-deployment.md",     label: "Deployment & Production",  tag: "11" },
+  { file: "12-rlhf.md",           label: "RLHF & Alignment",         tag: "12" },
+  { file: "13-multimodal.md",     label: "Multimodal Models",        tag: "13" },
 ];
 
 const PROJECT_META = [

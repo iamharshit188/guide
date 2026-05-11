@@ -295,4 +295,29 @@
 
 ---
 
-*Last updated: Module 12 complete — RLHF & Alignment*
+## Module 13 — Multimodal Models
+**Status:** `[x]` Completed
+**Guide:** `docs/13-multimodal.md`
+**Code:** `src/13-multimodal/`
+
+| Script | Covers |
+|--------|--------|
+| `src/13-multimodal/clip_scratch.py` | CLIP InfoNCE loss, temperature scaling, contrastive training, retrieval evaluation |
+| `src/13-multimodal/vit_patch.py` | Patch extraction, linear projection, [CLS] token, positional encoding, ViT forward pass |
+| `src/13-multimodal/captioning.py` | Cross-modal attention, gated cross-attention (Flamingo), Q-Former, teacher forcing, beam search |
+| `src/13-multimodal/zero_shot.py` | Zero-shot classification, prompt engineering, ensemble embeddings, temperature sensitivity |
+
+### Checklist
+- [x] CLIP: InfoNCE loss derivation, temperature τ, contrastive training
+- [x] ViT: patch extraction formula, [CLS] token, positional encoding (sinusoidal + learned)
+- [x] Multi-head self-attention in ViT encoder
+- [x] Cross-modal attention (Q from text, K/V from image)
+- [x] Gated cross-attention (Flamingo, tanh(α) init=0)
+- [x] Q-Former: compressed visual prompt for frozen LLM (BLIP-2)
+- [x] Image captioning: teacher forcing + autoregressive inference + beam search
+- [x] Zero-shot classification: ŷ = argmax_c cos(v, t_c)
+- [x] Prompt engineering + ensemble text embeddings
+
+---
+
+*Last updated: Module 13 complete — Multimodal Models*
