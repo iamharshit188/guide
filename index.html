@@ -101,6 +101,8 @@
     <div id="topbar">
       <div id="breadcrumb" aria-live="polite" aria-label="Current location">Roadmap</div>
       <div id="topbar-actions">
+        <button id="btn-search" class="nav-btn" aria-label="Search (Ctrl+K)">🔍 SEARCH</button>
+        <button id="btn-notes" class="nav-btn" aria-label="Toggle Notes">📝 NOTES</button>
         <button id="btn-complete" class="complete-btn hidden" onclick="toggleComplete()"
                 aria-label="Toggle module completion">
           MARK COMPLETE
@@ -152,6 +154,24 @@
       Made with ❤️ by Harshit and AI
     </footer>
   </main>
+
+
+  <!-- ── Search Modal ── -->
+  <div id="search-modal" class="hidden" aria-modal="true" role="dialog">
+    <div class="search-container">
+      <input type="text" id="search-input" placeholder="Search modules, projects, code... (Esc to close)" autocomplete="off" />
+      <ul id="search-results" role="list"></ul>
+    </div>
+  </div>
+
+  <!-- ── Sidenotes Panel ── -->
+  <div id="notes-panel" class="hidden">
+    <div class="notes-header">
+      <h3>Personal Notes</h3>
+      <button id="close-notes">✕</button>
+    </div>
+    <textarea id="notes-content" placeholder="Jot down your local notes here. They save automatically..."></textarea>
+  </div>
 
   <script src="app.js"></script>
 </body>
