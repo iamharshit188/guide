@@ -20,6 +20,7 @@ const MODULE_META = [
   { file: "11-deployment.md",     label: "Deployment & Production",  tag: "11" },
   { file: "12-rlhf.md",           label: "RLHF & Alignment",         tag: "12" },
   { file: "13-multimodal.md",     label: "Multimodal Models",        tag: "13" },
+  { file: "14-frontend.md",       label: "Frontend (React+Tailwind)",tag: "14" },
 ];
 
 const CODE_META = [
@@ -364,6 +365,9 @@ const PROJECT_META = [
   { file: "p11-ab-test-deploy.md",     label: "A/B Testing Deployment API",  module: "11", difficulty: "Advanced"     },
   { file: "p12-small-rlhf.md",         label: "Mini-RLHF Preference Tuner",  module: "12", difficulty: "Expert"       },
   { file: "p13-multimodal-search.md",  label: "Image-Text Hybrid Search",    module: "13", difficulty: "Expert"       },
+  { file: "p14-fullstack-ai-blog.md",  label: "Full-Stack AI Blog",          module: "14", difficulty: "Advanced"     },
+  { file: "p15-voice-assistant.md",    label: "Real-Time Voice Assistant",   module: "13", difficulty: "Expert"       },
+  { file: "p16-mlops-feature-store.md",label: "MLOps Feature Store",         module: "11", difficulty: "Expert"       },
 ];
 
 // ── State ───────────────────────────────────────────────────────

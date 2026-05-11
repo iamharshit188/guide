@@ -4,7 +4,7 @@
 ## 1. ORIENTATION & STATUS
 **What:** Self-hosted AI/ML placement prep platform targeting senior roles.
 **Where:** Local: `/Users/iamharshit188/Desktop/placement/prepration/guide/` | Live: `https://harshittiwari.me/guide/`
-**Status:** Fully built! 13 Modules, 13 Projects, Code Area, Dark Neo-Brutalism UI, Content Polish (Q&A/Cheat sheets/Beginner Basics).
+**Status:** Fully built! 14 Modules, 16 Projects, Code Area, Dark Neo-Brutalism UI, Content Polish (Q&A/Cheat sheets/Beginner Basics).
 **Boot Sequence:** 1. Read this file. 2. `git log --oneline -5`. 3. Ask user for task. 4. Wait for confirmation.
 
 ## 2. REPOSITORY STRUCTURE
@@ -20,7 +20,7 @@
 - **01 Math:** Intuition (GPS, Tables, Mountains) -> Rigor (LinAlg, Calculus, Probability, $A = V\Lambda V^{-1}$, MLE).
 - **02 ML Basics:** Intuition (Curve fitting, voting) -> Rigor (OLS, BCE, Bias-Var, ROC, CV, SVM, Boosting).
 - **03 Databases:** Intuition (Filing cabinets, libraries) -> Rigor (B+ tree, HNSW, IVF+PQ, PACELC).
-- **04 Backend:** Intuition (Restaurant kitchen) -> Rigor (WSGI, Thread-local, Rate limits, gRPC).
+- **04 Backend:** Intuition (Restaurant kitchen) -> Rigor (Flask/FastAPI, WSGI, Thread-local, JWT/OAuth, Supabase/Firebase Auth Integration, REST vs gRPC, Rate limits, Celery).
 - **05 Deep Learning:** Intuition (Brain circuits, trial & error) -> Rigor (Backprop $\delta$, Xavier/He Init, AdamW, ONNX).
 - **06 GenAI Core:** Intuition (Word meaning by context) -> Rigor (Skip-gram, Attention $\text{softmax}(QK^T/\sqrt{d_k})V$, RoPE, KV Cache).
 - **07 Transformers:** Intuition (Translators taking sequential notes) -> Rigor (BPE, $12Ld^2$ tracking, Beam search).
@@ -30,9 +30,10 @@
 - **11 Deployment:** Intuition (Shipping a product) -> Rigor (Docker, ONNX export, INT8 Quantization, A/B Serving).
 - **12 RLHF:** Intuition (Training a dog with treats) -> Rigor (Bradley-Terry, PPO, DPO, MT-Bench).
 - **13 Multimodal:** Intuition (Connecting eyes and ears) -> Rigor (CLIP InfoNCE, ViT patches, Cross-modal attention).
+- **14 Frontend (React + Tailwind):** Intuition (Building UI blocks) -> Rigor (JS ES6 foundations, React Hooks, State Management, Tailwind utility classes).
 
 ## 4. PROJECTS SECTION
-13 individual project guides mapped meticulously to difficulty levels (Starter, Intermediate, Advanced, Expert).
+16 individual project guides mapped meticulously to difficulty levels.
 - (p01) PCA Compressor (Starter)
 - (p02) Titanic Pipeline (Starter)
 - (p03) Semantic Search Engine (Intermediate)
@@ -46,6 +47,9 @@
 - (p11) A/B Testing Deploy API (Advanced)
 - (p12) Mini-RLHF Tuner (Expert)
 - (p13) Image-Text Hybrid Search (Expert)
+- (p14) Full-Stack AI Blog (React, Tailwind, Supabase, Firebase, Flask) (Advanced)
+- (p15) Real-Time Voice Assistant (Expert)
+- (p16) MLOps Feature Store (Expert)
 
 ## 5. FRONTEND & UI (Dark Neo-Brutalism)
 - **Tech:** marked.js, highlight.js, MathJax. `.md` link intercepts prevent GH Pages 404s.
