@@ -4,7 +4,7 @@
 ## 1. ORIENTATION & STATUS
 **What:** Self-hosted AI/ML placement prep platform targeting senior roles.
 **Where:** Local: `/Users/iamharshit188/Desktop/placement/prepration/guide/` | Live: `https://harshittiwari.me/guide/`
-**Status:** Fully built! 13 Modules, 9+ Projects, Code Area, Dark Neo-Brutalism UI, Content Polish (Q&A/Cheat sheets/Beginner Basics).
+**Status:** Fully built! 13 Modules, 13 Projects, Code Area, Dark Neo-Brutalism UI, Content Polish (Q&A/Cheat sheets/Beginner Basics).
 **Boot Sequence:** 1. Read this file. 2. `git log --oneline -5`. 3. Ask user for task. 4. Wait for confirmation.
 
 ## 2. REPOSITORY STRUCTURE
@@ -14,25 +14,38 @@
 - `src/`: Runnable Python/C++ scripts matching modules (`src/01-math/` to `src/13-multimodal/`).
 
 ## 3. CURRICULUM & MODULE DETAILED SPECS
-*Strategy: Start with intuitive basics and real-world examples for beginners, then escalate to rigorous math/derivations.*
-*Guides: Math-first derivations, Code equivalents, Q&A prep, Cheat sheets, Resources. Scripts: `if __name__ == "__main__": main()`, no `matplotlib.show()`, `try/except` for heavy deps.*
-- **01 Math:** `src/01-math/`. LinAlg (L1/L2, cosine, $A = V\Lambda V^{-1}$, SVD PCA), Calculus (Jacobian, Hessian, GD), Prob (MLE, cross-entropy, KL divergence).
-- **02 ML Basics:** `src/02-ml/`. Lin/Log Reg (OLS, BCE), Eval (Bias-Var, ROC, CV), Clustering, PCA, RF (Gini/Entropy, MDI, OOB), SVM (Mercer, hinge), Boosting (XGBoost 2nd-order).
-- **03 Databases:** `src/03-databases/`. SQL (B+ tree, EXPLAIN, CTEs), NoSQL (PACELC), Vector DBs (HNSW, IVF+PQ, Chroma/FAISS), Redis cache (LRU, pipeline).
-- **04 Backend:** `src/04-backend/`. Flask (WSGI, thread-local), App Factory, Blueprints, Thread-safe ML Serving, Middleware (Rate limits, HMAC), Celery async, gRPC.
-- **05 Deep Learning:** `src/05-deep-learning/`. Backprop ($\delta$), Init (Xavier Var=$2/(n_{in}+n_{out})$, He), Optimizers (AdamW bias-correction), LR Schedulers, BatchNorm/LayerNorm, MLflow, Drift, ONNX graph anatomy.
-- **06 GenAI Core:** `src/06-genai/`. Word2Vec (Skip-gram, Neg-sample), Attention ($	ext{softmax}(QK^T/\sqrt{d_k})V$), Positional Encoding (RoPE), KV Cache ($O(Td)$ size formula).
-- **07 Transformers:** `src/07-transformer/`. BPE Tokenizer, Encode/Decode block ($12Ld^2$ tracking), Teacher forcing, Generation (Beam search, top-p/k).
-- **08 RAG:** `src/08-rag/`. Chunking, TF-IDF from scratch, Retrieval (BM25, Hybrid RRF, MMR), Reranking (ColBERT late interaction), RAGAS Eval.
-- **09 Fine-Tuning:** `src/09-finetuning/`. LoRA ($W'=W_0+rac{lpha}{r}BA$), QLoRA (NF4 double quant, 0.127 b/w overhead), Dataset masks, Merge adapter, PPL/ROUGE Eval.
-- **10 Agents:** `src/10-agents/`. ReAct loop, JSON function tool schemas, CoT self-consistency, Hierarchical Memory (Buffer/Summary), Eval heuristics.
-- **11 Deployment:** `src/11-deployment/`. Docker, ONNX export logic, Quantization (FP16/INT8/4), Gunicorn workers, A/B Serving controllers, Circuit breakers.
-- **12 RLHF:** `src/12-rlhf/`. Bradley-Terry loss, PPO (GAE), DPO ($\mathcal{L}_{DPO}=-\mathbb{E}[\log\sigma(eta(r_w-r_l))]$ cancels partition function Z), IPO/KTO/SimPO, MT-Bench.
-- **13 Multimodal:** `src/13-multimodal/`. CLIP (InfoNCE $L=-rac{1}{B}\sum\log\dots$), ViT patches ($N=(H/P)(W/P)$), Cross-modal attention, Q-Former, Zero-shot eval.
+*Strategy: Start with intuitive basics and real-world examples for beginners, then escalate to rigorous math/derivations. Every concept must answer "Why do we need this?" before showing the math.*
+*Guides: Intuition-first, Math-backed derivations, Code equivalents, Q&A prep. Scripts: `if __name__ == "__main__": main()`, no `matplotlib.show()`.*
+
+- **01 Math:** Intuition (GPS, Tables, Mountains) -> Rigor (LinAlg, Calculus, Probability, $A = V\Lambda V^{-1}$, MLE).
+- **02 ML Basics:** Intuition (Curve fitting, voting) -> Rigor (OLS, BCE, Bias-Var, ROC, CV, SVM, Boosting).
+- **03 Databases:** Intuition (Filing cabinets, libraries) -> Rigor (B+ tree, HNSW, IVF+PQ, PACELC).
+- **04 Backend:** Intuition (Restaurant kitchen) -> Rigor (WSGI, Thread-local, Rate limits, gRPC).
+- **05 Deep Learning:** Intuition (Brain circuits, trial & error) -> Rigor (Backprop $\delta$, Xavier/He Init, AdamW, ONNX).
+- **06 GenAI Core:** Intuition (Word meaning by context) -> Rigor (Skip-gram, Attention $\text{softmax}(QK^T/\sqrt{d_k})V$, RoPE, KV Cache).
+- **07 Transformers:** Intuition (Translators taking sequential notes) -> Rigor (BPE, $12Ld^2$ tracking, Beam search).
+- **08 RAG:** Intuition (Open-book exams) -> Rigor (TF-IDF, BM25, Hybrid RRF, MMR, ColBERT).
+- **09 Fine-Tuning:** Intuition (Specializing a generalist) -> Rigor (LoRA, QLoRA NF4, Dataset masks, PPL).
+- **10 Agents:** Intuition (Delegating tasks to departments) -> Rigor (ReAct loop, JSON schemas, CoT, Hierarchical Memory).
+- **11 Deployment:** Intuition (Shipping a product) -> Rigor (Docker, ONNX export, INT8 Quantization, A/B Serving).
+- **12 RLHF:** Intuition (Training a dog with treats) -> Rigor (Bradley-Terry, PPO, DPO, MT-Bench).
+- **13 Multimodal:** Intuition (Connecting eyes and ears) -> Rigor (CLIP InfoNCE, ViT patches, Cross-modal attention).
 
 ## 4. PROJECTS SECTION
-9 guides in `docs/projects/` with frontend tracking (`PROJECT_META` in `app.js`). *Pseudocode/checkpoints only; no full solutions.*
-- (p01) PCA Compressor, (p02) Titanic, (p03) Semantic Search, (p04) Production ML API, (p05) Training Dashboard, (p06) Word Analogy, (p07) Shakespeare GPT, (p08) Doc Q&A, (p09) Domain Tuner.
+13 individual project guides mapped meticulously to difficulty levels (Starter, Intermediate, Advanced, Expert).
+- (p01) PCA Compressor (Starter)
+- (p02) Titanic Pipeline (Starter)
+- (p03) Semantic Search Engine (Intermediate)
+- (p04) Production ML API (Intermediate)
+- (p05) Training Dashboard (Intermediate)
+- (p06) Word Analogy Explorer (Intermediate)
+- (p07) Shakespeare GPT (Advanced)
+- (p08) Document Q&A (Advanced)
+- (p09) Domain Tuner (Expert)
+- (p10) Crypto Analyst Agent (Expert)
+- (p11) A/B Testing Deploy API (Advanced)
+- (p12) Mini-RLHF Tuner (Expert)
+- (p13) Image-Text Hybrid Search (Expert)
 
 ## 5. FRONTEND & UI (Dark Neo-Brutalism)
 - **Tech:** marked.js, highlight.js, MathJax. `.md` link intercepts prevent GH Pages 404s.
