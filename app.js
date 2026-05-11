@@ -467,3 +467,23 @@ function init() {
 }
 
 init();
+
+// ── Sidebar Tabs ────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  const tabs = document.querySelectorAll(".sidebar-tab");
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      tabs.forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      
+      const target = tab.getAttribute("data-target");
+      if(target === "module-list") {
+        document.getElementById("module-list").classList.remove("hidden");
+        document.getElementById("project-list").classList.add("hidden");
+      } else {
+        document.getElementById("module-list").classList.add("hidden");
+        document.getElementById("project-list").classList.remove("hidden");
+      }
+    });
+  });
+});

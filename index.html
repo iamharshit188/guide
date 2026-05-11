@@ -30,6 +30,10 @@
     };
   </script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+  <!-- Fonts for Dark Neo-Brutalism -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Outfit:wght@400;500;600;700&family=Space+Grotesk:wght@500;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -75,12 +79,13 @@
       </div>
     </div>
 
-    <nav id="module-nav" aria-label="Modules and projects">
-      <div class="nav-section-label" aria-hidden="true">MODULES</div>
+    <div id="sidebar-tabs" aria-label="Sidebar tabs">
+      <button class="sidebar-tab active" data-target="module-list">MODULES</button>
+      <button class="sidebar-tab" data-target="project-list">PROJECTS</button>
+    </div>
+    <nav id="module-nav" aria-label="Content lists">
       <ul id="module-list" role="list"></ul>
-
-      <div class="nav-section-label nav-section-projects" aria-hidden="true">PROJECTS</div>
-      <ul id="project-list" role="list"></ul>
+      <ul id="project-list" role="list" class="hidden"></ul>
     </nav>
 
     <div id="sidebar-footer">
