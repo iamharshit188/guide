@@ -1,5 +1,8 @@
 # AI/ML Learning Platform — Curriculum Roadmap
 
+> **Learning Philosophy:** Every module below strictly follows an *Intuition-First* approach. We prioritize teaching concepts through accessible, real-world analogies (e.g. GPS coordinates for vectors, filing systems for databases, dog training for RLHF) *before* graduating to rigorous math and Python implementation.
+
+
 ## Status Legend
 | Symbol | Meaning |
 |--------|---------|
