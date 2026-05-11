@@ -250,4 +250,27 @@
 
 ---
 
-*Last updated: Module 10 complete — LLM Agents & Tool Use*
+## Module 11 — Deployment & Production ML
+**Status:** `[x]` Completed
+**Guide:** `docs/11-deployment.md`
+**Code:** `src/11-deployment/`
+
+| Script | Covers |
+|--------|--------|
+| `src/11-deployment/onnx_export.py` | sklearn→ONNX, NumPy MLP serialization, onnxruntime inference, FP16/INT8 quantization |
+| `src/11-deployment/quantize.py` | FP16/INT8/INT4/NF4 quantization from scratch, per-channel, static vs dynamic |
+| `src/11-deployment/ab_serving.py` | A/B router, canary controller, shadow mode, sticky sessions, rollback |
+| `src/11-deployment/health_check.py` | /health /ready /metrics, circuit breaker, graceful shutdown, latency tracker |
+
+### Checklist
+- [x] Docker multi-stage build + docker-compose + nginx config
+- [x] ONNX export (sklearn, NumPy) + onnxruntime inference
+- [x] TorchScript trace vs. script
+- [x] Quantization: FP16, INT8 (symmetric/asymmetric/per-channel), NF4
+- [x] Gunicorn worker models and configuration
+- [x] A/B serving: weighted routing, canary ramp-up, rollback triggers
+- [x] Health/readiness/metrics endpoints, circuit breaker, graceful shutdown
+
+---
+
+*Last updated: Module 11 complete — Deployment & Production ML*
