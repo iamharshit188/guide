@@ -24,41 +24,54 @@ Git repo: initialized, branch `main`. All commits signed by `Harshit Tiwari`.
 
 ## MONOREPO STRUCTURE
 
+> **NOTE:** After the GitHub Pages migration (commit `09a9613`), frontend files moved to **repo root** (not `frontend/`).
+
 ```
-guide/
-├── context.md              ← THIS FILE (read first every session)
-├── server.py               ← Flask dev server (port 3000); serves /api/docs/:file
+guide/                          ← repo root = GitHub Pages root
+├── context.md                  ← THIS FILE (read first every session)
+├── index.html                  ← Neo-Brutalism UI (marked.js + highlight.js + MathJax)
+├── style.css
+├── app.js                      ← localStorage progress, module nav, markdown renderer
+├── server.py                   ← Flask dev server for LOCAL use only (port 3000)
+├── .nojekyll                   ← prevents GitHub Pages Jekyll processing
 ├── .gitignore
 ├── docs/
-│   ├── list.md             ← MASTER CURRICULUM ROADMAP (update status each module)
-│   ├── 01-math.md          ← [COMPLETE]
-│   ├── 02-ml-basics.md     ← [COMPLETE]
-│   ├── 03-databases.md     ← [COMPLETE]
-│   ├── 04-backend.md       ← [COMPLETE]
-│   ├── 05-deep-learning.md ← [COMPLETE]
-│   ├── 06-genai-core.md    ← [COMPLETE]
-│   ├── 07-transformers.md  ← [COMPLETE]
-│   ├── 08-rag.md           ← [COMPLETE]
-│   └── ...                 ← future modules land here
-├── src/
-│   ├── requirements.txt    ← pinned deps for ALL 9 modules
-│   ├── 01-math/            ← vectors.py, matrix_ops.py, calculus_demo.py, probability.py
-│   ├── 02-ml/              ← linear_regression.py, logistic_regression.py, evaluation.py,
-│   │                          clustering.py, pca.py, random_forest.py, svm.py,
-│   │                          gradient_boosting.py
-│   ├── 03-databases/       ← sql_basics.py, nosql_patterns.py, chroma_demo.py,
-│   │                          pinecone_demo.py, faiss_demo.py
-│   ├── 04-backend/         ← app.py, ml_serving.py, middleware.py, async_tasks.py
-│   ├── 05-deep-learning/   ← nn_numpy.py, optimizers.py, mlflow_demo.py, monitoring.py
-│   ├── 06-genai/           ← word2vec.py, attention.py, multihead_attention.py,
-│   │                          positional_encoding.py, kv_cache.py
-│   ├── 07-transformer/     ← tokenizer.py, model.py, model_numpy.py, model.cpp, train.py
-│   ├── 08-rag/             ← ingest.py, embed_store.py, retriever.py, generator.py, app.py, evaluate.py
-│   └── ...                 ← future src modules land here
-└── frontend/
-    ├── index.html          ← Neo-Brutalism UI (marked.js + highlight.js + MathJax)
-    ├── style.css
-    └── app.js              ← localStorage progress, module nav, markdown renderer
+│   ├── list.md                 ← MASTER CURRICULUM ROADMAP
+│   ├── 01-math.md              ← [COMPLETE] — includes Prerequisites + Resources sections
+│   ├── 02-ml-basics.md         ← [COMPLETE] — includes Prerequisites + Resources sections
+│   ├── 03-databases.md         ← [COMPLETE] — includes Prerequisites + Resources sections
+│   ├── 04-backend.md           ← [COMPLETE] — includes Prerequisites + Resources sections
+│   ├── 05-deep-learning.md     ← [COMPLETE] — includes Prerequisites + Resources sections
+│   ├── 06-genai-core.md        ← [COMPLETE] — includes Prerequisites + Resources sections
+│   ├── 07-transformers.md      ← [COMPLETE] — includes Prerequisites + Resources sections
+│   ├── 08-rag.md               ← [COMPLETE] — includes Prerequisites + Resources sections
+│   ├── 09-finetuning.md        ← [COMPLETE] — includes Prerequisites + Resources sections
+│   └── projects/               ← [TODO] one .md per module project (see TODO section)
+│       ├── p01-pca-compressor.md
+│       ├── p02-titanic-pipeline.md
+│       ├── p03-semantic-search.md
+│       ├── p04-ml-api.md
+│       ├── p05-training-dashboard.md
+│       ├── p06-word-analogy.md
+│       ├── p07-gpt-shakespeare.md
+│       ├── p08-document-qa.md
+│       └── p09-domain-tuner.md
+└── src/
+    ├── 01-math/                ← vectors.py, matrix_ops.py, calculus_demo.py, probability.py
+    ├── 02-ml/                  ← linear_regression.py, logistic_regression.py, evaluation.py,
+    │                              clustering.py, pca.py, random_forest.py, svm.py,
+    │                              gradient_boosting.py
+    ├── 03-databases/           ← sql_basics.py, nosql_patterns.py, chroma_demo.py,
+    │                              pinecone_demo.py, faiss_demo.py
+    ├── 04-backend/             ← app.py, ml_serving.py, middleware.py, async_tasks.py
+    ├── 05-deep-learning/       ← nn_numpy.py, optimizers.py, mlflow_demo.py, monitoring.py
+    ├── 06-genai/               ← word2vec.py, attention.py, multihead_attention.py,
+    │                              positional_encoding.py, kv_cache.py
+    ├── 07-transformer/         ← tokenizer.py, model.py, model_numpy.py, model.cpp, train.py
+    ├── 08-rag/                 ← ingest.py, embed_store.py, retriever.py, generator.py,
+    │                              app.py, evaluate.py
+    └── 09-finetuning/          ← lora_theory.py, prepare_dataset.py, train_lora.py,
+                                   train_qlora.py, evaluate.py, merge_push.py
 ```
 
 ---
@@ -174,19 +187,26 @@ Every time a module is completed:
 
 ## FRONTEND ARCHITECTURE
 
-- **Server:** `server.py` — Flask, port 3000, CORS enabled
-  - `GET /` → `frontend/index.html`
-  - `GET /api/docs/:filename` → serves `docs/*.md` as `text/plain`
-  - `GET /api/modules` → returns sorted list of module `.md` files (excludes `list.md`)
-- **Frontend:** `frontend/{index.html, style.css, app.js}`
-  - Design: **Neo-Brutalism** — `border: 3px solid black`, `box-shadow: 4px 4px 0 black`, cream background `#FFFDE7`, yellow accent `#FFD600`
+### Production (GitHub Pages)
+- Deployed at `https://harshittiwari.me/guide/` from `main` branch root
+- **Static only** — no server, no API. Frontend fetches markdown directly from the `docs/` folder via relative URLs.
+- Fetch URL pattern in `app.js`: `fetch('docs/${file}')` → resolves to `https://harshittiwari.me/guide/docs/02-ml-basics.md`
+- `.nojekyll` in root prevents GitHub Pages from processing with Jekyll
+
+### Local Dev
+- `python server.py` → `http://localhost:3000`
+- Flask serves `index.html` from root, `docs/*.md` as `text/plain`
+
+### Frontend Files (all at repo root after GitHub Pages migration)
+- `index.html`, `style.css`, `app.js`
+  - Design: **Neo-Brutalism** — `border: 3px solid black`, `box-shadow: 4px 4px 0 black`, cream `#FFFDE7`, yellow `#FFD600`
   - marked.js: Markdown → HTML
   - highlight.js: syntax highlighting (Python, Bash, C++, SQL)
   - MathJax: LaTeX rendering (`$...$` and `$$...$$`)
-  - localStorage: progress tracking per module file (key: `aiml_platform_progress`)
-  - "Mark Complete" button: `Cmd+Enter` shortcut, turns green when done
-  - Progress bar in sidebar updates on every complete/uncomplete action
-  - Modules not yet generated show a "NOT YET GENERATED" placeholder card
+  - localStorage: progress tracking (key: `aiml_platform_progress`)
+  - "Mark Complete" button: `Cmd+Enter` shortcut
+  - Progress bar in sidebar
+  - `.md` link intercept in `renderMarkdown()`: clicks on relative markdown links (e.g. "Next module") call `openModule()` instead of navigating — **prevents GitHub Pages 404s**
 
 ---
 
@@ -284,7 +304,207 @@ Every time a module is completed:
 
 ## UPCOMING MODULES
 
-All 9 modules are complete. The curriculum is finished.
+All 9 core modules are complete. See TODO section below for what to build next.
+
+---
+
+## TODO — PLANNED WORK
+
+> Priority order: Projects section first (highest user value), then additional modules, then content polish.
+
+---
+
+### TODO 1 — Projects Section (UI + Content) `[ ]`
+
+**What it is:** A new "PROJECTS" view in the app — one project per module, each opening a dedicated guided page. Projects give **approach and checkpoints, not full code** — they bridge the gap between reading the module and building something real.
+
+#### Frontend Changes Required
+- Add "PROJECTS" button to the sidebar (between MODULES list and ROADMAP button)
+- New view in `app.js`: `openProject(file, label)` fetches from `docs/projects/`
+- Projects grid on the welcome screen: 9 cards, one per module, styled like module cards
+- `MODULE_META` gets a `project` field: `{ file: "p01-pca-compressor.md", label: "PCA Image Compressor" }`
+- Fetch path: `docs/projects/${file}`
+
+#### Project Content Format (for each `docs/projects/pNN-name.md`)
+Every project file must follow this structure:
+1. **Project title + difficulty badge** (Beginner / Intermediate / Advanced)
+2. **What you'll build** — 2–3 sentence description of the end product
+3. **Skills exercised** — bullet list linking back to the module
+4. **Approach** — numbered phases with what to implement at each step (NO full code; pseudocode or code skeletons only for non-obvious parts)
+5. **Checkpoints** — what correct output looks like at each phase so the learner can self-verify
+6. **Extensions** — 2–3 harder variants to try after completing the base project
+7. **Hints** — 3–5 targeted hints for the hardest parts (spoiler-style, not full solutions)
+
+#### The 9 Projects
+
+---
+
+**P01 — PCA Image Compressor** `[Module 01 — Math for ML]` `Beginner`
+- **What:** Compress grayscale images using PCA from scratch. Show reconstruction error vs. number of retained principal components. Print compression ratio and RMSE at ranks 5, 10, 20, 50.
+- **Why it's good:** Forces full eigendecomposition pipeline — center data, compute covariance, eigendecomp, project, reconstruct. No sklearn allowed in the core implementation.
+- **Phases:**
+  1. Load any grayscale image as a NumPy matrix (use `PIL` or read a raw PPM; no matplotlib)
+  2. Center the data (subtract column means)
+  3. Compute covariance matrix $C = \frac{1}{n-1}X^TX$
+  4. Eigendecompose $C$ using `np.linalg.eigh`; sort eigenvalues descending
+  5. Project to rank-$k$ subspace; reconstruct; compute RMSE and explained variance ratio
+  6. Loop over $k \in \{5, 10, 20, 50\}$ and print a comparison table
+- **Extensions:** Apply to a dataset of face images and find the minimum rank where faces are recognizable; implement incremental PCA for images that don't fit in RAM.
+
+---
+
+**P02 — Titanic Survival Predictor** `[Module 02 — ML Basics to Advanced]` `Beginner`
+- **What:** End-to-end ML pipeline on the Titanic dataset. Feature engineering → cross-validation → compare Ridge Logistic Regression vs Random Forest vs XGBoost → ROC/PR curves → feature importance.
+- **Why it's good:** Covers the full supervised learning workflow: missing value imputation, categorical encoding, scaling, CV, model comparison, evaluation — all topics from Module 02.
+- **Phases:**
+  1. Load `titanic.csv` (include in `src/projects/` as a small CSV or generate synthetic equivalent)
+  2. Feature engineering: extract title from Name, bin Age, create FamilySize = SibSp + Parch + 1
+  3. Impute missing values (median for Age, mode for Embarked); one-hot encode categoricals
+  4. K-fold CV (from scratch or sklearn) for Logistic Regression + Random Forest + XGBoost; compare mean accuracy ± std
+  5. Plot ROC/PR curves using the from-scratch implementations from Module 02 (print AUC values)
+  6. Print feature importance table (permutation importance for RF; gain for XGBoost)
+- **Extensions:** Build a calibration curve (Brier score); implement SMOTE from scratch for the class imbalance.
+
+---
+
+**P03 — Semantic Code Search Engine** `[Module 03 — Databases & Vector DBs]` `Intermediate`
+- **What:** Index a corpus of Python function docstrings using TF-IDF + FAISS. Answer natural language queries with BM25 + dense hybrid retrieval. Return top-5 results with relevance scores.
+- **Why it's good:** Covers the full vector DB pipeline: embedding, indexing, hybrid retrieval, metadata filtering — directly applying FAISS and BM25 from Module 03.
+- **Phases:**
+  1. Parse ~200 Python stdlib docstrings from `help()` output (or a manually curated JSON file in `src/projects/`)
+  2. Build a TF-IDF embedder (from Module 03's `embed_store.py`); embed all docstrings
+  3. Store in a FAISS IVFFlat index; also build a BM25 index from scratch
+  4. Implement hybrid retrieval with RRF fusion; query with 10 test questions and print ranked results
+  5. Add metadata filtering: filter by module (e.g., only `os` or `string` functions)
+  6. Measure latency: BM25 vs dense vs hybrid for 100 repeated queries; print results table
+- **Extensions:** Add ChromaDB as an alternative backend; implement query expansion (add synonyms from a small dict).
+
+---
+
+**P04 — Production ML Serving API** `[Module 04 — Backend with Flask]` `Intermediate`
+- **What:** Deploy a trained sklearn Pipeline (Titanic model from P02 or any classifier) behind a Flask REST API with: HMAC auth, token-bucket rate limiting, async batch prediction via a simulated task queue, structured JSON logging.
+- **Why it's good:** Assembles every piece from Module 04 into one production-grade service. Interviewer-ready system design.
+- **Phases:**
+  1. Train and pickle a sklearn Pipeline (preprocessor + RandomForestClassifier) in a setup script
+  2. Build Flask app with app factory + two blueprints: `/api/v1/` (sync predict) and `/api/v2/` (async batch)
+  3. Wire HMAC auth middleware and token-bucket rate limiter (from Module 04)
+  4. Implement `/api/v2/predict/batch` → returns a task ID; `/api/v2/tasks/<id>` → polls status
+  5. Add structured JSON request logging with `X-Request-ID` propagation
+  6. Load-test: submit 50 concurrent single-predict requests; print p50/p95/p99 latency from logs
+- **Extensions:** Add model versioning (v1 model vs v2 model in registry); add `/health` and `/metrics` (uptime + request count) endpoints.
+
+---
+
+**P05 — Neural Network Training Dashboard** `[Module 05 — Deep Learning & MLOps]` `Intermediate`
+- **What:** Train a 3-layer neural network on a synthetic multi-class dataset from scratch (NumPy). Log all metrics to MLflow. Implement early stopping + cosine LR schedule. Run KS drift detection on validation set activations each epoch.
+- **Why it's good:** Connects the entire Module 05 pipeline: backprop → Adam optimizer → LR scheduling → MLflow tracking → drift monitoring.
+- **Phases:**
+  1. Generate a 4-class spiral dataset (pure NumPy, no sklearn); split 70/15/15
+  2. Implement 3-layer network (from `nn_numpy.py`): ReLU hidden, softmax output, cross-entropy loss
+  3. Train with Adam (from `optimizers.py`) + cosine-warmup LR schedule (from `optimizers.py`)
+  4. Log per-epoch: loss, accuracy, LR, gradient norm → MLflow run
+  5. Implement early stopping (patience=10 on val loss); save best weights
+  6. At each epoch, extract hidden layer activations; run KS test against epoch-0 baseline; log drift p-value to MLflow
+  7. Print final: training curve table + MLflow run URL + whether drift was detected
+- **Extensions:** Compare Adam vs SGD-Momentum convergence on the same run (log both to one MLflow experiment); add permutation feature importance using the trained network.
+
+---
+
+**P06 — Word Analogy & Semantic Similarity Explorer** `[Module 06 — GenAI Core]` `Intermediate`
+- **What:** Train Word2Vec (skip-gram + negative sampling) on a text corpus. Implement analogy solver ($\mathbf{v}_{\text{king}} - \mathbf{v}_{\text{man}} + \mathbf{v}_{\text{woman}} \approx \mathbf{v}_{\text{queen}}$). Build a KV-cache-aware greedy text generator that produces token continuations.
+- **Why it's good:** Combines the two hardest scripts from Module 06 (`word2vec.py` and `kv_cache.py`) into a single interactive demo.
+- **Phases:**
+  1. Tokenize a text file (~10K sentences; include a small sample in `src/projects/` or use any plain-text book)
+  2. Train skip-gram with negative sampling (from `word2vec.py`): window=5, dim=100, epochs=10
+  3. Implement cosine nearest-neighbors; print top-10 similar words for 5 test words
+  4. Implement analogy solver: $\text{nearest}(\mathbf{v}_b - \mathbf{v}_a + \mathbf{v}_c)$; test on 10 analogy pairs; print accuracy
+  5. Build a stub autoregressive generator: given a seed phrase, predict next-token via dot product with embedding table; use KV cache structure from Module 06
+  6. Print: analogy accuracy table, top-5 similar words for 5 queries, 3 generated continuations
+- **Extensions:** Train FastText (subword n-grams); compare OOV handling by querying rare/misspelled words.
+
+---
+
+**P07 — Shakespeare GPT (Mini Language Model)** `[Module 07 — Transformers from Scratch]` `Advanced`
+- **What:** Train a small GPT-style decoder-only transformer on the Shakespeare corpus. Implement BPE tokenizer on the corpus. Train with transformer LR schedule + gradient clipping. Generate text with temperature sampling, top-k, and top-p.
+- **Why it's good:** This is Andrej Karpathy's nanoGPT, reproduced from the building blocks in Module 07. The most impactful single project on the list.
+- **Phases:**
+  1. Download `shakespeare.txt` (include in `src/projects/` or fetch); build BPE tokenizer from `tokenizer.py` on the corpus; encode full corpus
+  2. Build character-level or BPE-level GPT decoder: 4 layers, 4 heads, $d=128$, context length 128 (small enough to train on CPU in ~20 min)
+  3. Implement training loop from `train.py`: transformer LR schedule, label smoothing, gradient clipping, checkpoint save every 500 steps
+  4. Track train/val loss per step; print loss table every 100 steps
+  5. After training, generate 5 samples with temperature 1.0, 0.7 (greedy), and top-p=0.9; print all
+  6. Print parameter count breakdown by component (embedding, MHA, FFN, total)
+- **Extensions:** Implement top-k + top-p sampling with repetition penalty; add beam search from `train.py`; scale to 6 layers and compare loss.
+
+---
+
+**P08 — Personal Document Q&A System** `[Module 08 — RAG Chatbot]` `Advanced`
+- **What:** Build a full RAG pipeline over a folder of PDF/TXT files (research papers, textbook chapters). Serve it as a Flask API. Evaluate with all 4 RAGAS metrics. Show retrieval strategy comparison (BM25 vs dense vs hybrid vs MMR) on 20 test questions.
+- **Why it's good:** This is the most interview-relevant end-to-end project — directly maps to what every AI startup builds in their first sprint.
+- **Phases:**
+  1. Ingest 5–10 documents (use this platform's own module guides as the corpus — they're already in `docs/`)
+  2. Apply recursive character chunking (512 tokens, 50 overlap); embed with TF-IDF + random projection (from `embed_store.py`)
+  3. Build all four retriever variants from `retriever.py`; store in FAISS + BM25 index
+  4. Write 20 test questions with ground-truth answers about the corpus
+  5. Run each retriever variant on all 20 questions; generate answers with mock LLM; compute all 4 RAGAS metrics
+  6. Print: retrieval strategy comparison table (precision, recall, faithfulness, latency per strategy)
+  7. Serve via Flask API (`/ingest`, `/query?strategy=hybrid`, `/evaluate`) from `app.py`
+- **Extensions:** Add a reranker (cross-encoder dot-product scoring on top-20 candidates); implement query decomposition (split complex questions into sub-queries).
+
+---
+
+**P09 — Domain-Specific Instruction Tuner** `[Module 09 — Fine-Tuning]` `Advanced`
+- **What:** Prepare a custom Alpaca-format dataset from the module guides (Q&A pairs extracted from the Q&A sections). LoRA fine-tune TinyLLaMA-1.1B or Phi-2 (if GPU available) using QLoRA (4-bit NF4). Evaluate before/after with perplexity + BLEU + ROUGE. Merge adapter and compare inference speed.
+- **Why it's good:** This closes the full curriculum loop — the platform's own content becomes fine-tuning data. Also directly demonstrates the most in-demand skill: adapting open-source LLMs.
+- **Phases:**
+  1. Extract all Q&A blocks from `docs/` module guides as instruction-response pairs; target ~200–500 pairs; format as Alpaca JSON
+  2. Tokenize with a real tokenizer (HuggingFace tokenizer via graceful skip); implement manual BPE tokenization fallback using Module 07's `tokenizer.py`
+  3. Configure LoRA ($r=8$, $\alpha=16$, target q/v projections) and NF4 quantization; use `train_lora.py` + `train_qlora.py` from Module 09
+  4. Run NumPy gradient simulation training (always works); attempt real PEFT training (graceful skip if no GPU)
+  5. Evaluate before/after: PPL on held-out Q&A pairs, BLEU-4, ROUGE-L
+  6. Merge adapter using `merge_push.py`; print parameter count before/after merge; inference latency comparison
+  7. Print: dataset stats, training loss curve, before/after metrics table, merged model size
+- **Extensions:** Add DPO (Direct Preference Optimization) loss on rejected/chosen pairs; experiment with different LoRA target modules (q/k/v/o projections vs q/v only).
+
+---
+
+### TODO 2 — Additional Modules `[ ]`
+
+Ranked by interview relevance for AI/ML/GenAI/Backend roles:
+
+| Priority | Module | Key Topics | Why Now |
+|----------|--------|-----------|---------|
+| 1 | **Module 10 — LLM Agents & Tool Use** | ReAct loop, function calling (OpenAI tools API), chain-of-thought, multi-step planning, tool schemas, agent memory, error recovery | Agents are in every AI job description in 2025 |
+| 2 | **Module 11 — Deployment & Production ML** | Docker + docker-compose, ONNX export, TorchScript, quantization (INT8/FP16), Gunicorn + nginx, health checks, rolling deploys, A/B serving | Closes the gap between "trains a model" and "ships a model" |
+| 3 | **Module 12 — RLHF & Alignment** | PPO from scratch, reward modeling, DPO (Direct Preference Optimization) — simpler and now dominant — KL penalty, constitutional AI overview | RLHF/DPO is asked in every LLM-adjacent role |
+| 4 | **Module 13 — Multimodal Models** | CLIP (contrastive image-text pre-training), vision transformers (ViT patch embedding), image captioning pipeline, cross-modal attention | Vision-language models are the next wave |
+
+Each module follows the same format: one `.md` guide + `src/NN-*/` scripts.
+
+---
+
+### TODO 3 — Content Polish `[ ]`
+
+- [ ] **Interview Q&A bank** — add 10 more Q&A pairs to each module (currently Modules 05–09 have Q&As; Modules 01–04 need them)
+- [ ] **Complexity / trade-off summary table** — each module should end with a "Cheat Sheet" table suitable for last-minute review before an interview
+- [ ] **Module 02** — add Decision Trees as a standalone section (currently embedded only in Random Forest); interviewers often ask DT-specific questions (impurity, pruning, CART)
+- [ ] **Module 03** — add Redis as a caching layer section (commonly paired with vector DBs in production)
+- [ ] **Module 04** — add a gRPC section (protocol buffers, streaming, bidirectional streaming) as an alternative to REST for ML serving
+- [ ] **Module 05** — add ONNX export walkthrough; add TorchScript tracing (both are commonly asked)
+- [ ] **Module 08** — add reranking section (cross-encoders, ColBERT late interaction); this is the most common "what would you do to improve RAG" answer
+
+---
+
+### TODO 4 — Projects Section Frontend Implementation `[ ]`
+
+When implementing the Projects view, follow these rules:
+1. Add "PROJECTS" nav button to sidebar, below the module list
+2. Projects have their own grid on the welcome screen (below module grid) or as a separate tab
+3. `openProject(file, label)` function in `app.js`: fetches `docs/projects/${file}`, renders markdown, shows "Mark Complete" button
+4. Project cards use a different accent color to distinguish from module cards (suggest: black background, white text, red-orange tag for difficulty badge)
+5. Project pages render identically to module pages (marked.js + MathJax + hljs)
+6. Progress tracking: separate localStorage key `aiml_platform_projects_progress`
+7. **Do not** break existing module navigation when adding projects
 
 ---
 
@@ -322,5 +542,6 @@ All 9 modules are complete. The curriculum is finished.
 
 ---
 
-*Last updated after: Module 09 complete (Fine-Tuning / LoRA / QLoRA)*
+*Last updated: 2026-05-11 — 404 fix (app.js link intercept) + Prerequisites & Resources sections added to all 9 modules + TODO list added (Projects, 4 new modules, content polish)*
 *Modules complete: 01, 02, 03, 04, 05, 06, 07, 08, 09 — ALL COMPLETE*
+*Open TODOs: Projects section (9 project guides + frontend), Modules 10–13, content polish*
