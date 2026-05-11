@@ -1,6 +1,7 @@
 # Module 01 — Math for ML
 
 > **Runnable code:** `src/01-math/`
+>
 > ```bash
 > cd src/01-math
 > python vectors.py
@@ -11,467 +12,1757 @@
 
 ---
 
-## Prerequisites & Overview
+# Prerequisites & Overview
 
 **Prerequisites:** High school algebra, basic Python/NumPy. No prior ML knowledge needed.
+
 **Estimated time:** 6–10 hours (reading + running all four scripts)
 
-### Why This Module Matters
-Every ML algorithm reduces to matrix operations, derivatives, and probability calculations. Attention scores are dot products. Backpropagation is the chain rule applied recursively. Embeddings are vectors in $\mathbb{R}^d$. You cannot debug or design ML systems without fluency in these three pillars.
+---
 
-### Core Concepts at a Glance
+# Why This Module Matters
 
-| Pillar | Key Ideas | Where It Appears in ML |
-|--------|-----------|------------------------|
-| Linear Algebra | Vectors, matrix multiply, eigendecomposition, SVD | Neural network layers, PCA, attention, embeddings |
-| Calculus | Gradients, Jacobian, chain rule | Backpropagation, gradient descent, loss optimization |
-| Probability | Distributions, MLE, Bayes, KL divergence | Loss functions, generative models, uncertainty |
+Machine Learning is fundamentally applied mathematics.
 
-### Before You Start
-- Comfortable writing Python functions and loops
-- Know that $f'(x)$ means rate of change at $x$
-- Know the difference between a scalar, a vector, and a matrix (even conceptually)
+Every modern ML system — from recommendation engines and chatbots to image classifiers and large language models — relies heavily on:
 
-If you need a quick refresher: **3Blue1Brown — Essence of Linear Algebra** (YouTube, 15 short videos) is the best visual introduction.
+1. **Linear Algebra** → representing and transforming data
+2. **Calculus** → optimizing models during training
+3. **Probability & Statistics** → reasoning under uncertainty
+
+When training a neural network:
+
+* Inputs become vectors and matrices
+* Predictions are computed using matrix multiplication
+* Errors are minimized using gradients and derivatives
+* Outputs are interpreted probabilistically
+
+Without mathematical intuition, ML becomes memorizing APIs.
+With mathematical understanding, you can:
+
+* Debug models properly
+* Understand why architectures work
+* Read research papers
+* Optimize systems efficiently
+* Build models from scratch
 
 ---
 
-## ✨ Beginner Foundations: Getting an Intuition
+# Core Concepts at a Glance
 
-Before diving into the hard math, let's understand *why* we need this with realistic, everyday examples.
-
-### 1. Vectors (The "GPS" of ML)
-Imagine you are buying a used car. You care about: 
-1. `Price (in lakh Rs)`
-2. `Mileage (kmpl)`
-3. `Age (years)`
-
-If a car is (Price: 5, Mileage: 18, Age: 3), we can represent this as a **Vector**: `v = [5, 18, 3]`. 
-In ML, *everything*—an image, a text document, a user profile—is ultimately converted into a vector (a list of numbers). If two vectors are pointing in the same direction, they are conceptually similar (e.g. recommending similar movies).
-
-### 2. Matrices (The "Data Tables")
-A single car is a vector `[5, 18, 3]`. But a whole dealership with 100 cars? That's a **Matrix**: a grid of vectors. Applying operations to matrices allows ML models to process thousands of inputs simultaneously rather than one by one, which is why GPUs (designed to multiply huge matrices for gaming graphics) are perfect for modern AI.
-
-### 3. Calculus (The "Mountain Climber")
-Think of training an AI like trying to hike to the absolute lowest point in a foggy valley. You can't see the bottom, but you can feel the slope of the ground under your feet. 
-- **Derivatives/Gradients** tell you which way the slope goes and how steep it is.
-- By continuously taking steps exactly opposite to the uphill slope (Gradient Descent), you eventually hit the valley floor (the lowest error point).
-
-### 4. Probability (The "Weather Forecast")
-Nothing in the real world is 100% certain. Will this customer click the ad? Is this email spam? Probability allows our model to say "I am 95% confident this is spam." It shifts ML from rigid rules ("IF text contains 'free' THEN spam") to confident guesses based on past data.
+| Pillar         | Key Ideas                                               | Where It Appears in ML                            |
+| -------------- | ------------------------------------------------------- | ------------------------------------------------- |
+| Linear Algebra | Vectors, matrix multiplication, eigendecomposition, SVD | Neural network layers, embeddings, attention, PCA |
+| Calculus       | Derivatives, gradients, Jacobians, chain rule           | Backpropagation, optimization                     |
+| Probability    | Distributions, Bayes theorem, entropy, KL divergence    | Loss functions, generative models, uncertainty    |
 
 ---
 
-## 1. Linear Algebra
+# How to Read Any Formula (Quick Beginner Decoder)
 
-### 1.1 Scalars, Vectors, Matrices, Tensors
+When you see a formula, decode it in this order:
 
-| Object | Notation | Shape | Example |
-|--------|----------|-------|---------|
-| Scalar | $x \in \mathbb{R}$ | `()` | `3.14` |
-| Vector | $\mathbf{v} \in \mathbb{R}^n$ | `(n,)` | `[1, 2, 3]` |
-| Matrix | $A \in \mathbb{R}^{m \times n}$ | `(m, n)` | `[[1,2],[3,4]]` |
-| Tensor | $\mathcal{T} \in \mathbb{R}^{d_1 \times \cdots \times d_k}$ | `(d1,...,dk)` | batch of images |
+1. **What are the inputs?** (vectors, matrices, probabilities, parameters)
+2. **What operation is being done?** (add, multiply, sum, gradient, log)
+3. **What does the output represent?** (similarity, error, probability, update)
+4. **How is this used in ML?** (forward pass, loss, optimization, uncertainty)
 
-### 1.2 Vector Operations
+Use this template:
 
-**Addition:**
-$$\mathbf{u} + \mathbf{v} = [u_1 + v_1,\; u_2 + v_2,\; \ldots,\; u_n + v_n]$$
-
-**Scalar multiplication:**
-$$c\mathbf{v} = [cv_1, cv_2, \ldots, cv_n]$$
-
-**Dot product (inner product):**
-$$\mathbf{u} \cdot \mathbf{v} = \sum_{i=1}^{n} u_i v_i = \mathbf{u}^T \mathbf{v}$$
-
-Geometric interpretation: $\mathbf{u} \cdot \mathbf{v} = \|\mathbf{u}\| \|\mathbf{v}\| \cos\theta$
-
-**Why it matters:** Dot products underlie every weighted sum in neural networks, attention scores, and similarity computations.
-
-### 1.3 Norms
-
-The **p-norm** of a vector:
-
-$$\|\mathbf{v}\|_p = \left(\sum_{i=1}^n |v_i|^p\right)^{1/p}$$
-
-| Norm | Formula | Use case |
-|------|---------|----------|
-| L1 (Manhattan) | $\sum_i \|v_i\|$ | Lasso regularization (sparsity) |
-| L2 (Euclidean) | $\sqrt{\sum_i v_i^2}$ | Ridge regularization, distances |
-| L∞ (Max) | $\max_i \|v_i\|$ | Adversarial robustness |
-
-**Cosine similarity** (direction, not magnitude):
-$$\text{cos\_sim}(\mathbf{u}, \mathbf{v}) = \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\|_2 \|\mathbf{v}\|_2} \in [-1, 1]$$
-
-Used in: embedding search, recommendation systems, RAG retrieval.
-
-**Vector projection** of $\mathbf{u}$ onto $\mathbf{v}$:
-$$\text{proj}_{\mathbf{v}} \mathbf{u} = \frac{\mathbf{u} \cdot \mathbf{v}}{\mathbf{v} \cdot \mathbf{v}} \mathbf{v}$$
-
-### 1.4 Matrix Operations
-
-**Matrix multiplication** $C = AB$ where $A \in \mathbb{R}^{m \times k}$, $B \in \mathbb{R}^{k \times n}$:
-
-$$C_{ij} = \sum_{l=1}^k A_{il} B_{lj}$$
-
-Dimensions: $(m \times k)(k \times n) \to (m \times n)$. Inner dimensions must match.
-
-**Properties:**
-- Associative: $(AB)C = A(BC)$
-- Distributive: $A(B+C) = AB + AC$
-- **NOT commutative:** $AB \neq BA$ in general
-- Transpose of product: $(AB)^T = B^T A^T$
-
-**Trace:** Sum of diagonal elements. $\text{tr}(A) = \sum_i A_{ii}$
-
-**Determinant** (2×2): $\det\begin{pmatrix}a & b \\ c & d\end{pmatrix} = ad - bc$
-
-A matrix is invertible iff $\det(A) \neq 0$.
-
-### 1.5 Matrix Inverse
-
-For square $A \in \mathbb{R}^{n \times n}$:
-$$A A^{-1} = A^{-1} A = I$$
-
-$(AB)^{-1} = B^{-1} A^{-1}$
-
-**Moore-Penrose Pseudoinverse** (for non-square or singular matrices):
-$$A^+ = (A^T A)^{-1} A^T \quad \text{(when } A^T A \text{ is invertible)}$$
-
-Used in least-squares: $\hat{\mathbf{w}} = A^+ \mathbf{b}$ solves overdetermined systems.
-
-### 1.6 Eigenvalues & Eigenvectors
-
-For matrix $A$, vector $\mathbf{v} \neq \mathbf{0}$, scalar $\lambda$:
-
-$$A\mathbf{v} = \lambda \mathbf{v}$$
-
-$\mathbf{v}$ is an **eigenvector**, $\lambda$ is the corresponding **eigenvalue**.
-
-**Finding eigenvalues:** Solve the characteristic equation:
-$$\det(A - \lambda I) = 0$$
-
-**Eigendecomposition** (requires $n$ linearly independent eigenvectors):
-$$A = V \Lambda V^{-1}$$
-
-where $V$ = matrix of eigenvectors (columns), $\Lambda$ = diagonal matrix of eigenvalues.
-
-**For symmetric matrices** ($A = A^T$, e.g., covariance matrices):
-$$A = Q \Lambda Q^T, \quad Q^T Q = I \quad \text{(orthonormal eigenvectors)}$$
-
-**ML applications:**
-- **PCA:** eigenvectors of covariance matrix = principal components; eigenvalues = variance explained
-- **PageRank:** dominant eigenvector of transition matrix
-- **Stability analysis:** eigenvalues of Jacobian determine convergence
-
-### 1.7 Singular Value Decomposition (SVD)
-
-Any matrix $A \in \mathbb{R}^{m \times n}$ decomposes as:
-
-$$A = U \Sigma V^T$$
-
-| Matrix | Shape | Meaning |
-|--------|-------|---------|
-| $U$ | $m \times m$ | Left singular vectors (orthonormal) |
-| $\Sigma$ | $m \times n$ | Diagonal — singular values $\sigma_1 \geq \sigma_2 \geq \cdots \geq 0$ |
-| $V^T$ | $n \times n$ | Right singular vectors (orthonormal) |
-
-**Relation to eigendecomp:**
-$$A^T A = V \Sigma^T \Sigma V^T \quad \Rightarrow \quad \sigma_i = \sqrt{\lambda_i(A^T A)}$$
-
-**Truncated SVD** (rank-$k$ approximation, optimal by Eckart-Young theorem):
-$$A \approx U_k \Sigma_k V_k^T$$
-
-**ML applications:**
-- Dimensionality reduction (equivalent to PCA)
-- Latent Semantic Analysis (LSA)
-- Matrix factorization for recommender systems
-- Numerical stability (solving least-squares)
-
-> **Run:** `python src/01-math/matrix_ops.py` — demonstrates eigendecomp, SVD, pseudoinverse
+> **Formula** → **What it does** → **Tiny numeric example** → **Where it appears in ML**
 
 ---
 
-## 2. Calculus for ML
+# Before You Start
 
-### 2.1 Partial Derivatives
+You should ideally know:
 
-For $f: \mathbb{R}^n \to \mathbb{R}$, the partial derivative w.r.t. $x_i$:
+* Basic algebra
+* Python functions and loops
+* What a derivative means conceptually
+* Difference between scalar, vector, and matrix
 
-$$\frac{\partial f}{\partial x_i} = \lim_{h \to 0} \frac{f(\ldots, x_i + h, \ldots) - f(\ldots, x_i, \ldots)}{h}$$
-
-Treat all other variables as constants.
-
-**Example:** $f(x, y) = x^2 y + 3xy^2$
-
-$$\frac{\partial f}{\partial x} = 2xy + 3y^2, \quad \frac{\partial f}{\partial y} = x^2 + 6xy$$
-
-### 2.2 Gradient
-
-The gradient is the vector of all partial derivatives:
-
-$$\nabla_{\mathbf{x}} f = \begin{bmatrix} \frac{\partial f}{\partial x_1} \\ \frac{\partial f}{\partial x_2} \\ \vdots \\ \frac{\partial f}{\partial x_n} \end{bmatrix}$$
-
-**Key property:** $\nabla f$ points in the direction of steepest ascent. $-\nabla f$ points toward steepest descent.
-
-### 2.3 Chain Rule
-
-For composite function $f(g(x))$:
-$$\frac{d}{dx} f(g(x)) = f'(g(x)) \cdot g'(x)$$
-
-**Multivariate chain rule** — if $z = f(x, y)$ and $x = g(t)$, $y = h(t)$:
-$$\frac{dz}{dt} = \frac{\partial z}{\partial x}\frac{dx}{dt} + \frac{\partial z}{\partial y}\frac{dy}{dt}$$
-
-**Why this matters:** Backpropagation IS the chain rule applied recursively through a computational graph. Every gradient computation in deep learning uses this.
-
-### 2.4 Jacobian and Hessian
-
-**Jacobian** — for $\mathbf{f}: \mathbb{R}^n \to \mathbb{R}^m$:
-$$J_{ij} = \frac{\partial f_i}{\partial x_j}, \quad J \in \mathbb{R}^{m \times n}$$
-
-**Hessian** — for $f: \mathbb{R}^n \to \mathbb{R}$, matrix of second-order partials:
-$$H_{ij} = \frac{\partial^2 f}{\partial x_i \partial x_j}, \quad H \in \mathbb{R}^{n \times n}$$
-
-Hessian is symmetric. Its eigenvalues determine the curvature:
-- All positive eigenvalues → local minimum (positive definite)
-- All negative → local maximum
-- Mixed signs → saddle point
-
-### 2.5 Gradient Descent
-
-**Objective:** Minimize $\mathcal{L}(\mathbf{w})$ over parameters $\mathbf{w}$.
-
-**Update rule:**
-$$\mathbf{w}_{t+1} = \mathbf{w}_t - \eta \nabla_{\mathbf{w}} \mathcal{L}(\mathbf{w}_t)$$
-
-where $\eta > 0$ is the **learning rate**.
-
-**Variants:**
-
-| Variant | Gradient estimated from | Update frequency |
-|---------|------------------------|-----------------|
-| Batch GD | Full dataset | Once per epoch |
-| Mini-batch SGD | Subset (batch size $B$) | $N/B$ times per epoch |
-| SGD | Single sample | $N$ times per epoch |
-
-**Convergence guarantee:** For convex $\mathcal{L}$ with Lipschitz gradients, GD converges if $\eta < \frac{2}{L}$ where $L$ is the Lipschitz constant.
-
-**Numerical gradient check** (for debugging):
-$$\frac{\partial f}{\partial x_i} \approx \frac{f(\mathbf{x} + \epsilon \mathbf{e}_i) - f(\mathbf{x} - \epsilon \mathbf{e}_i)}{2\epsilon}$$
-
-Use $\epsilon = 10^{-5}$. Compare with analytical gradient; relative error should be $< 10^{-4}$.
-
-> **Run:** `python src/01-math/calculus_demo.py` — numerical vs analytical gradients, gradient descent on quadratic
+If not, do not worry. This module explains concepts from intuition first.
 
 ---
 
-## 3. Probability & Statistics
+# Beginner Foundations — Building Intuition
 
-### 3.1 Foundations
+## 1. Vectors — The Coordinates of ML
 
-**Sample space** $\Omega$: set of all outcomes.
-**Event** $A \subseteq \Omega$. **Probability** $P: \text{events} \to [0,1]$.
+Imagine a student profile:
 
-**Kolmogorov axioms:**
-1. $P(A) \geq 0$
-2. $P(\Omega) = 1$
-3. $P(A \cup B) = P(A) + P(B)$ if $A \cap B = \emptyset$
+| Feature       | Value |
+| ------------- | ----- |
+| Math score    | 92    |
+| Physics score | 88    |
+| Attendance    | 95    |
 
-**Joint probability:** $P(A \cap B) = P(A,B)$
+This can be represented as:
 
-**Conditional probability:**
-$$P(A \mid B) = \frac{P(A, B)}{P(B)}, \quad P(B) > 0$$
+$$
+\mathbf{v} = [92, 88, 95]
+$$
 
-**Independence:** $A \perp B \iff P(A, B) = P(A)P(B)$
+This list of numbers is called a **vector**.
 
-### 3.2 Bayes' Theorem
+In ML:
 
-$$P(A \mid B) = \frac{P(B \mid A) \cdot P(A)}{P(B)}$$
+* Images become vectors
+* Sentences become vectors
+* Audio becomes vectors
+* User behavior becomes vectors
 
-In ML terminology:
-$$P(\theta \mid \mathcal{D}) = \frac{P(\mathcal{D} \mid \theta) \cdot P(\theta)}{P(\mathcal{D})}$$
-
-| Term | Name | Meaning |
-|------|------|---------|
-| $P(\theta \mid \mathcal{D})$ | Posterior | Updated belief after seeing data |
-| $P(\mathcal{D} \mid \theta)$ | Likelihood | How probable is data given parameters |
-| $P(\theta)$ | Prior | Belief before seeing data |
-| $P(\mathcal{D})$ | Evidence / Marginal | Normalizing constant |
-
-**Law of total probability:**
-$$P(B) = \sum_i P(B \mid A_i) P(A_i) \quad \text{(partition of } \Omega\text{)}$$
-
-### 3.3 Random Variables & Distributions
-
-**Expectation:**
-$$\mathbb{E}[X] = \sum_x x \cdot P(X=x) \quad \text{(discrete)}, \quad \int_{-\infty}^{\infty} x \cdot p(x)\, dx \quad \text{(continuous)}$$
-
-**Variance:**
-$$\text{Var}(X) = \mathbb{E}[(X - \mathbb{E}[X])^2] = \mathbb{E}[X^2] - (\mathbb{E}[X])^2$$
-
-**Covariance:**
-$$\text{Cov}(X, Y) = \mathbb{E}[(X - \mu_X)(Y - \mu_Y)]$$
-
-**Covariance matrix** for vector $\mathbf{x} \in \mathbb{R}^n$:
-$$\Sigma_{ij} = \text{Cov}(X_i, X_j), \quad \Sigma \in \mathbb{R}^{n \times n}, \quad \Sigma \text{ is symmetric positive semidefinite}$$
-
-### 3.4 Key Distributions
-
-**Bernoulli** — single binary trial:
-$$P(X=1) = p, \quad P(X=0) = 1-p, \quad \mathbb{E}[X] = p, \quad \text{Var}(X) = p(1-p)$$
-
-**Categorical** — $K$ classes, $\sum_k p_k = 1$:
-$$P(X=k) = p_k, \quad \mathbb{E}[X_k] = p_k$$
-
-**Gaussian (Normal)**:
-$$p(x) = \frac{1}{\sigma\sqrt{2\pi}} \exp\!\left(-\frac{(x-\mu)^2}{2\sigma^2}\right), \quad \mathbb{E}[X]=\mu, \quad \text{Var}(X)=\sigma^2$$
-
-**Multivariate Gaussian** $\mathbf{x} \sim \mathcal{N}(\boldsymbol{\mu}, \Sigma)$:
-$$p(\mathbf{x}) = \frac{1}{(2\pi)^{n/2}|\Sigma|^{1/2}} \exp\!\left(-\frac{1}{2}(\mathbf{x}-\boldsymbol{\mu})^T \Sigma^{-1} (\mathbf{x}-\boldsymbol{\mu})\right)$$
-
-The exponent $(\mathbf{x}-\boldsymbol{\mu})^T \Sigma^{-1} (\mathbf{x}-\boldsymbol{\mu})$ is the **Mahalanobis distance** squared.
-
-### 3.5 Maximum Likelihood Estimation (MLE)
-
-Given data $\mathcal{D} = \{x^{(1)}, \ldots, x^{(N)}\}$ i.i.d. from $p(x; \theta)$:
-
-**Likelihood:**
-$$\mathcal{L}(\theta) = \prod_{i=1}^N p(x^{(i)}; \theta)$$
-
-**Log-likelihood** (numerically stable, same argmax):
-$$\ell(\theta) = \sum_{i=1}^N \log p(x^{(i)}; \theta)$$
-
-**MLE:** $\hat{\theta}_{\text{MLE}} = \arg\max_\theta \ell(\theta)$
-
-**Example — Gaussian MLE:** Given $x^{(i)} \sim \mathcal{N}(\mu, \sigma^2)$:
-$$\ell(\mu, \sigma^2) = -\frac{N}{2}\log(2\pi\sigma^2) - \frac{1}{2\sigma^2}\sum_i(x^{(i)} - \mu)^2$$
-
-Setting $\frac{\partial \ell}{\partial \mu} = 0$ and $\frac{\partial \ell}{\partial \sigma^2} = 0$:
-$$\hat{\mu} = \frac{1}{N}\sum_i x^{(i)}, \quad \hat{\sigma}^2 = \frac{1}{N}\sum_i(x^{(i)} - \hat{\mu})^2$$
-
-### 3.6 Cross-Entropy & KL Divergence
-
-**Shannon entropy** — expected information content:
-$$H(P) = -\sum_x P(x) \log P(x) = \mathbb{E}_P[-\log P(x)]$$
-
-Maximized by uniform distribution; zero when distribution is deterministic.
-
-**Cross-entropy** of $Q$ relative to $P$:
-$$H(P, Q) = -\sum_x P(x) \log Q(x) = \mathbb{E}_P[-\log Q(x)]$$
-
-Used as loss in classification: $P$ = true labels (one-hot), $Q$ = model predictions (softmax).
-
-$$\mathcal{L}_{\text{CE}} = -\sum_k y_k \log \hat{y}_k = -\log \hat{y}_{y^*}$$
-
-(simplifies to $-\log$ of predicted probability for the correct class)
-
-**KL Divergence** (not a distance — asymmetric):
-$$D_{\text{KL}}(P \| Q) = \sum_x P(x) \log \frac{P(x)}{Q(x)} = H(P, Q) - H(P)$$
-
-$D_{\text{KL}}(P \| Q) \geq 0$; equals 0 iff $P = Q$ a.e. (Gibbs inequality)
-
-**Relationship:** $H(P, Q) = H(P) + D_{\text{KL}}(P \| Q)$
-
-When $H(P)$ is constant (fixed labels), minimizing cross-entropy = minimizing KL divergence.
-
-> **Run:** `python src/01-math/probability.py` — MLE fitting, KL divergence, entropy calculations
+A vector is simply a numerical representation of something.
 
 ---
 
-## Summary: Why This Math Underlies Everything
+## 2. Matrices — Collections of Data
 
-| ML Concept | Math Foundation |
-|-----------|----------------|
-| Neural network forward pass | Matrix multiplication |
-| Backpropagation | Chain rule + partial derivatives |
-| PCA | Eigendecomposition of covariance |
-| Attention mechanism | Dot product + softmax |
-| Loss functions | Cross-entropy, KL divergence |
-| Model training | Gradient descent |
-| Embedding similarity | Cosine similarity, L2 norm |
-| Bayesian ML | Bayes theorem |
-| Generative models | Gaussian / categorical distributions |
-| Regularization | L1/L2 norms |
+One student:
 
----
+$$
+[92, 88, 95]
+$$
 
-## Resources
+Entire classroom:
 
-### Books
-- **Mathematics for Machine Learning** — Deisenroth, Faisal, Ong. Free PDF at `mml-book.github.io`. Covers all three pillars with ML motivation on every page.
-- **Introduction to Probability** — Blitzstein & Hwang. Free PDF at `stat110.net`. Rigorous probability with great exercises.
+$$
+\begin{bmatrix}
+92 & 88 & 95 \
+75 & 81 & 90 \
+84 & 79 & 91
+\end{bmatrix}
+$$
 
-### Video & Courses
-- **3Blue1Brown — Essence of Linear Algebra** (YouTube): 15 visual episodes, best geometric intuition for vectors and matrices.
-- **3Blue1Brown — Essence of Calculus** (YouTube): 12 episodes, gradient intuition from first principles.
-- **MIT 18.06 — Linear Algebra** (Gilbert Strang, MIT OpenCourseWare): The canonical university lecture series.
-- **Khan Academy — Multivariable Calculus + Statistics**: Free, paced, good for filling gaps.
+This is a **matrix**.
 
-### Reference
-- NumPy documentation (`numpy.org/doc`): Every operation used in this module has an official reference page.
-- **The Matrix Cookbook** (Petersen & Pedersen): PDF reference for matrix identities and derivative rules. Search "matrix cookbook PDF".
+Matrices allow computers to process many inputs simultaneously.
+
+This is why GPUs are excellent for AI:
+
+* GPUs are optimized for massive matrix operations
+* Neural networks mostly perform repeated matrix multiplication
 
 ---
 
-## Interview Reference — Math for ML
+## 3. Calculus — Learning Through Error Reduction
 
-### Q: Why does matrix multiplication require the inner dimensions to match?
+Suppose a model predicts house prices.
 
-$AB$ requires $A \in \mathbb{R}^{m \times k}$, $B \in \mathbb{R}^{k \times n}$. Each output element $C_{ij} = \sum_{l=1}^{k} A_{il} B_{lj}$ is a dot product of row $i$ of $A$ with column $j$ of $B$ — so both must have length $k$. This is not a convention; it is the definition of the operation.
+If predictions are wrong, we need to know:
 
-### Q: What does the determinant tell you geometrically?
+* How wrong?
+* In which direction should parameters change?
+* By how much?
 
-$|\det(A)|$ is the scaling factor of volumes under the linear map $A$. $\det(A) = 0$: the map collapses space (rank-deficient, no inverse). $\det(A) < 0$: the map includes a reflection (orientation reversal). For a $2 \times 2$ matrix, $\det = ad - bc$ = area of the parallelogram formed by the columns.
+Derivatives answer these questions.
 
-### Q: What is an eigenvalue and why do we care?
+Think of optimization like walking downhill in fog:
 
-$A\mathbf{v} = \lambda\mathbf{v}$: $\mathbf{v}$ is a direction unchanged by $A$ (only scaled by $\lambda$). Applications in ML: PCA uses eigenvectors of the covariance matrix (principal components); spectral clustering uses eigenvectors of the graph Laplacian; stability analysis of gradient descent uses eigenvalues of the Hessian.
-
-### Q: When is a matrix positive semi-definite (PSD)?
-
-$M \in \mathbb{R}^{n \times n}$ is PSD iff $\mathbf{x}^\top M \mathbf{x} \geq 0$ for all $\mathbf{x}$, equivalently iff all eigenvalues $\lambda_i \geq 0$. Covariance matrices are always PSD. Hessian PSD ↔ convex function. Kernel matrices are PSD by construction (Mercer's theorem).
-
-### Q: What does SVD give you that eigendecomposition doesn't?
-
-Eigendecomposition ($A = Q\Lambda Q^{-1}$) requires $A$ to be square and diagonalizable. SVD ($A = U\Sigma V^\top$) works for any $m \times n$ matrix. $U$ = left singular vectors (column space), $V$ = right singular vectors (row space), $\Sigma$ = singular values (square roots of eigenvalues of $A^\top A$). SVD is the backbone of PCA, LSA, matrix completion, and pseudoinverse computation.
-
-### Q: What is the chain rule and why is it essential for backpropagation?
-
-$\frac{\partial \mathcal{L}}{\partial w} = \frac{\partial \mathcal{L}}{\partial z} \cdot \frac{\partial z}{\partial w}$ (scalar case). For composite functions $f \circ g$: $\nabla_w \mathcal{L} = J_g^\top \nabla_z \mathcal{L}$, where $J_g$ is the Jacobian of $g$ w.r.t. $w$. Backpropagation is just repeated application of the chain rule from output to input — no new math.
-
-### Q: What is the difference between MLE and MAP estimation?
-
-MLE: $\hat{\theta} = \arg\max_\theta \log P(D|\theta)$ — finds parameters that maximize likelihood of observed data. MAP: $\hat{\theta} = \arg\max_\theta [\log P(D|\theta) + \log P(\theta)]$ — adds a log-prior term. With a Gaussian prior on $\theta$, MAP = MLE + L2 regularization ($\lambda\|\theta\|^2$). With a Laplace prior, MAP = MLE + L1.
-
-### Q: Why is KL divergence not a metric?
-
-$\text{KL}(P \| Q) \neq \text{KL}(Q \| P)$ — it is asymmetric. Also, triangle inequality does not hold. It measures "extra bits needed to code samples from $P$ using an optimal code for $Q$." In VI, minimizing $\text{KL}(q \| p)$ (forward) gives mean-seeking approximations; minimizing $\text{KL}(p \| q)$ (reverse) gives mode-seeking approximations.
-
-### Q: What is the relationship between cross-entropy loss and log-likelihood?
-
-Binary cross-entropy $\mathcal{L} = -[y \log \hat{p} + (1-y)\log(1-\hat{p})]$ is exactly the negative log-likelihood under a Bernoulli model. Minimizing cross-entropy = maximizing log-likelihood. For multi-class: categorical cross-entropy = negative log-likelihood under a Categorical model. This is why CE loss is the natural choice for classification.
+* Gradient = slope direction
+* Gradient descent = repeatedly stepping downhill
+* Lowest valley = minimum error
 
 ---
 
-## Cheat Sheet — Math for ML
+## 4. Probability — Handling Uncertainty
 
-| Concept | Formula / Key Fact |
-|---------|-------------------|
-| Dot product | $\mathbf{a} \cdot \mathbf{b} = \|\mathbf{a}\|\|\mathbf{b}\|\cos\theta$ |
-| Cosine similarity | $\cos\theta = \frac{\mathbf{a} \cdot \mathbf{b}}{\|\mathbf{a}\|\|\mathbf{b}\|}$ |
-| L2 norm | $\|\mathbf{x}\|_2 = \sqrt{\sum_i x_i^2}$ |
-| Eigendecomp | $A\mathbf{v} = \lambda\mathbf{v}$; $A = Q\Lambda Q^{-1}$ (square diagonalizable) |
-| SVD | $A = U\Sigma V^\top$; works any shape; $\sigma_i = \sqrt{\lambda_i(A^\top A)}$ |
-| PSD matrix | All eigenvalues $\geq 0$; $\mathbf{x}^\top M\mathbf{x} \geq 0$ always |
-| Chain rule | $\frac{d\mathcal{L}}{dw} = \frac{d\mathcal{L}}{dz}\frac{dz}{dw}$ → backprop |
-| Gradient descent | $\theta \leftarrow \theta - \alpha\nabla_\theta\mathcal{L}$ |
-| Bayes theorem | $P(\theta\|D) = \frac{P(D\|\theta)P(\theta)}{P(D)}$ |
-| MLE | $\arg\max_\theta \log P(D\|\theta)$ |
-| MAP | MLE + $\log P(\theta)$; Gaussian prior → L2 reg |
-| KL divergence | $\text{KL}(P\|Q) = \sum_x P(x)\log\frac{P(x)}{Q(x)} \geq 0$; not symmetric |
-| Cross-entropy | $H(p,q) = -\sum_x p(x)\log q(x) = H(p) + \text{KL}(p\|q)$ |
-| Gaussian | $\mathcal{N}(\mu,\sigma^2)$: mean $\mu$, variance $\sigma^2$, 68-95-99.7 rule |
-| Variance | $\text{Var}(X) = \mathbb{E}[X^2] - (\mathbb{E}[X])^2$ |
+Real-world data is noisy.
+
+A spam classifier cannot be 100% certain.
+Instead it predicts:
+
+$$
+P(\text{spam}) = 0.97
+$$
+
+Probability allows ML systems to:
+
+* Estimate confidence
+* Handle uncertainty
+* Learn patterns statistically
+* Make robust predictions
+
+---
+
+# 1. Linear Algebra
+
+Linear algebra is the language of machine learning.
+
+Almost every ML operation can be represented using vectors and matrices.
+
+---
+
+# 1.1 Scalars, Vectors, Matrices, Tensors
+
+| Object | Notation                        | Shape            | Example         |
+| ------ | ------------------------------- | ---------------- | --------------- |
+| Scalar | $x \in \mathbb{R}$              | `()`             | `3.14`          |
+| Vector | $\mathbf{v} \in \mathbb{R}^n$   | `(n,)`           | `[1,2,3]`       |
+| Matrix | $A \in \mathbb{R}^{m \times n}$ | `(m,n)`          | `[[1,2],[3,4]]` |
+| Tensor | $\mathcal{T}$                   | `(d1,d2,...,dk)` | batch of images |
+
+---
+
+## Understanding Tensors Intuitively
+
+* Scalar → single number
+* Vector → list of numbers
+* Matrix → grid of numbers
+* Tensor → higher-dimensional extension
+
+Example:
+
+RGB image:
+
+$$
+(Height, Width, Channels)
+$$
+
+Batch of images:
+
+$$
+(Batch, Height, Width, Channels)
+$$
+
+Deep learning frameworks like PyTorch and TensorFlow primarily work with tensors.
+
+---
+
+# 1.2 Vector Operations
+
+## Vector Addition
+
+$$
+\mathbf{u} + \mathbf{v} = [u_1 + v_1, u_2 + v_2, ..., u_n + v_n]
+$$
+
+Example:
+
+$$
+[1,2,3] + [4,5,6] = [5,7,9]
+$$
+
+---
+
+## Scalar Multiplication
+
+$$
+c\mathbf{v} = [cv_1, cv_2, ..., cv_n]
+$$
+
+Example:
+
+$$
+2[1,2,3] = [2,4,6]
+$$
+
+---
+
+## Dot Product (Inner Product)
+
+$$
+\mathbf{u} \cdot \mathbf{v} = \sum_{i=1}^{n} u_i v_i = \mathbf{u}^T\mathbf{v}
+$$
+
+Example:
+
+$$
+[1,2,3] \cdot [4,5,6]
+$$
+
+$$
+= 1(4) + 2(5) + 3(6)
+$$
+
+$$
+= 32
+$$
+
+What it does:
+
+* Multiplies matching elements and adds them.
+* Returns **one number** measuring alignment/similarity.
+
+ML example:
+
+* In a recommender system, user embedding `u` and movie embedding `m` are dotted.
+* Larger dot product → stronger predicted preference.
+
+---
+
+## Geometric Meaning of Dot Product
+
+$$
+\mathbf{u} \cdot \mathbf{v} = ||\mathbf{u}|| ||\mathbf{v}|| \cos\theta
+$$
+
+Interpretation:
+
+| Angle       | Meaning             |
+| ----------- | ------------------- |
+| $0^\circ$   | Maximum similarity  |
+| $90^\circ$  | Independent         |
+| $180^\circ$ | Opposite directions |
+
+---
+
+## Why Dot Products Matter in AI
+
+Dot products are everywhere:
+
+* Attention scores in Transformers
+* Similarity search
+* Recommendation systems
+* Neural network weighted sums
+* Embedding retrieval
+
+ChatGPT itself heavily relies on dot products between embeddings.
+
+---
+
+# 1.3 Norms
+
+Norms measure vector magnitude.
+
+## p-Norm
+
+$$
+\|\mathbf{v}\|_p = \left(\sum_{i=1}^{n}|v_i|^p\right)^{1/p}
+$$
+
+What it does:
+
+* Measures vector size/magnitude in different ways depending on `p`.
+
+---
+
+## Common Norms
+
+| Norm | Formula | What it means | ML use case |
+| ---- | ------- | ------------- | ----------- |
+| L1   | $\|v\|_1=\sum_i |v_i|$ | Total absolute size | Lasso, sparse features |
+| L2   | $\|v\|_2=\sqrt{\sum_i v_i^2}$ | Euclidean length | Ridge, weight decay |
+| L$\infty$   | $\|v\|_\infty=\max_i |v_i|$ | Largest component only | Robust constraints |
+
+---
+
+## L1 vs L2 Intuition
+
+### L1 Norm
+
+Encourages many weights to become exactly zero.
+
+Useful in:
+
+* Feature selection
+* Sparse models
+* Lasso regression
+
+### L2 Norm
+
+Penalizes large weights smoothly.
+
+Useful in:
+
+* Ridge regression
+* Preventing overfitting
+* Stable optimization
+
+---
+
+## Cosine Similarity
+
+$$
+\text{cos_sim}(\mathbf{u},\mathbf{v}) = \frac{\mathbf{u}\cdot\mathbf{v}}{||\mathbf{u}||_2||\mathbf{v}||_2}
+$$
+
+Range:
+
+$$
+[-1,1]
+$$
+
+Used in:
+
+* Semantic search
+* Vector databases
+* RAG systems
+* Embedding similarity
+
+Quick numeric example:
+
+* $u=[1,1],\ v=[2,2]$ → cosine similarity = 1 (same direction)
+* $u=[1,0],\ v=[0,1]$ → cosine similarity = 0 (orthogonal)
+
+ML example:
+
+* Semantic search compares query embedding with document embeddings via cosine similarity.
+* Highest score → most relevant document.
+
+---
+
+## Vector Projection
+
+$$
+\text{proj}_{\mathbf{v}}\mathbf{u} = \frac{\mathbf{u}\cdot\mathbf{v}}{\mathbf{v}\cdot\mathbf{v}}\mathbf{v}
+$$
+
+Projection tells how much of one vector lies along another vector.
+
+---
+
+# 1.4 Matrix Operations
+
+## Matrix Multiplication
+
+If:
+
+$$
+A \in \mathbb{R}^{m \times k}
+$$
+
+and
+
+$$
+B \in \mathbb{R}^{k \times n}
+$$
+
+then:
+
+$$
+C = AB
+$$
+
+where:
+
+$$
+C_{ij} = \sum_{l=1}^{k}A_{il}B_{lj}
+$$
+
+What it does:
+
+* Combines rows of `A` with columns of `B` using dot products.
+* This is the core computation in neural network layers.
+
+Tiny example:
+
+$$
+\begin{bmatrix}1 & 2\end{bmatrix}
+\begin{bmatrix}3\\4\end{bmatrix}=11
+$$
+
+ML example:
+
+* Dense layer: `y = XW + b`
+* `X` = batch of inputs, `W` = learned weights.
+
+---
+
+## Dimension Rule
+
+$$
+(m \times k)(k \times n) \rightarrow (m \times n)
+$$
+
+Inner dimensions must match.
+
+---
+
+## Important Properties
+
+### Associative
+
+$$
+(AB)C = A(BC)
+$$
+
+### Distributive
+
+$$
+A(B+C)=AB+AC
+$$
+
+### Non-Commutative
+
+$$
+AB \neq BA
+$$
+
+This is extremely important in ML.
+Order matters.
+
+---
+
+## Transpose
+
+$$
+(AB)^T = B^TA^T
+$$
+
+Transpose swaps rows and columns.
+
+---
+
+## Trace
+
+$$
+\text{tr}(A)=\sum_i A_{ii}
+$$
+
+Trace is the sum of diagonal elements.
+
+ML example:
+
+* In matrix calculus and covariance-based objectives, trace simplifies sums of quadratic terms.
+
+---
+
+## Determinant
+
+For:
+
+$$
+\begin{pmatrix}
+a & b \
+c & d
+\end{pmatrix}
+$$
+
+$$
+\det(A)=ad-bc
+$$
+
+Interpretation:
+
+* Measures volume scaling
+* Determines invertibility
+* Detects collapse of dimensions
+
+If:
+
+$$
+\det(A)=0
+$$
+
+then matrix is singular and non-invertible.
+
+ML intuition:
+
+* Determinant near 0 means transformation squashes space; information may be lost.
+
+---
+
+# 1.5 Matrix Inverse
+
+For square matrix:
+
+$$
+AA^{-1}=I
+$$
+
+where:
+
+$$
+I = \text{Identity matrix}
+$$
+
+---
+
+## Why Inverses Matter
+
+Suppose:
+
+$$
+Ax=b
+$$
+
+Then:
+
+$$
+x=A^{-1}b
+$$
+
+This solves systems of equations.
+
+---
+
+## Moore-Penrose Pseudoinverse
+
+Used when matrix is:
+
+* Non-square
+* Singular
+* Overdetermined
+
+Formula:
+
+$$
+A^+=(A^TA)^{-1}A^T
+$$
+
+What it does:
+
+* Gives a best-fit inverse when true inverse does not exist.
+
+ML example:
+
+* Linear regression closed-form solution uses this idea for least squares.
+
+Used heavily in:
+
+* Least squares
+* Linear regression
+* Numerical optimization
+
+---
+
+# 1.6 Eigenvalues & Eigenvectors
+
+Definition:
+
+$$
+A\mathbf{v}=\lambda\mathbf{v}
+$$
+
+where:
+
+* $\mathbf{v}$ = eigenvector
+* $\lambda$ = eigenvalue
+
+---
+
+## Intuition
+
+Normally matrices rotate and stretch vectors.
+
+Eigenvectors are special vectors whose direction remains unchanged after transformation.
+Only scaling changes.
+
+---
+
+## Characteristic Equation
+
+$$
+\det(A-\lambda I)=0
+$$
+
+Solving gives eigenvalues.
+
+---
+
+## Eigendecomposition
+
+$$
+A=V\Lambda V^{-1}
+$$
+
+where:
+
+* $V$ = eigenvectors
+* $\Lambda$ = diagonal matrix of eigenvalues
+
+ML example:
+
+* PCA finds directions (eigenvectors) with largest variance (largest eigenvalues).
+
+---
+
+## Symmetric Matrices
+
+For:
+
+$$
+A=A^T
+$$
+
+we get:
+
+$$
+A=Q\Lambda Q^T
+$$
+
+where:
+
+$$
+Q^TQ=I
+$$
+
+These matrices are extremely important in ML.
+
+Covariance matrices are symmetric.
+
+---
+
+## ML Applications of Eigenvalues
+
+| Application         | Usage                 |
+| ------------------- | --------------------- |
+| PCA                 | Principal components  |
+| Spectral clustering | Graph structure       |
+| Stability analysis  | Optimization behavior |
+| Google PageRank     | Dominant eigenvector  |
+
+---
+
+# 1.7 Singular Value Decomposition (SVD)
+
+Any matrix:
+
+$$
+A \in \mathbb{R}^{m\times n}
+$$
+
+can be decomposed as:
+
+$$
+A=U\Sigma V^T
+$$
+
+---
+
+## Components of SVD
+
+| Matrix   | Meaning                |
+| -------- | ---------------------- |
+| $U$      | Left singular vectors  |
+| $\Sigma$ | Singular values        |
+| $V^T$    | Right singular vectors |
+
+---
+
+## Why SVD is Important
+
+SVD works for ANY matrix.
+
+Unlike eigendecomposition, matrix does not need to be square.
+
+---
+
+## Truncated SVD
+
+$$
+A \approx U_k\Sigma_kV_k^T
+$$
+
+What it does:
+
+* Keeps only top `k` singular values/vectors.
+* Compresses data while preserving most important structure.
+
+ML example:
+
+* In recommendation systems, user-item matrix factorization uses low-rank structure.
+
+This reduces dimensionality while preserving maximum information.
+
+---
+
+## Applications of SVD
+
+* PCA
+* Recommendation systems
+* Compression
+* Latent semantic analysis
+* Noise reduction
+* Matrix factorization
+
+---
+
+> **Run:** `python src/01-math/matrix_ops.py`
+
+This demonstrates:
+
+* Eigendecomposition
+* SVD
+* Pseudoinverse
+
+---
+
+# 2. Calculus for ML
+
+Calculus allows models to learn.
+
+Without derivatives, neural networks cannot optimize themselves.
+
+---
+
+# 2.1 Partial Derivatives
+
+For:
+
+$$
+f(x,y)=x^2y+3xy^2
+$$
+
+Partial derivative with respect to $x$:
+
+$$
+\frac{\partial f}{\partial x}=2xy+3y^2
+$$
+
+Partial derivative with respect to $y$:
+
+$$
+\frac{\partial f}{\partial y}=x^2+6xy
+$$
+
+ML example:
+
+* If loss depends on multiple weights, partial derivative tells effect of changing **one weight** while others stay fixed.
+
+---
+
+## Intuition
+
+When taking partial derivative with respect to one variable:
+
+* Treat other variables as constants
+
+---
+
+# 2.2 Gradient
+
+Gradient is vector of all partial derivatives.
+
+$$
+\nabla_xf=
+\begin{bmatrix}
+\frac{\partial f}{\partial x_1} \
+\frac{\partial f}{\partial x_2} \
+\vdots \
+\frac{\partial f}{\partial x_n}
+\end{bmatrix}
+$$
+
+---
+
+## Important Property
+
+$$
+\nabla f
+$$
+
+points toward steepest ascent.
+
+Therefore:
+
+$$
+-\nabla f
+$$
+
+points toward steepest descent.
+
+This is the basis of optimization.
+
+ML example:
+
+* During training, gradient gives direction to update all model parameters to reduce loss.
+
+---
+
+# 2.3 Chain Rule
+
+For composite function:
+
+$$
+f(g(x))
+$$
+
+$$
+\frac{d}{dx}f(g(x))=f'(g(x))g'(x)
+$$
+
+---
+
+## Why Chain Rule Matters
+
+Neural networks are nested functions.
+
+Example:
+
+$$
+\text{Input} \rightarrow \text{Layer 1} \rightarrow \text{Layer 2} \rightarrow \text{Loss}
+$$
+
+Backpropagation repeatedly applies chain rule through all layers.
+
+Tiny ML example:
+
+* If $L$ depends on prediction $\hat{y}$ and $\hat{y}$ depends on weight $w$,
+  $$\frac{dL}{dw}=\frac{dL}{d\hat{y}}\cdot\frac{d\hat{y}}{dw}$$
+* This is exactly how backprop computes gradients.
+
+---
+
+# 2.4 Jacobian and Hessian
+
+## Jacobian
+
+For:
+
+$$
+\mathbf{f}:\mathbb{R}^n\rightarrow\mathbb{R}^m
+$$
+
+$$
+J_{ij}=\frac{\partial f_i}{\partial x_j}
+$$
+
+Jacobian stores first-order derivatives.
+
+---
+
+## Hessian
+
+$$
+H_{ij}=\frac{\partial^2f}{\partial x_i\partial x_j}
+$$
+
+Hessian stores second-order derivatives.
+
+---
+
+## Hessian Interpretation
+
+| Eigenvalues | Meaning       |
+| ----------- | ------------- |
+| Positive    | Local minimum |
+| Negative    | Local maximum |
+| Mixed       | Saddle point  |
+
+---
+
+# 2.5 Gradient Descent
+
+Goal:
+
+$$
+\min \mathcal{L}(w)
+$$
+
+Update rule:
+
+$$
+w_{t+1}=w_t-\eta\nabla_w\mathcal{L}(w_t)
+$$
+
+where:
+
+* $\eta$ = learning rate
+
+What it does:
+
+* Moves parameters a small step opposite gradient to reduce loss.
+
+Tiny numeric example:
+
+* If current weight $w=2$, gradient $=0.5$, learning rate $\eta=0.1$:
+	$$w_{new}=2-0.1(0.5)=1.95$$
+
+---
+
+## Gradient Descent Intuition
+
+1. Compute error
+2. Compute gradient
+3. Move opposite gradient
+4. Repeat
+
+Eventually model reaches lower loss.
+
+---
+
+## Types of Gradient Descent
+
+| Type           | Uses           |
+| -------------- | -------------- |
+| Batch GD       | Entire dataset |
+| SGD            | One sample     |
+| Mini-batch SGD | Small subsets  |
+
+Mini-batch SGD is most common in deep learning.
+
+---
+
+## Numerical Gradient Checking
+
+$$
+\frac{\partial f}{\partial x_i}
+\approx
+\frac{f(x+\epsilon)-f(x-\epsilon)}{2\epsilon}
+$$
+
+Used to verify correctness of backpropagation implementations.
+
+---
+
+> **Run:** `python src/01-math/calculus_demo.py`
+
+Demonstrates:
+
+* Numerical gradients
+* Analytical gradients
+* Gradient descent
+
+---
+
+# 3. Probability & Statistics
+
+Probability is the mathematical framework for uncertainty.
+
+Modern AI systems are probabilistic systems.
+
+---
+
+# 3.1 Foundations
+
+## Sample Space
+
+$$
+\Omega
+$$
+
+Set of all possible outcomes.
+
+---
+
+## Event
+
+$$
+A \subseteq \Omega
+$$
+
+Subset of outcomes.
+
+---
+
+## Conditional Probability
+
+$$
+P(A|B)=\frac{P(A,B)}{P(B)}
+$$
+
+Interpretation:
+
+Probability of A given B already happened.
+
+ML example:
+
+* Spam filtering estimates probability of spam given words in email.
+
+---
+
+## Independence
+
+$$
+A \perp B
+$$
+
+means:
+
+$$
+P(A,B)=P(A)P(B)
+$$
+
+---
+
+# 3.2 Bayes' Theorem
+
+$$
+P(A|B)=\frac{P(B|A)P(A)}{P(B)}
+$$
+
+---
+
+## ML Interpretation
+
+$$
+P(\theta|D)=\frac{P(D|\theta)P(\theta)}{P(D)}
+$$
+
+| Term       | Meaning                |
+| ---------- | ---------------------- |
+| Posterior  | Updated belief         |
+| Likelihood | Data probability       |
+| Prior      | Initial belief         |
+| Evidence   | Normalization constant |
+
+Plain meaning:
+
+* **Posterior = Prior updated by observed data**.
+
+---
+
+## Why Bayes Theorem Matters
+
+Used in:
+
+* Bayesian ML
+* Naive Bayes classifiers
+* Uncertainty estimation
+* Probabilistic reasoning
+
+---
+
+# 3.3 Random Variables & Distributions
+
+## Expectation
+
+Discrete:
+
+$$
+\mathbb{E}[X]=\sum_xxP(X=x)
+$$
+
+Continuous:
+
+$$
+\mathbb{E}[X]=\int x p(x)dx
+$$
+
+Expectation represents average value.
+
+ML example:
+
+* Expected loss is the average loss over data distribution; training tries to minimize it.
+
+---
+
+## Variance
+
+$$
+\text{Var}(X)=\mathbb{E}[X^2]-(\mathbb{E}[X])^2
+$$
+
+Variance measures spread.
+
+ML example:
+
+* High variance in model performance can indicate overfitting/instability.
+
+---
+
+## Covariance
+
+$$
+\text{Cov}(X,Y)=\mathbb{E}[(X-\mu_X)(Y-\mu_Y)]
+$$
+
+Covariance measures relationship between variables.
+
+---
+
+# 3.4 Key Distributions
+
+## Bernoulli Distribution
+
+Binary outcome:
+
+$$
+P(X=1)=p
+$$
+
+$$
+P(X=0)=1-p
+$$
+
+Used in:
+
+* Binary classification
+* Logistic regression
+
+---
+
+## Gaussian Distribution
+
+$$
+p(x)=\frac{1}{\sigma\sqrt{2\pi}}e^{-\frac{(x-\mu)^2}{2\sigma^2}}
+$$
+
+Parameters:
+
+* $\mu$ = mean
+* $\sigma^2$ = variance
+
+---
+
+## 68–95–99.7 Rule
+
+For normal distribution:
+
+| Range     | Data Covered |
+| --------- | ------------ |
+| $1\sigma$ | 68%          |
+| $2\sigma$ | 95%          |
+| $3\sigma$ | 99.7%        |
+
+---
+
+## Multivariate Gaussian
+
+$$
+p(x)=\frac{1}{(2\pi)^{n/2}|\Sigma|^{1/2}}e^{-\frac{1}{2}(x-\mu)^T\Sigma^{-1}(x-\mu)}
+$$
+
+Widely used in:
+
+* Gaussian mixture models
+* Variational autoencoders
+* Kalman filters
+
+---
+
+# 3.5 Maximum Likelihood Estimation (MLE)
+
+Suppose data:
+
+$$
+D={x^{(1)},...,x^{(N)}}
+$$
+
+Likelihood:
+
+$$
+L(\theta)=\prod_{i=1}^{N}p(x^{(i)};\theta)
+$$
+
+---
+
+## Log-Likelihood
+
+$$
+\ell(\theta)=\sum_{i=1}^{N}\log p(x^{(i)};\theta)
+$$
+
+Logarithms make optimization numerically stable.
+
+---
+
+## MLE Objective
+
+$$
+\hat{\theta}_{\text{MLE}}=\arg\max_{\theta} \ell(\theta)
+$$
+
+---
+
+## Why MLE Matters
+
+Many ML loss functions are derived directly from maximum likelihood.
+
+Examples:
+
+* Cross-entropy
+* Logistic regression
+* Gaussian regression
+
+---
+
+# 3.6 Cross-Entropy & KL Divergence
+
+## Shannon Entropy
+
+$$
+H(P)=-\sum_xP(x)\log P(x)
+$$
+
+Measures uncertainty.
+
+Higher entropy:
+
+* More uncertainty
+* More randomness
+
+---
+
+## Cross-Entropy
+
+$$
+H(P,Q)=-\sum_xP(x)\log Q(x)
+$$
+
+Used as classification loss.
+
+---
+
+## Cross-Entropy Loss
+
+$$
+\mathcal{L}_{CE}=-\sum_ky_k\log\hat{y}_k
+$$
+
+For one-hot labels:
+
+$$
+=-\log \hat{y}_{y^*}
+$$
+
+Tiny ML example:
+
+* True class probability predicted as $0.9$ → loss $=-\log(0.9)$ (small, good)
+* True class probability predicted as $0.1$ → loss $=-\log(0.1)$ (large, bad)
+
+---
+
+## KL Divergence
+
+$$
+D_{KL}(P||Q)=\sum_xP(x)\log\frac{P(x)}{Q(x)}
+$$
+
+Measures difference between distributions.
+
+---
+
+## Important Properties
+
+$$
+D_{KL}(P||Q) \geq 0
+$$
+
+and:
+
+$$
+D_{KL}(P||Q) \neq D_{KL}(Q||P)
+$$
+
+Therefore KL divergence is NOT a true distance metric.
+
+---
+
+## Relationship Between Cross-Entropy and KL
+
+$$
+H(P,Q)=H(P)+D_{KL}(P||Q)
+$$
+
+When labels are fixed:
+
+Minimizing cross-entropy = minimizing KL divergence.
+
+---
+
+> **Run:** `python src/01-math/probability.py`
+
+Demonstrates:
+
+* Entropy
+* KL divergence
+* MLE fitting
+
+---
+
+# Summary — Why This Math Powers AI
+
+| ML Concept                  | Mathematical Foundation   |
+| --------------------------- | ------------------------- |
+| Neural network forward pass | Matrix multiplication     |
+| Backpropagation             | Chain rule                |
+| Attention mechanism         | Dot product + softmax     |
+| PCA                         | Eigendecomposition        |
+| Optimization                | Gradient descent          |
+| Embeddings                  | Vector spaces             |
+| Classification loss         | Cross-entropy             |
+| Bayesian learning           | Bayes theorem             |
+| Generative models           | Probability distributions |
+| Regularization              | L1/L2 norms               |
+
+---
+
+# Common Beginner Mistakes
+
+| Mistake                                                          | Correction                                      |
+| ---------------------------------------------------------------- | ----------------------------------------------- |
+| Treating vectors as only lists                                   | Vectors represent directions and magnitudes     |
+| Confusing matrix multiplication with element-wise multiplication | They are completely different operations        |
+| Ignoring dimensions                                              | Shape mismatches are one of the biggest ML bugs |
+| Memorizing formulas without intuition                            | Always understand geometric meaning             |
+| Thinking probability means certainty                             | Probability models uncertainty                  |
+
+---
+
+# Practical ML Connections
+
+## Transformers
+
+Use:
+
+* Dot products
+* Softmax
+* Matrix multiplication
+* Probability distributions
+
+---
+
+## CNNs
+
+Use:
+
+* Matrix operations
+* Gradients
+* Convolutions
+
+---
+
+## Recommendation Systems
+
+Use:
+
+* Embeddings
+* Cosine similarity
+* Matrix factorization
+
+---
+
+## Diffusion Models
+
+Use:
+
+* Gaussian distributions
+* KL divergence
+* Probability theory
+
+---
+
+# Glossary
+
+| Term          | Meaning                                      |
+| ------------- | -------------------------------------------- |
+| Scalar        | Single number                                |
+| Vector        | Ordered list of numbers                      |
+| Matrix        | 2D grid of numbers                           |
+| Tensor        | Multi-dimensional array                      |
+| Gradient      | Vector of derivatives                        |
+| Eigenvector   | Direction preserved after transformation     |
+| Eigenvalue    | Scaling factor                               |
+| SVD           | Matrix decomposition method                  |
+| Entropy       | Measure of uncertainty                       |
+| Likelihood    | Probability of data given parameters         |
+| Posterior     | Updated probability after observing data     |
+| KL Divergence | Difference between probability distributions |
+
+---
+
+# Recommended Resources
+
+## Books
+
+### Mathematics for Machine Learning
+
+Authors:
+
+* Deisenroth
+* Faisal
+* Ong
+
+Website:
+
+* [https://mml-book.github.io](https://mml-book.github.io)
+
+---
+
+### Introduction to Probability
+
+Authors:
+
+* Blitzstein
+* Hwang
+
+Website:
+
+* [https://stat110.net](https://stat110.net)
+
+---
+
+# Video Resources
+
+## 3Blue1Brown — Essence of Linear Algebra
+
+Excellent visual explanation of:
+
+* Vectors
+* Matrices
+* Eigenvectors
+* Transformations
+
+YouTube Playlist:
+
+* [https://www.youtube.com/watch?v=fNk_zzaMoSs](https://www.youtube.com/watch?v=fNk_zzaMoSs)
+
+---
+
+## 3Blue1Brown — Essence of Calculus
+
+Best intuition for:
+
+* Derivatives
+* Integrals
+* Gradients
+* Chain rule
+
+Playlist:
+
+* [https://www.youtube.com/watch?v=WUvTyaaNkzM](https://www.youtube.com/watch?v=WUvTyaaNkzM)
+
+---
+
+## MIT 18.06 — Linear Algebra
+
+Professor:
+
+* Gilbert Strang
+
+MIT OpenCourseWare:
+
+* [https://ocw.mit.edu](https://ocw.mit.edu)
+
+---
+
+# NumPy References
+
+Official documentation:
+
+* [https://numpy.org/doc](https://numpy.org/doc)
+
+Important functions:
+
+| Function          | Purpose             |
+| ----------------- | ------------------- |
+| `np.dot()`        | Dot product         |
+| `np.linalg.inv()` | Matrix inverse      |
+| `np.linalg.eig()` | Eigenvalues         |
+| `np.linalg.svd()` | SVD                 |
+| `np.gradient()`   | Numerical gradients |
+
+---
+
+# Interview Reference — Math for ML
+
+## Why must matrix multiplication dimensions match?
+
+Because multiplication computes dot products between rows and columns.
+The lengths must be equal.
+
+---
+
+## Why are eigenvectors important?
+
+They identify important directions in transformed space.
+Used in:
+
+* PCA
+* Spectral methods
+* Stability analysis
+
+---
+
+## Why is SVD powerful?
+
+Because it works for any matrix.
+It enables:
+
+* Compression
+* Denoising
+* Dimensionality reduction
+* Recommendation systems
+
+---
+
+## Why is chain rule essential in deep learning?
+
+Backpropagation repeatedly applies chain rule across layers.
+Without it, neural networks cannot learn.
+
+---
+
+## Why use cross-entropy for classification?
+
+Because it directly corresponds to maximizing likelihood under probabilistic models.
+
+---
+
+# Cheat Sheet — Math for ML
+
+## Dot Product
+
+$$
+a \cdot b = \|a\|\,\|b\|\cos\theta
+$$
+
+Meaning:
+
+* Measures similarity and alignment between vectors
+* Core operation in neural networks and transformers
+
+---
+
+## Cosine Similarity
+
+$$
+	ext{cosine similarity} = \frac{a \cdot b}{\|a\|\,\|b\|}
+$$
+
+Meaning:
+
+* Measures directional similarity
+* Common in embeddings and semantic search
+
+---
+
+## L2 Norm
+
+$$
+||x||_2 = \sqrt{\sum x_i^2}
+$$
+
+Meaning:
+
+* Euclidean distance from origin
+* Used in regularization and optimization
+
+---
+
+## Eigendecomposition
+
+$$
+A = Q\Lambda Q^{-1}
+$$
+
+Meaning:
+
+* Decomposes matrix into eigenvectors and eigenvalues
+* Used in PCA and spectral analysis
+
+---
+
+## Singular Value Decomposition (SVD)
+
+$$
+A = U\Sigma V^T
+$$
+
+Meaning:
+
+* Works for any matrix shape
+* Used in dimensionality reduction and recommendation systems
+
+---
+
+## Gradient Descent
+
+$$
+\theta \leftarrow \theta - \alpha \nabla_\theta L
+$$
+
+Meaning:
+
+* Updates parameters to minimize loss
+* Backbone of neural network training
+
+---
+
+## Bayes Theorem
+
+$$
+P(A \mid B)=\frac{P(B \mid A)P(A)}{P(B)}
+$$
+
+Meaning:
+
+* Updates belief after observing evidence
+* Foundation of Bayesian learning
+
+---
+
+## Maximum Likelihood Estimation (MLE)
+
+$$
+\arg\max_\theta \log P(D \mid \theta)
+$$
+
+Meaning:
+
+* Finds parameters most likely to generate observed data
+
+---
+
+## KL Divergence
+
+$$
+D_{KL}(P || Q)=\sum P(x)\log\frac{P(x)}{Q(x)}
+$$
+
+Meaning:
+
+* Measures difference between probability distributions
+
+---
+
+## Cross-Entropy
+
+$$
+H(P,Q)=H(P)+D_{KL}(P || Q)
+$$
+
+Meaning:
+
+* Common classification loss function
+* Minimizing cross-entropy reduces distribution mismatch
+
+---
+
+# Suggested Learning Path
+
+1. Learn vectors and matrices visually
+2. Practice NumPy operations
+3. Understand derivatives intuitively
+4. Implement gradient descent manually
+5. Study probability distributions
+6. Learn optimization deeply
+7. Move into neural networks
+
+---
+
+# Practice Exercises
+
+## Linear Algebra
+
+1. Compute cosine similarity between two vectors
+2. Implement matrix multiplication from scratch
+3. Compute eigenvalues of a 2×2 matrix
+
+---
+
+## Calculus
+
+1. Differentiate polynomial functions
+2. Implement gradient descent manually
+3. Compare numerical vs analytical gradients
+
+---
+
+## Probability
+
+1. Compute entropy of distributions
+2. Implement Naive Bayes classifier
+3. Calculate KL divergence between two distributions
+
+---
+
+# Final Advice
+
+Do not attempt to memorize all formulas immediately.
+
+Focus on:
+
+* Intuition
+* Geometry
+* Practical meaning
+* ML applications
+
+Mathematics becomes significantly easier once connected to real ML systems.
 
 ---
 
