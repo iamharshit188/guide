@@ -9,7 +9,7 @@
   <!-- Markdown rendering -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-  <!-- Syntax highlighting (UMD browser build via cdnjs) -->
+  <!-- Syntax highlighting -->
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/onedark.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -33,67 +33,109 @@
 </head>
 <body>
 
+  <!-- Skip to content (accessibility) -->
+  <a class="skip-link" href="#content-area">Skip to content</a>
+
+  <!-- ── Loading Screen ── -->
+  <div id="loading-screen" role="status" aria-label="Loading platform">
+    <div class="loading-logo" aria-hidden="true">ML</div>
+    <div class="loading-title">AI/ML PLATFORM</div>
+    <div class="loading-bar-track" aria-hidden="true">
+      <div class="loading-bar-fill"></div>
+    </div>
+    <div class="loading-subtitle">INITIALISING MODULES</div>
+  </div>
+
+  <!-- ── Mobile sidebar overlay ── -->
+  <div id="sidebar-overlay" aria-hidden="true"></div>
+
+  <!-- ── Mobile hamburger ── -->
+  <button id="sidebar-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="sidebar">
+    <span class="ham-line"></span>
+    <span class="ham-line"></span>
+    <span class="ham-line"></span>
+  </button>
+
   <!-- ── Sidebar ── -->
-  <aside id="sidebar">
+  <aside id="sidebar" role="navigation" aria-label="Module navigation">
     <div id="sidebar-header">
       <div class="logo-block">
-        <span class="logo-tag">ML</span>
+        <span class="logo-tag" aria-hidden="true">ML</span>
         <h1>AI/ML Platform</h1>
       </div>
-      <div id="progress-container">
-        <div id="progress-label"><span id="progress-count">0</span> / <span id="module-total">9</span> complete</div>
+      <div id="progress-container" role="progressbar"
+           aria-valuenow="0" aria-valuemin="0" aria-valuemax="13"
+           aria-label="Module completion progress">
+        <div id="progress-label">
+          <span id="progress-count">0</span> / <span id="module-total">13</span> complete
+        </div>
         <div id="progress-bar-track">
           <div id="progress-bar-fill"></div>
         </div>
       </div>
     </div>
 
-    <nav id="module-nav">
-      <div class="nav-section-label">MODULES</div>
-      <ul id="module-list"></ul>
+    <nav id="module-nav" aria-label="Modules and projects">
+      <div class="nav-section-label" aria-hidden="true">MODULES</div>
+      <ul id="module-list" role="list"></ul>
 
-      <div class="nav-section-label nav-section-projects">PROJECTS</div>
-      <ul id="project-list"></ul>
+      <div class="nav-section-label nav-section-projects" aria-hidden="true">PROJECTS</div>
+      <ul id="project-list" role="list"></ul>
     </nav>
 
     <div id="sidebar-footer">
-      <button id="btn-roadmap" class="nav-btn active" data-view="roadmap">ROADMAP</button>
-      <button id="btn-reset" class="nav-btn danger" onclick="resetProgress()">RESET</button>
+      <button id="btn-roadmap" class="nav-btn active" data-view="roadmap" aria-label="Go to roadmap">ROADMAP</button>
+      <button id="btn-reset" class="nav-btn danger" onclick="resetProgress()" aria-label="Reset all progress">RESET</button>
     </div>
   </aside>
 
   <!-- ── Main Content ── -->
-  <main id="main">
+  <main id="main" aria-label="Main content">
     <div id="topbar">
-      <div id="breadcrumb">Roadmap</div>
+      <div id="breadcrumb" aria-live="polite" aria-label="Current location">Roadmap</div>
       <div id="topbar-actions">
-        <button id="btn-complete" class="complete-btn hidden" onclick="toggleComplete()">
+        <button id="btn-complete" class="complete-btn hidden" onclick="toggleComplete()"
+                aria-label="Toggle module completion">
           MARK COMPLETE
         </button>
       </div>
     </div>
 
-    <div id="content-area">
+    <div id="content-area" tabindex="-1">
       <div id="welcome-screen">
+
+        <!-- Greeting bar -->
+        <div id="greeting-bar" aria-live="polite">
+          <span id="greeting-time"></span>
+          <span id="greeting-stats"></span>
+        </div>
+
+        <!-- Module card -->
         <div class="welcome-card">
           <div class="welcome-tag">START HERE</div>
           <h2>AI/ML/GenAI/Backend<br>Learning Platform</h2>
           <p>13 modules · 9 projects. Math to Multimodal. Select a module to begin.</p>
-          <div class="welcome-grid" id="welcome-grid"></div>
+          <div class="welcome-grid" id="welcome-grid" role="list" aria-label="Module list"></div>
         </div>
 
+        <!-- Projects card -->
         <div class="welcome-card projects-welcome-card">
           <div class="welcome-tag projects-tag">BUILD</div>
           <h2>Hands-On Projects</h2>
           <p>One project per module. Approach, phases, checkpoints — no full solutions.</p>
-          <div class="welcome-grid" id="projects-grid"></div>
+          <div class="welcome-grid" id="projects-grid" role="list" aria-label="Project list"></div>
         </div>
+
       </div>
 
-      <div id="doc-view" class="hidden">
+      <div id="doc-view" class="hidden" aria-live="polite">
         <div id="doc-rendered"></div>
       </div>
     </div>
+
+    <footer id="site-footer" role="contentinfo">
+      Made with ❤️ by Harshit and AI
+    </footer>
   </main>
 
   <script src="app.js"></script>

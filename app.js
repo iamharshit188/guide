@@ -3,6 +3,8 @@
 // ── Constants ──────────────────────────────────────────────────
 const LS_KEY          = "aiml_platform_progress";
 const LS_KEY_PROJECTS = "aiml_platform_projects_progress";
+const LOAD_START      = Date.now();
+const MIN_LOAD_MS     = 1400;
 
 const MODULE_META = [
   { file: "01-math.md",           label: "Math for ML",               tag: "01" },
@@ -21,21 +23,21 @@ const MODULE_META = [
 ];
 
 const PROJECT_META = [
-  { file: "p01-pca-compressor.md",     label: "PCA Image Compressor",              module: "01", difficulty: "Beginner"     },
-  { file: "p02-titanic-pipeline.md",   label: "Titanic Survival Predictor",        module: "02", difficulty: "Beginner"     },
-  { file: "p03-semantic-search.md",    label: "Semantic Code Search Engine",       module: "03", difficulty: "Intermediate" },
-  { file: "p04-ml-api.md",             label: "Production ML Serving API",         module: "04", difficulty: "Intermediate" },
-  { file: "p05-training-dashboard.md", label: "NN Training Dashboard",             module: "05", difficulty: "Intermediate" },
-  { file: "p06-word-analogy.md",       label: "Word Analogy Explorer",             module: "06", difficulty: "Intermediate" },
-  { file: "p07-gpt-shakespeare.md",    label: "Shakespeare GPT",                   module: "07", difficulty: "Advanced"     },
-  { file: "p08-document-qa.md",        label: "Personal Document Q&A",             module: "08", difficulty: "Advanced"     },
-  { file: "p09-domain-tuner.md",       label: "Domain-Specific Tuner",             module: "09", difficulty: "Advanced"     },
+  { file: "p01-pca-compressor.md",     label: "PCA Image Compressor",        module: "01", difficulty: "Beginner"     },
+  { file: "p02-titanic-pipeline.md",   label: "Titanic Survival Predictor",  module: "02", difficulty: "Beginner"     },
+  { file: "p03-semantic-search.md",    label: "Semantic Code Search Engine", module: "03", difficulty: "Intermediate" },
+  { file: "p04-ml-api.md",             label: "Production ML Serving API",   module: "04", difficulty: "Intermediate" },
+  { file: "p05-training-dashboard.md", label: "NN Training Dashboard",       module: "05", difficulty: "Intermediate" },
+  { file: "p06-word-analogy.md",       label: "Word Analogy Explorer",       module: "06", difficulty: "Intermediate" },
+  { file: "p07-gpt-shakespeare.md",    label: "Shakespeare GPT",             module: "07", difficulty: "Advanced"     },
+  { file: "p08-document-qa.md",        label: "Personal Document Q&A",       module: "08", difficulty: "Advanced"     },
+  { file: "p09-domain-tuner.md",       label: "Domain-Specific Tuner",       module: "09", difficulty: "Advanced"     },
 ];
 
 // ── State ───────────────────────────────────────────────────────
 let state = {
   currentFile:      null,
-  currentType:      null,   // "module" | "project"
+  currentType:      null,
   progress:         loadProgress(),
   projectsProgress: loadProjectsProgress(),
 };
@@ -54,20 +56,79 @@ function loadProjectsProgress() {
 function saveProgress()         { localStorage.setItem(LS_KEY,          JSON.stringify(state.progress));         }
 function saveProjectsProgress() { localStorage.setItem(LS_KEY_PROJECTS, JSON.stringify(state.projectsProgress)); }
 
+// ── Loading screen ───────────────────────────────────────────────
+function hideLoadingScreen() {
+  const elapsed = Date.now() - LOAD_START;
+  const delay   = Math.max(0, MIN_LOAD_MS - elapsed);
+  setTimeout(() => {
+    const screen = document.getElementById("loading-screen");
+    if (screen) screen.classList.add("fade-out");
+  }, delay);
+}
+
+// ── Greeting ─────────────────────────────────────────────────────
+function getGreetingPhrase() {
+  const h = new Date().getHours();
+  if (h < 5)  return "Working late, Harshit";
+  if (h < 12) return "Good morning, Harshit";
+  if (h < 17) return "Good afternoon, Harshit";
+  if (h < 21) return "Good evening, Harshit";
+  return "Burning midnight oil, Harshit";
+}
+
+function updateGreeting() {
+  const done   = MODULE_META.filter(m => state.progress[m.file] === "done").length;
+  const pdone  = PROJECT_META.filter(p => state.projectsProgress[p.file] === "done").length;
+  const pct    = Math.round((done / MODULE_META.length) * 100);
+
+  const timeEl  = document.getElementById("greeting-time");
+  const statsEl = document.getElementById("greeting-stats");
+
+  if (timeEl)  timeEl.textContent  = getGreetingPhrase();
+  if (statsEl) statsEl.textContent = `${done}/${MODULE_META.length} modules · ${pdone}/${PROJECT_META.length} projects · ${pct}% complete`;
+}
+
 // ── marked.js config ────────────────────────────────────────────
 marked.setOptions({
   highlight: (code, lang) => {
-    if (lang && hljs.getLanguage(lang)) {
-      return hljs.highlight(code, { language: lang }).value;
-    }
+    if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang }).value;
     return hljs.highlightAuto(code).value;
   },
   breaks: false,
   gfm: true,
 });
 
-// ── DOM helpers ─────────────────────────────────────────────────
+// ── DOM helper ───────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
+
+// ── Mobile sidebar ───────────────────────────────────────────────
+function openSidebar() {
+  $("sidebar").classList.add("mobile-open");
+  $("sidebar-overlay").classList.add("visible");
+  const toggle = $("sidebar-toggle");
+  toggle.classList.add("open");
+  toggle.setAttribute("aria-expanded", "true");
+}
+
+function closeSidebar() {
+  $("sidebar").classList.remove("mobile-open");
+  $("sidebar-overlay").classList.remove("visible");
+  const toggle = $("sidebar-toggle");
+  toggle.classList.remove("open");
+  toggle.setAttribute("aria-expanded", "false");
+}
+
+// ── Content fade helper ──────────────────────────────────────────
+function fadeContent(fn) {
+  const ca = $("content-area");
+  ca.style.opacity = "0";
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      fn();
+      ca.style.opacity = "1";
+    }, 180);
+  });
+}
 
 // ── Build module sidebar nav ─────────────────────────────────────
 function buildNav() {
@@ -76,18 +137,22 @@ function buildNav() {
 
   MODULE_META.forEach((mod, idx) => {
     const completed = state.progress[mod.file] === "done";
-    const li = document.createElement("li");
+    const li        = document.createElement("li");
     li.dataset.file = mod.file;
     li.dataset.idx  = idx;
     li.className    = completed ? "completed" : "";
+    li.setAttribute("role", "listitem");
+    li.setAttribute("tabindex", "0");
+    li.setAttribute("aria-label", `Module ${mod.tag}: ${mod.label}${completed ? " (completed)" : ""}`);
 
     li.innerHTML = `
-      <span class="module-num">${mod.tag}</span>
+      <span class="module-num" aria-hidden="true">${mod.tag}</span>
       <span class="module-name">${mod.label}</span>
-      <span class="status-dot"></span>
+      <span class="status-dot" aria-hidden="true"></span>
     `;
 
-    li.addEventListener("click", () => openModule(mod.file, mod.label));
+    li.addEventListener("click", () => { openModule(mod.file, mod.label); closeSidebar(); });
+    li.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openModule(mod.file, mod.label); closeSidebar(); } });
     ul.appendChild(li);
   });
 
@@ -101,18 +166,22 @@ function buildProjectNav() {
 
   PROJECT_META.forEach((proj, idx) => {
     const completed = state.projectsProgress[proj.file] === "done";
-    const li = document.createElement("li");
+    const li        = document.createElement("li");
     li.dataset.file = proj.file;
     li.dataset.idx  = idx;
     li.className    = "project-item" + (completed ? " completed" : "");
+    li.setAttribute("role", "listitem");
+    li.setAttribute("tabindex", "0");
+    li.setAttribute("aria-label", `Project ${proj.module}: ${proj.label}${completed ? " (completed)" : ""}`);
 
     li.innerHTML = `
-      <span class="module-num">P${proj.module}</span>
+      <span class="module-num" aria-hidden="true">P${proj.module}</span>
       <span class="module-name">${proj.label}</span>
-      <span class="status-dot"></span>
+      <span class="status-dot" aria-hidden="true"></span>
     `;
 
-    li.addEventListener("click", () => openProject(proj.file, proj.label));
+    li.addEventListener("click", () => { openProject(proj.file, proj.label); closeSidebar(); });
+    li.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openProject(proj.file, proj.label); closeSidebar(); } });
     ul.appendChild(li);
   });
 }
@@ -126,12 +195,19 @@ function buildWelcomeGrid() {
     const completed = state.progress[mod.file] === "done";
     const card = document.createElement("div");
     card.className = `welcome-module-card wmc-${idx}`;
+    card.style.animationDelay = `${idx * 35}ms`;
+    card.setAttribute("role", "listitem");
+    card.setAttribute("tabindex", "0");
+    card.setAttribute("aria-label", `Open module ${mod.tag}: ${mod.label}`);
+
     card.innerHTML = `
-      <div class="wmc-num">MODULE ${mod.tag}</div>
+      <div class="wmc-num" aria-hidden="true">MODULE ${mod.tag}</div>
       <div class="wmc-title">${mod.label}</div>
-      <div class="wmc-status ${completed ? "done" : ""}"></div>
+      <div class="wmc-status ${completed ? "done" : ""}" aria-hidden="true"></div>
     `;
+
     card.addEventListener("click", () => openModule(mod.file, mod.label));
+    card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openModule(mod.file, mod.label); } });
     grid.appendChild(card);
   });
 }
@@ -145,13 +221,20 @@ function buildProjectsGrid() {
     const completed = state.projectsProgress[proj.file] === "done";
     const card = document.createElement("div");
     card.className = `welcome-module-card project-card wpc-${idx}`;
+    card.style.animationDelay = `${idx * 35}ms`;
+    card.setAttribute("role", "listitem");
+    card.setAttribute("tabindex", "0");
+    card.setAttribute("aria-label", `Open project: ${proj.label} (${proj.difficulty})`);
+
     card.innerHTML = `
-      <div class="wmc-num">PROJECT ${proj.module}</div>
+      <div class="wmc-num" aria-hidden="true">PROJECT ${proj.module}</div>
       <div class="wmc-title">${proj.label}</div>
-      <span class="difficulty-badge diff-${proj.difficulty.toLowerCase()}">${proj.difficulty}</span>
-      <div class="wmc-status ${completed ? "done" : ""}"></div>
+      <span class="difficulty-badge diff-${proj.difficulty.toLowerCase()}" aria-label="Difficulty: ${proj.difficulty}">${proj.difficulty}</span>
+      <div class="wmc-status ${completed ? "done" : ""}" aria-hidden="true"></div>
     `;
+
     card.addEventListener("click", () => openProject(proj.file, proj.label));
+    card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openProject(proj.file, proj.label); } });
     grid.appendChild(card);
   });
 }
@@ -159,11 +242,16 @@ function buildProjectsGrid() {
 // ── Progress bar ────────────────────────────────────────────────
 function updateProgressBar() {
   const total = MODULE_META.length;
-  const done  = MODULE_META.filter((m) => state.progress[m.file] === "done").length;
+  const done  = MODULE_META.filter(m => state.progress[m.file] === "done").length;
 
-  $("progress-count").textContent = done;
-  $("module-total").textContent   = total;
+  $("progress-count").textContent    = done;
+  $("module-total").textContent      = total;
   $("progress-bar-fill").style.width = `${(done / total) * 100}%`;
+
+  const container = $("progress-container");
+  if (container) container.setAttribute("aria-valuenow", done);
+
+  updateGreeting();
 }
 
 // ── Open module ──────────────────────────────────────────────────
@@ -171,36 +259,32 @@ async function openModule(file, label) {
   state.currentFile = file;
   state.currentType = "module";
 
-  document.querySelectorAll("#module-list li").forEach((li) =>
+  document.querySelectorAll("#module-list li").forEach(li =>
     li.classList.toggle("active", li.dataset.file === file));
-  document.querySelectorAll("#project-list li").forEach((li) =>
+  document.querySelectorAll("#project-list li").forEach(li =>
     li.classList.remove("active"));
 
   $("breadcrumb").textContent = label;
-  $("welcome-screen").classList.add("hidden");
-  $("doc-view").classList.remove("hidden");
 
-  const btn    = $("btn-complete");
   const isDone = state.progress[file] === "done";
+  const btn    = $("btn-complete");
   btn.classList.remove("hidden");
   btn.textContent = isDone ? "✓ COMPLETED" : "MARK COMPLETE";
   btn.className   = "complete-btn" + (isDone ? " done" : "");
 
-  $("doc-rendered").innerHTML = `<p style="font-family:monospace;color:#888;">Loading ${file}…</p>`;
+  fadeContent(async () => {
+    $("welcome-screen").classList.add("hidden");
+    $("doc-view").classList.remove("hidden");
+    $("doc-rendered").innerHTML = `<p style="font-family:monospace;color:#888;padding:8px 0;">Loading ${file}…</p>`;
 
-  try {
-    const res = await fetch(`docs/${file}`);
-    if (!res.ok) {
-      if (res.status === 404) { renderNotReady(file, label); return; }
-      throw new Error(`HTTP ${res.status}`);
+    try {
+      const res = await fetch(`docs/${file}`);
+      if (!res.ok) { if (res.status === 404) { renderNotReady(file, label); return; } throw new Error(`HTTP ${res.status}`); }
+      renderMarkdown(await res.text());
+    } catch (err) {
+      $("doc-rendered").innerHTML = `<div class="error-box"><strong>Error loading ${file}</strong><br>${err.message}</div>`;
     }
-    renderMarkdown(await res.text());
-  } catch (err) {
-    $("doc-rendered").innerHTML = `
-      <div style="border:3px solid red;padding:20px;font-family:monospace;">
-        <strong>Error loading ${file}</strong><br>${err.message}
-      </div>`;
-  }
+  });
 }
 
 // ── Open project ─────────────────────────────────────────────────
@@ -208,56 +292,46 @@ async function openProject(file, label) {
   state.currentFile = file;
   state.currentType = "project";
 
-  document.querySelectorAll("#module-list li").forEach((li) =>
+  document.querySelectorAll("#module-list li").forEach(li =>
     li.classList.remove("active"));
-  document.querySelectorAll("#project-list li").forEach((li) =>
+  document.querySelectorAll("#project-list li").forEach(li =>
     li.classList.toggle("active", li.dataset.file === file));
 
   $("breadcrumb").textContent = "PROJECT — " + label;
-  $("welcome-screen").classList.add("hidden");
-  $("doc-view").classList.remove("hidden");
 
-  const btn    = $("btn-complete");
   const isDone = state.projectsProgress[file] === "done";
+  const btn    = $("btn-complete");
   btn.classList.remove("hidden");
   btn.textContent = isDone ? "✓ COMPLETED" : "MARK COMPLETE";
   btn.className   = "complete-btn" + (isDone ? " done" : "");
 
-  $("doc-rendered").innerHTML = `<p style="font-family:monospace;color:#888;">Loading ${file}…</p>`;
+  fadeContent(async () => {
+    $("welcome-screen").classList.add("hidden");
+    $("doc-view").classList.remove("hidden");
+    $("doc-rendered").innerHTML = `<p style="font-family:monospace;color:#888;padding:8px 0;">Loading ${file}…</p>`;
 
-  try {
-    const res = await fetch(`docs/projects/${file}`);
-    if (!res.ok) {
-      if (res.status === 404) { renderNotReady(file, label); return; }
-      throw new Error(`HTTP ${res.status}`);
+    try {
+      const res = await fetch(`docs/projects/${file}`);
+      if (!res.ok) { if (res.status === 404) { renderNotReady(file, label); return; } throw new Error(`HTTP ${res.status}`); }
+      renderMarkdown(await res.text());
+    } catch (err) {
+      $("doc-rendered").innerHTML = `<div class="error-box"><strong>Error loading ${file}</strong><br>${err.message}</div>`;
     }
-    renderMarkdown(await res.text());
-  } catch (err) {
-    $("doc-rendered").innerHTML = `
-      <div style="border:3px solid red;padding:20px;font-family:monospace;">
-        <strong>Error loading ${file}</strong><br>${err.message}
-      </div>`;
-  }
+  });
 }
 
 // ── Render markdown ──────────────────────────────────────────────
 function renderMarkdown(md) {
   $("doc-rendered").innerHTML = marked.parse(md);
 
-  $("doc-rendered").querySelectorAll("pre code").forEach((block) => {
-    hljs.highlightElement(block);
-  });
+  $("doc-rendered").querySelectorAll("pre code").forEach(block => hljs.highlightElement(block));
 
-  // Intercept .md links — route modules and projects in-app
-  $("doc-rendered").querySelectorAll("a[href]").forEach((a) => {
+  $("doc-rendered").querySelectorAll("a[href]").forEach(a => {
     const basename = a.getAttribute("href").split("/").pop();
-    const mod  = MODULE_META.find((m) => m.file === basename);
-    const proj = PROJECT_META.find((p) => p.file === basename);
-    if (mod) {
-      a.addEventListener("click", (e) => { e.preventDefault(); openModule(mod.file, mod.label); });
-    } else if (proj) {
-      a.addEventListener("click", (e) => { e.preventDefault(); openProject(proj.file, proj.label); });
-    }
+    const mod  = MODULE_META.find(m => m.file === basename);
+    const proj = PROJECT_META.find(p => p.file === basename);
+    if (mod)       a.addEventListener("click", e => { e.preventDefault(); openModule(mod.file,   mod.label);   });
+    else if (proj) a.addEventListener("click", e => { e.preventDefault(); openProject(proj.file, proj.label); });
   });
 
   if (window.MathJax && MathJax.typesetPromise) {
@@ -277,9 +351,7 @@ function renderNotReady(file, label) {
         NOT YET GENERATED
       </div>
       <h2 style="font-size:28px;font-weight:900;margin-bottom:12px;">${label}</h2>
-      <p style="font-family:monospace;color:#555;margin-bottom:20px;">
-        This content has not been generated yet.
-      </p>
+      <p style="font-family:monospace;color:#555;margin-bottom:20px;">This content has not been generated yet.</p>
       <div style="border:2px solid #000;padding:16px;font-family:monospace;font-size:13px;background:#fffde7;">
         <strong>File:</strong> docs/${file}<br>
         <strong>Code:</strong> src/${moduleNum}-*/
@@ -296,8 +368,8 @@ function toggleComplete() {
   const progressObj = isProject ? state.projectsProgress : state.progress;
   const isDone      = progressObj[state.currentFile] === "done";
 
-  if (isDone) { delete progressObj[state.currentFile]; }
-  else        { progressObj[state.currentFile] = "done"; }
+  if (isDone) delete progressObj[state.currentFile];
+  else        progressObj[state.currentFile] = "done";
 
   if (isProject) {
     saveProjectsProgress();
@@ -316,11 +388,11 @@ function toggleComplete() {
   btn.className   = "complete-btn" + (nowDone ? " done" : "");
 
   const listId = isProject ? "project-list" : "module-list";
-  document.querySelectorAll(`#${listId} li`).forEach((li) => {
-    if (li.dataset.file === state.currentFile) {
-      li.classList.toggle("completed", nowDone);
-    }
+  document.querySelectorAll(`#${listId} li`).forEach(li => {
+    if (li.dataset.file === state.currentFile) li.classList.toggle("completed", nowDone);
   });
+
+  updateGreeting();
 }
 
 // ── Reset all progress ───────────────────────────────────────────
@@ -341,22 +413,37 @@ function resetProgress() {
 $("btn-roadmap").addEventListener("click", () => {
   state.currentFile = null;
   state.currentType = null;
-  document.querySelectorAll("#module-list li").forEach((li) => li.classList.remove("active"));
-  document.querySelectorAll("#project-list li").forEach((li) => li.classList.remove("active"));
-  $("breadcrumb").textContent = "Roadmap";
-  $("welcome-screen").classList.remove("hidden");
-  $("doc-view").classList.add("hidden");
-  $("btn-complete").classList.add("hidden");
-  buildWelcomeGrid();
-  buildProjectsGrid();
+  document.querySelectorAll("#module-list li").forEach(li => li.classList.remove("active"));
+  document.querySelectorAll("#project-list li").forEach(li => li.classList.remove("active"));
+
+  fadeContent(() => {
+    $("breadcrumb").textContent = "Roadmap";
+    $("doc-view").classList.add("hidden");
+    $("welcome-screen").classList.remove("hidden");
+    $("btn-complete").classList.add("hidden");
+    buildWelcomeGrid();
+    buildProjectsGrid();
+    updateGreeting();
+  });
 });
 
+// ── Mobile sidebar events ────────────────────────────────────────
+$("sidebar-toggle").addEventListener("click", () => {
+  const isOpen = $("sidebar").classList.contains("mobile-open");
+  isOpen ? closeSidebar() : openSidebar();
+});
+
+$("sidebar-overlay").addEventListener("click", closeSidebar);
+
 // ── Keyboard shortcuts ───────────────────────────────────────────
-document.addEventListener("keydown", (e) => {
+document.addEventListener("keydown", e => {
   if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
     if (state.currentFile) toggleComplete();
   }
-  if (e.key === "Escape") { $("btn-roadmap").click(); }
+  if (e.key === "Escape") {
+    if ($("sidebar").classList.contains("mobile-open")) { closeSidebar(); return; }
+    $("btn-roadmap").click();
+  }
 });
 
 // ── Init ─────────────────────────────────────────────────────────
@@ -366,14 +453,17 @@ function init() {
   buildWelcomeGrid();
   buildProjectsGrid();
   updateProgressBar();
+  updateGreeting();
 
   if (window.location.hash) {
-    const hashFile = window.location.hash.slice(1);
-    const match    = MODULE_META.find((m) => m.file === hashFile);
-    const projMatch = PROJECT_META.find((p) => p.file === hashFile);
-    if (match)     openModule(match.file, match.label);
+    const hashFile  = window.location.hash.slice(1);
+    const match     = MODULE_META.find(m => m.file === hashFile);
+    const projMatch = PROJECT_META.find(p => p.file === hashFile);
+    if (match)          openModule(match.file, match.label);
     else if (projMatch) openProject(projMatch.file, projMatch.label);
   }
+
+  hideLoadingScreen();
 }
 
 init();
