@@ -13,6 +13,43 @@
 
 ---
 
+## Prerequisites & Overview
+
+**Prerequisites:** Module 07 (transformer architecture, parameter count, attention heads). Module 05 (Adam optimizer, gradient flow). No GPU required — all scripts are pure NumPy simulations with graceful fallback when PyTorch/BitsAndBytes are absent.
+**Estimated time:** 10–14 hours (6 scripts; the LoRA math section deserves careful reading)
+
+### Why This Module Matters
+Fine-tuning is the standard way to adapt a pre-trained LLM to a specific task or style without the cost of training from scratch. LoRA (2021) and QLoRA (2023) made this feasible on a single GPU. Understanding the math — why low-rank works, how NF4 quantization reduces memory, what merging adapters means — is critical for any role involving LLM customization.
+
+### Module Map
+
+| Script | What It Covers | Key Concepts |
+|--------|---------------|-------------|
+| `lora_theory.py` | LoRA math: rank decomposition, $\alpha/r$ scaling, SVD verification | $W' = W_0 + \frac{\alpha}{r}BA$, rank-$r$ constraint |
+| `prepare_dataset.py` | Alpaca/ChatML/LLaMA-3 templates, label masking ($-100$) | Data collation for SFT |
+| `train_lora.py` | Gradient flow through A, B only; frozen $W_0$ | PEFT training loop |
+| `train_qlora.py` | NF4 quantization from scratch, INT4 vs NF4 RMSE | Quantile-based codebooks |
+| `evaluate.py` | Perplexity, BLEU-4, ROUGE-1/2/L from scratch | Before/after FT comparison |
+| `merge_push.py` | Weight merging, multi-adapter composition | Lossless merge: $W_{\text{merged}} = W_0 + \frac{\alpha}{r}BA$ |
+
+### Before You Start
+- Know what a weight matrix $W \in \mathbb{R}^{m \times n}$ is and what it does in a transformer layer (Module 07)
+- Know what Adam optimizer does (Module 05)
+- Understand what "training" means: minimize $\mathcal{L}$ over parameters using gradients
+
+### Memory Reality Check
+
+| Approach | Memory for LLaMA-2-7B | Trainable Params |
+|----------|-----------------------|-----------------|
+| Full fine-tune (FP32) | ~112 GB | 7B (100%) |
+| Full fine-tune (BF16) | ~56 GB | 7B (100%) |
+| LoRA ($r=16$, BF16) | ~28 GB | ~4M (0.06%) |
+| QLoRA (NF4 + LoRA) | ~8 GB | ~4M (0.06%) |
+
+QLoRA is why fine-tuning a 7B model fits on a single 8GB consumer GPU (RTX 3070/4060).
+
+---
+
 ## 1. Why Fine-Tune?
 
 Pre-trained LLMs encode general world knowledge but underperform on:
@@ -380,6 +417,28 @@ Quantisation is non-differentiable — quantised values are integers with no use
 
 **Q: What is the intrinsic dimension hypothesis?**
 Aghajanyan et al. (2020) showed that fine-tuning objective surfaces have a low intrinsic dimensionality — most tasks can be solved by optimising in a subspace of 100–1000 dimensions, regardless of model size. LoRA operationalises this: the weight update $\Delta W = BA$ lives in a rank-$r$ subspace.
+
+---
+
+## Resources
+
+### Papers (Essential)
+- **LoRA: Low-Rank Adaptation of Large Language Models** — Hu et al. (2021): `arxiv.org/abs/2106.09685`. The foundational LoRA paper; every equation in Section 2 maps directly to `lora_theory.py`.
+- **QLoRA: Efficient Finetuning of Quantized LLMs** — Dettmers et al. (2023): `arxiv.org/abs/2305.14314`. NF4 construction, double quantization, paged Adam.
+- **Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning** — Aghajanyan et al. (2020): `arxiv.org/abs/2012.13255`. The theoretical foundation for why low-rank updates work.
+- **BLEU: A Method for Automatic Evaluation of Machine Translation** — Papineni et al. (2002): Original BLEU paper. Foundational for `evaluate.py`.
+- **ROUGE: A Package for Automatic Evaluation of Summaries** — Lin (2004): Original ROUGE paper.
+
+### Tooling
+- **HuggingFace PEFT** (`github.com/huggingface/peft`): The production LoRA library. After finishing this module, reading `src/peft/tuners/lora/layer.py` in the PEFT source will be straightforward.
+- **BitsAndBytes** (`github.com/TimDettmers/bitsandbytes`): NF4 and INT8 quantization. The library used when `import bitsandbytes` succeeds in `train_qlora.py`.
+- **Axolotl** (`github.com/axolotl-ai-cloud/axolotl`): Config-driven fine-tuning framework built on PEFT + TRL. Good for running real fine-tuning jobs.
+- **TRL (Transformer Reinforcement Learning)** — HuggingFace: `SFTTrainer` is the production version of the training loop in this module. `github.com/huggingface/trl`
+
+### Guides & Courses
+- **HuggingFace PEFT documentation** (`huggingface.co/docs/peft`): LoRA, prefix tuning, IA³ — all PEFT methods with code examples.
+- **"Fine-Tuning Large Language Models"** — DeepLearning.AI short course (free): Practical walkthrough covering dataset prep, SFT, and evaluation. Directly extends this module.
+- **Maxime Labonne — LLM Course** (`github.com/mlabonne/llm-course`): Comprehensive free curriculum on fine-tuning, quantization, and deployment. Good for going deeper after this module.
 
 ---
 

@@ -13,6 +13,36 @@
 
 ---
 
+## Prerequisites & Overview
+
+**Prerequisites:** Module 06 (attention, MHA, positional encoding, KV cache). Module 05 (backprop, optimizers, LayerNorm). Python + NumPy; PyTorch optional (scripts degrade gracefully without it).
+**Estimated time:** 8–12 hours (the PyTorch model and C++ implementation are optional depth dives)
+
+### Why This Module Matters
+Building a full transformer from scratch — tokenizer, encoder, decoder, training loop — is the single most effective way to develop true understanding of GPT-style models. After this module, reading the LLaMA or Mistral architecture papers feels like reading pseudocode, not a foreign language.
+
+### What Gets Built
+
+| Script | What It Implements | Language |
+|--------|--------------------|----------|
+| `tokenizer.py` | BPE from scratch: merge rules, encode/decode, OOV handling | Python |
+| `model.py` | Full encoder-decoder transformer with Pre-LN, causal mask, greedy decode | PyTorch |
+| `model_numpy.py` | Encoder-only transformer, verified against PyTorch to <1e-4 error | NumPy |
+| `model.cpp` | Encoder forward pass with MHA + FFN + LayerNorm — no dependencies | C++17 |
+| `train.py` | Sequence reversal task, transformer LR schedule, label smoothing, beam search | PyTorch |
+
+### Before You Start
+- Understand scaled dot-product attention: $\text{softmax}(QK^T/\sqrt{d_k})V$ (Module 06)
+- Know what LayerNorm does (Module 05)
+- Know what teacher forcing means in seq2seq (Module 06 Q&A section)
+
+### Mental Model: Encoder vs Decoder
+- **Encoder** (BERT-style): all tokens attend to all tokens (bidirectional). Used for classification, NER, embedding tasks.
+- **Decoder** (GPT-style): each token attends only to past tokens (causal mask). Used for text generation.
+- **Encoder-Decoder** (T5, original transformer): encoder processes source, decoder generates target conditioned on encoder output via cross-attention. Used for translation, summarization.
+
+---
+
 ## 01 — BPE Tokenization
 
 ### Motivation
@@ -225,6 +255,29 @@ For short sequences ($n \ll d_{\text{model}}$): FFN dominates ($O(n d_{\text{ff}
 
 **Q6: What is gradient clipping and why is it critical for Transformers?**
 Transformer gradients can explode transiently during training (large attention logits, near-zero LayerNorm denominators). Gradient clipping caps the global $\ell_2$ norm of all parameter gradients at threshold $\tau$ — if $\|\mathbf{g}\| > \tau$, all gradients are rescaled by $\tau / \|\mathbf{g}\|$. This preserves gradient direction while bounding the step size. Without it, a single bad batch can corrupt model weights.
+
+---
+
+## Resources
+
+### Papers (Must-Read)
+- **Attention Is All You Need** — Vaswani et al. (2017): `arxiv.org/abs/1706.03762`. Read alongside this module; every equation maps directly to a section here.
+- **BERT: Pre-training of Deep Bidirectional Transformers** — Devlin et al. (2018): `arxiv.org/abs/1810.04805`
+- **Language Models are Few-Shot Learners (GPT-3)** — Brown et al. (2020): `arxiv.org/abs/2005.14165`. Motivates why scale matters.
+- **LLaMA 2** — Touvron et al. (2023): `arxiv.org/abs/2307.09288`. Modern architectural choices: RoPE, SwiGLU, GQA, RMSNorm.
+
+### Visual Explainers
+- **The Annotated Transformer** (`nlp.seas.harvard.edu/annotated-transformer/`): Harvard NLP. Line-by-line PyTorch implementation with equation annotations. The best technical reference.
+- **Jay Alammar — "The Illustrated Transformer"** (`jalammar.github.io/illustrated-transformer/`): Tensor flow diagram that makes encoder-decoder cross-attention visual.
+
+### Code References
+- **nanoGPT** — Andrej Karpathy (`github.com/karpathy/nanoGPT`): ~300-line GPT-2 implementation in PyTorch. Read after finishing `model.py` in this module.
+- **minGPT** — Andrej Karpathy (`github.com/karpathy/minGPT`): Slightly more structured version with training loop. Maps cleanly to `train.py`.
+- **Hugging Face Transformers** (`github.com/huggingface/transformers`): Production reference implementation. `modeling_gpt2.py` is ~800 lines and directly comparable to the architecture here.
+
+### Video
+- **Andrej Karpathy — "Let's Build GPT from Scratch"** (YouTube, 2h): Implements a GPT decoder step by step, live. Closest video companion to this module.
+- **Yannic Kilcher — Transformer paper walkthrough** (YouTube): Deep equation-level explanation with context.
 
 ---
 

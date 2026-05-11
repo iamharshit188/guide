@@ -11,6 +11,31 @@
 
 ---
 
+## Prerequisites & Overview
+
+**Prerequisites:** High school algebra, basic Python/NumPy. No prior ML knowledge needed.
+**Estimated time:** 6–10 hours (reading + running all four scripts)
+
+### Why This Module Matters
+Every ML algorithm reduces to matrix operations, derivatives, and probability calculations. Attention scores are dot products. Backpropagation is the chain rule applied recursively. Embeddings are vectors in $\mathbb{R}^d$. You cannot debug or design ML systems without fluency in these three pillars.
+
+### Core Concepts at a Glance
+
+| Pillar | Key Ideas | Where It Appears in ML |
+|--------|-----------|------------------------|
+| Linear Algebra | Vectors, matrix multiply, eigendecomposition, SVD | Neural network layers, PCA, attention, embeddings |
+| Calculus | Gradients, Jacobian, chain rule | Backpropagation, gradient descent, loss optimization |
+| Probability | Distributions, MLE, Bayes, KL divergence | Loss functions, generative models, uncertainty |
+
+### Before You Start
+- Comfortable writing Python functions and loops
+- Know that $f'(x)$ means rate of change at $x$
+- Know the difference between a scalar, a vector, and a matrix (even conceptually)
+
+If you need a quick refresher: **3Blue1Brown — Essence of Linear Algebra** (YouTube, 15 short videos) is the best visual introduction.
+
+---
+
 ## 1. Linear Algebra
 
 ### 1.1 Scalars, Vectors, Matrices, Tensors
@@ -341,6 +366,24 @@ When $H(P)$ is constant (fixed labels), minimizing cross-entropy = minimizing KL
 | Bayesian ML | Bayes theorem |
 | Generative models | Gaussian / categorical distributions |
 | Regularization | L1/L2 norms |
+
+---
+
+## Resources
+
+### Books
+- **Mathematics for Machine Learning** — Deisenroth, Faisal, Ong. Free PDF at `mml-book.github.io`. Covers all three pillars with ML motivation on every page.
+- **Introduction to Probability** — Blitzstein & Hwang. Free PDF at `stat110.net`. Rigorous probability with great exercises.
+
+### Video & Courses
+- **3Blue1Brown — Essence of Linear Algebra** (YouTube): 15 visual episodes, best geometric intuition for vectors and matrices.
+- **3Blue1Brown — Essence of Calculus** (YouTube): 12 episodes, gradient intuition from first principles.
+- **MIT 18.06 — Linear Algebra** (Gilbert Strang, MIT OpenCourseWare): The canonical university lecture series.
+- **Khan Academy — Multivariable Calculus + Statistics**: Free, paced, good for filling gaps.
+
+### Reference
+- NumPy documentation (`numpy.org/doc`): Every operation used in this module has an official reference page.
+- **The Matrix Cookbook** (Petersen & Pedersen): PDF reference for matrix identities and derivative rules. Search "matrix cookbook PDF".
 
 ---
 

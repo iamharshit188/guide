@@ -18,6 +18,38 @@ cd src/05-deep-learning && python monitoring.py
 
 ---
 
+## Prerequisites & Overview
+
+**Prerequisites:** Modules 01–02 (matrix math, partial derivatives, chain rule, gradient descent). NumPy. No PyTorch required — all scripts run in pure NumPy.
+**Estimated time:** 10–15 hours (the backprop derivation alone deserves 2+ hours)
+
+### Why This Module Matters
+Every modern AI system — LLMs, diffusion models, vision transformers — is a deep neural network trained with backpropagation and an adaptive optimizer. Understanding these from scratch means you can debug training instability, choose the right optimizer, and explain gradient flow in interviews. The MLOps half (MLflow + drift detection) covers what happens after training — equally critical for production roles.
+
+### Module Map
+
+| Section | Core Concept | Practical Payoff |
+|---------|-------------|-----------------|
+| Neural network math | Forward pass, backprop derivation | Debug NaNs, understand gradient flow |
+| Initialisation | Xavier, He, symmetry breaking | Fix vanishing/exploding gradients |
+| Activations | ReLU, GELU, sigmoid, softmax | Choose the right activation per layer |
+| Optimizers (6) | SGD → Adam → AdamW | Know when Adam fails, when SGD wins |
+| LR Scheduling | Warmup, cosine, plateau | Match scheduler to training dynamics |
+| Regularisation | Dropout, BatchNorm, LayerNorm | Control overfitting without losing capacity |
+| MLflow | Experiment tracking, model registry | Reproduce any experiment from a run ID |
+| Drift Detection | KS, PSI, MMD, JS | Catch distribution shift before accuracy drops |
+
+### Before You Start
+- Implement a dot product in NumPy from scratch (Module 01)
+- Know what a partial derivative is (Module 01)
+- Understand gradient descent update rule: $\theta \leftarrow \theta - \eta \nabla \mathcal{L}$ (Module 01-02)
+- Install MLflow: `pip install mlflow` (optional — demo degrades gracefully without it)
+
+### Intuition First: What Is Backpropagation?
+Backpropagation is **the chain rule applied systematically from the output layer backward to the input layer**. Every layer computes: "by how much does changing my input change the loss?" That number is the gradient. Layer by layer, from loss back to weights, gradients tell the optimizer which direction to step.
+
+---
+
 ## 1. Neural Networks — Mathematical Foundation
 
 A feedforward neural network with $L$ layers maps input $\mathbf{x} \in \mathbb{R}^{n_0}$ to output $\hat{\mathbf{y}} \in \mathbb{R}^{n_L}$ through a composition of affine transformations and nonlinearities:
@@ -373,6 +405,30 @@ MLflow tracks **model artifacts, training metrics, hyperparameters, and model ve
 ### Q: What is the difference between data drift and concept drift?
 
 Data drift: input feature distribution $P(\mathbf{x})$ changes (e.g., user demographics shift). Concept drift: the mapping $P(y|\mathbf{x})$ changes (e.g., fraud patterns evolve). Data drift is detectable from features alone; concept drift requires labeled production data to detect.
+
+---
+
+## Resources
+
+### Books
+- **Deep Learning** — Goodfellow, Bengio, Courville. Free online at `deeplearningbook.org`. Chapters 6 (feedforward networks), 7 (regularization), 8 (optimization) map directly to this module.
+- **Dive into Deep Learning** (`d2l.ai`): Interactive Jupyter book with PyTorch and NumPy implementations. Covers backprop, optimizers, and normalization in depth.
+
+### Video & Courses
+- **Andrej Karpathy — Neural Networks: Zero to Hero** (YouTube): Six videos building everything from scratch in Python. The micrograd video directly matches `nn_numpy.py` in this module.
+- **Stanford CS231n — Convolutional Neural Networks for Visual Recognition**: Full lecture slides and notes free at `cs231n.stanford.edu`. Backprop notes in Assignment 2 are excellent.
+- **fast.ai Practical Deep Learning for Coders**: Top-down, code-first. Complements this module's bottom-up approach.
+
+### Papers
+- **Adam: A Method for Stochastic Optimization** — Kingma & Ba (2015): `arxiv.org/abs/1412.6980`
+- **Batch Normalization: Accelerating Deep Network Training** — Ioffe & Szegedy (2015): `arxiv.org/abs/1502.03167`
+- **Dropout: A Simple Way to Prevent Neural Networks from Overfitting** — Srivastava et al. (2014): JMLR.
+- **Decoupled Weight Decay Regularization (AdamW)** — Loshchilov & Hutter (2019): `arxiv.org/abs/1711.05101`
+
+### MLOps Tooling
+- MLflow documentation (`mlflow.org/docs`): Tracking, models, registry APIs.
+- Weights & Biases (`wandb.ai/site`): Alternative experiment tracker with richer visualization. Same concepts as MLflow.
+- Evidently AI (`evidentlyai.com`): Production drift detection library — same metrics as `monitoring.py` but with a dashboard.
 
 ---
 

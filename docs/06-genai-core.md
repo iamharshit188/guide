@@ -12,6 +12,35 @@
 
 ---
 
+## Prerequisites & Overview
+
+**Prerequisites:** Modules 01–05 (matrix math, softmax, gradient descent, neural network layers). No NLP background needed.
+**Estimated time:** 8–12 hours (the attention and KV cache sections are the most important)
+
+### Why This Module Matters
+These five primitives — embeddings, attention, multi-head attention, positional encoding, KV cache — are the building blocks of every modern LLM. Understanding them at the mathematical level is what enables you to read a new model paper (LLaMA, Mistral, Gemma) and immediately understand its architectural choices. Module 07 (Transformers) assembles these into a full model.
+
+### Primitive Map
+
+| Primitive | Core Equation | Role in LLMs |
+|-----------|--------------|-------------|
+| Word embeddings | $\mathbf{e}_w \in \mathbb{R}^d$, trained via skip-gram | Token representation |
+| Scaled dot-product attention | $\text{softmax}(QK^T/\sqrt{d_k})V$ | Token-to-token information routing |
+| Multi-head attention | $h$ parallel attention heads + projection | Capture multiple relationship types simultaneously |
+| Positional encoding | Sinusoidal or RoPE | Inject token order (self-attention is permutation-invariant) |
+| KV cache | Store past $K$, $V$ tensors across decoding steps | $O(T^2) \to O(T)$ per-token FLOPs during inference |
+
+### Before You Start
+- Know that softmax converts a vector of real numbers to a probability distribution (Module 01/02)
+- Understand matrix multiplication shapes: $(m \times k)(k \times n) = (m \times n)$ (Module 01)
+- Know what a neural network layer does: $\mathbf{y} = \sigma(W\mathbf{x} + \mathbf{b})$ (Module 05)
+- Know what "embedding" means at a high level: a lookup table mapping discrete tokens to dense vectors
+
+### Intuition: Why Attention?
+Before attention, RNNs processed tokens sequentially — each token's hidden state carried information about all prior tokens through a **bottleneck**. Attention bypasses the bottleneck: every token can **directly attend** to every other token in $O(1)$ paths. The cost is $O(n^2)$ memory and compute per layer, which Modules 07+ address.
+
+---
+
 ## 01 — Word Embeddings
 
 ### Distributional Hypothesis
@@ -292,6 +321,28 @@ Without cache, generating $T$ tokens requires $O(T^2 d)$ FLOPs (recomputes past 
 
 **Q6: What is the "attention is all you need" key insight?**
 Self-attention provides direct, $O(1)$-path connections between any two positions in a sequence — no information bottleneck (unlike LSTM hidden state), fully parallelisable (unlike RNNs), and scales to long sequences (with appropriate approximations). Feed-forward sublayers apply position-wise transformations to provide non-linear capacity.
+
+---
+
+## Resources
+
+### Papers (Essential)
+- **Attention Is All You Need** — Vaswani et al. (2017): `arxiv.org/abs/1706.03762`. The transformer paper. Read sections 3 and 4 alongside this module.
+- **Efficient Estimation of Word Representations in Vector Space (Word2Vec)** — Mikolov et al. (2013): `arxiv.org/abs/1301.3781`
+- **RoFormer: Enhanced Transformer with Rotary Position Embedding (RoPE)** — Su et al. (2021): `arxiv.org/abs/2104.09864`
+- **GQA: Training Generalized Multi-Query Transformer Models** — Ainslie et al. (2023): `arxiv.org/abs/2305.13245`
+
+### Visual Explainers
+- **Jay Alammar — "The Illustrated Word2Vec"** (`jalammar.github.io/illustrated-word2vec/`): Best visual walkthrough of the skip-gram objective and negative sampling.
+- **Jay Alammar — "The Illustrated Transformer"** (`jalammar.github.io/illustrated-transformer/`): Step-by-step visual attention trace that matches the math in this module.
+- **Jay Alammar — "The Illustrated GPT-2"** (`jalammar.github.io/illustrated-gpt2/`): Extends to causal masking and autoregressive decoding.
+
+### Video
+- **Andrej Karpathy — "Let's Build GPT from Scratch"** (YouTube): Implements scaled dot-product attention and MHA step by step. Best companion video to this module.
+- **Yannic Kilcher — "Attention Is All You Need" paper explained** (YouTube): Deep paper reading with architectural context.
+
+### Interactive
+- **Tensor Playground / BerViz** (`github.com/jessevig/bertviz`): Visualize attention heads in pre-trained models. Builds intuition for what different heads learn.
 
 ---
 

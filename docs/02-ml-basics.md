@@ -15,6 +15,37 @@
 
 ---
 
+## Prerequisites & Overview
+
+**Prerequisites:** Module 01 (linear algebra + calculus + probability), Python, NumPy. `pip install scikit-learn`.
+**Estimated time:** 10–15 hours (8 scripts, each covering a distinct algorithm family)
+
+### Why This Module Matters
+Classical ML algorithms dominate production tabular data pipelines. XGBoost wins Kaggle tabular competitions; Random Forests are still default choices for feature-rich datasets. Knowing the math behind each algorithm lets you tune hyperparameters with intent rather than guesswork, diagnose overfitting/underfitting, and answer interview questions about algorithmic trade-offs.
+
+### Learning Path
+
+```
+Linear Regression → Logistic Regression   (supervised, parametric)
+         ↓
+    Evaluation Metrics                     (how to measure everything)
+         ↓
+  Random Forest → SVM → Gradient Boosting  (non-parametric, ensemble)
+         ↓
+    PCA → Clustering                        (unsupervised)
+```
+
+### Before You Start
+- Understand vector dot products and matrix multiplication (Module 01)
+- Know what a derivative is and how gradient descent works conceptually (Module 01)
+- Know what a probability distribution is and what MLE means (Module 01)
+- Have NumPy and scikit-learn installed: `pip install numpy scikit-learn`
+
+### Key Mental Model
+Every supervised ML algorithm answers the same question: **find parameters $\theta$ that minimize a loss function $\mathcal{L}(\theta)$ on training data while generalizing to unseen data**. The differences are in: (1) what the loss is, (2) what family of functions $f_\theta$ can represent, (3) how the optimization is solved.
+
+---
+
 ## 1. Linear Regression
 
 ### 1.1 Problem Setup
@@ -400,6 +431,29 @@ Split only if $\text{Gain} > 0$.
 | Imbalanced classes | Any + class_weight / SMOTE | Adjust decision threshold |
 | Clustering, unknown K | DBSCAN | Handles arbitrary shapes, noise |
 | Dimensionality reduction | PCA | Linear; use UMAP for non-linear |
+
+---
+
+## Resources
+
+### Books
+- **The Elements of Statistical Learning** — Hastie, Tibshirani, Friedman. Free PDF at `web.stanford.edu/~hastie/ElemStatLearn/`. The definitive reference for all algorithms in this module.
+- **Introduction to Statistical Learning** (ISL) — James et al. More accessible version. Free PDF at `statlearning.com`.
+- **Hands-On Machine Learning with Scikit-Learn, Keras, and TensorFlow** — Aurélien Géron. Best practical Python companion.
+
+### Video & Courses
+- **Andrew Ng — Machine Learning Specialization** (Coursera): The best structured entry point. Covers linear/logistic regression and trees. Free to audit.
+- **StatQuest with Josh Starmer** (YouTube): Short, clear videos for every algorithm in this module. Search "StatQuest Random Forest", "StatQuest SVM", etc.
+- **fast.ai Practical ML for Coders**: Tabular focus, ensemble methods, feature engineering.
+
+### Papers
+- **XGBoost: A Scalable Tree Boosting System** — Chen & Guestrin (2016): `arxiv.org/abs/1603.02754`
+- **A Training Algorithm for Optimal Margin Classifiers** — Boser, Guyon, Vapnik (1992): Original SVM paper.
+- **Random Forests** — Breiman (2001): Machine Learning journal. Foundational ensemble paper.
+
+### Tooling
+- scikit-learn user guide (`scikit-learn.org/stable/user_guide.html`): Algorithm-by-algorithm reference with worked examples.
+- XGBoost docs (`xgboost.readthedocs.io`): Production gradient boosting.
 
 ---
 

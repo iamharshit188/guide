@@ -12,6 +12,31 @@
 
 ---
 
+## Prerequisites & Overview
+
+**Prerequisites:** Basic Python, some SQL exposure (know what SELECT/WHERE/JOIN mean conceptually). No vector DB or NoSQL experience required.
+**Estimated time:** 8–12 hours (5 scripts; SQL and FAISS sections are the deepest)
+
+### Why This Module Matters
+AI/ML systems live inside data pipelines. You need SQL for feature retrieval, joins, and window functions in analytics. You need vector databases for semantic search and RAG. Understanding index internals (B+ tree, HNSW, IVF) is what separates engineers who can tune query performance from those who guess.
+
+### Module Map
+
+| Section | What You'll Learn | Used In |
+|---------|------------------|---------|
+| SQL (1–2) | Joins, indexes, window functions, query planning | Feature stores, analytics, interview SQL rounds |
+| NoSQL (3) | CAP theorem, document/KV/graph trade-offs | Caching, session stores, ML metadata |
+| Vector DBs — Math (4) | ANN metrics: cosine, L2, IP | Embedding similarity |
+| HNSW / IVF / PQ (5–6) | Index algorithms and their parameters | Choosing and tuning a vector DB |
+| ChromaDB / Pinecone / FAISS (7) | Production APIs and patterns | RAG (Module 08) |
+
+### Before You Start
+- Know Python dictionaries and lists
+- Understand what a database table is (rows, columns, primary keys)
+- Know what "cosine similarity" means from Module 01 (dot product / norms)
+
+---
+
 ## 1. Relational Databases & SQL
 
 ### 1.1 Data Model
@@ -416,6 +441,29 @@ gpu_index = faiss.index_cpu_to_gpu(res, 0, cpu_index)
 | Hybrid search | No | Yes | No (manual) | Yes | Yes |
 | Metadata filtering | Yes | Yes | Manual | Yes | Yes |
 | Best for | Local RAG dev | Production RAG | Research/custom | Production | Production |
+
+---
+
+## Resources
+
+### SQL
+- **Use The Index, Luke** (`use-the-index-luke.com`): The best free resource for SQL index internals — B+ tree mechanics, composite indexes, query planning. Language-agnostic.
+- **Mode SQL Tutorial** (`mode.com/sql-tutorial`): Free, browser-based SQL practice with real datasets. Good for window functions.
+- **SQLite documentation** (`sqlite.org/docs.html`): The engine used in `sql_basics.py`. Lightweight, zero-install, covers all standard SQL.
+
+### NoSQL & Distributed Systems
+- **Designing Data-Intensive Applications** — Martin Kleppmann: Best book on CAP theorem, replication, consistency models. Chapter 2 covers data models; Chapter 5-9 cover distributed systems.
+- **MongoDB University** (`learn.mongodb.com`): Free courses on the aggregation pipeline.
+
+### Vector Search — Papers
+- **Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World Graphs** — Malkov & Yashunin (2018): HNSW paper. `arxiv.org/abs/1603.09320`
+- **Billion-Scale Similarity Search with GPUs** — Johnson, Douze, Jégou (2017): FAISS paper. `arxiv.org/abs/1702.08734`
+- **Product Quantization for Nearest Neighbor Search** — Jégou et al. (2011): Foundational PQ paper.
+
+### Tooling
+- FAISS wiki (`github.com/facebookresearch/faiss/wiki`): Index types, guidelines, benchmarks.
+- ChromaDB docs (`docs.trychroma.com`): API reference for the library used in Module 08.
+- Pinecone learning center (`docs.pinecone.io/guides/get-started/overview`): Architecture overview and filtering guide.
 
 ---
 

@@ -19,6 +19,44 @@ python3.14 evaluate.py
 
 ---
 
+## Prerequisites & Overview
+
+**Prerequisites:** Module 03 (vector databases, cosine similarity, FAISS), Module 06 (embeddings, attention). Flask knowledge from Module 04 helps for the API section. No LLM API key needed — a mock LLM is built from scratch.
+**Estimated time:** 10–14 hours (6 scripts, each covering a distinct pipeline stage)
+
+### Why This Module Matters
+RAG is the dominant production pattern for giving LLMs access to external knowledge without retraining. Every AI assistant that retrieves from documents, search results, or a knowledge base uses RAG. Understanding the full pipeline — chunking, embedding, retrieval strategies, generation, and evaluation — is essential for AI/ML backend roles.
+
+### The RAG Pipeline (End-to-End)
+
+```
+Documents (PDF/TXT)
+        ↓ ingest.py       — chunk into overlapping segments
+        ↓ embed_store.py  — embed chunks → vector store
+        ↓ retriever.py    — BM25 + dense + hybrid + MMR
+        ↓ generator.py    — inject retrieved chunks into prompt → LLM
+        ↓ evaluate.py     — Faithfulness, Relevancy, Precision, Recall
+        ↓ app.py          — Flask API: /ingest, /query, /collection
+```
+
+### Before You Start
+- Know what cosine similarity is (Module 01)
+- Know how FAISS flat search works (Module 03)
+- Know what TF-IDF is (Module 02 or Module 03)
+- Understand what an LLM prompt is and what "context window" means
+
+### When to Use RAG vs Fine-Tuning
+
+| Criterion | RAG | Fine-Tuning |
+|-----------|-----|-------------|
+| Knowledge updates frequently | ✅ Update document store | ❌ Retrain required |
+| Need source citations | ✅ Built-in via retrieved chunks | ❌ Model cannot cite |
+| Domain-specific style/format | ❌ Doesn't change model style | ✅ Adapts generation style |
+| Small labeled dataset | ✅ No training data needed | ❌ Needs labeled pairs |
+| Latency-critical inference | ❌ Retrieval adds ~50–200ms | ✅ No retrieval overhead |
+
+---
+
 ## 1. RAG Architecture Overview
 
 Retrieval-Augmented Generation (RAG) separates *parametric knowledge* (LLM weights) from *non-parametric knowledge* (external corpus). At inference, relevant documents are retrieved and injected into the prompt so the LLM answers from evidence rather than memorised associations.
@@ -375,6 +413,29 @@ Use LLM-as-judge metrics: Faithfulness (does the answer contradict the context?)
 
 **Q: What is the context window budget problem and how do you solve it?**
 Each retrieved chunk consumes prompt tokens. With $k$ chunks of 512 tokens and a 4096-token window, you have $\approx 1000$ tokens for the question and answer. Solutions: (1) reduce chunk size, (2) reduce $k$, (3) use a reranker to filter the top-$m$ chunks from a larger candidate set (retrieve 20, rerank, keep 5), (4) use a model with a larger context window.
+
+---
+
+## Resources
+
+### Papers (Essential)
+- **Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks** — Lewis et al. (2020): `arxiv.org/abs/2005.11401`. The original RAG paper from Facebook AI.
+- **REALM: Retrieval-Augmented Language Model Pre-Training** — Guu et al. (2020): `arxiv.org/abs/2002.08909`. Pre-training with retrieval.
+- **Improving Language Models by Retrieving from Trillions of Tokens (RETRO)** — Borgeaud et al. (2021): `arxiv.org/abs/2112.04426`. Chunked cross-attention for trillion-token retrieval.
+- **RAGAS: Automated Evaluation of Retrieval Augmented Generation** — Es et al. (2023): `arxiv.org/abs/2309.15217`. The evaluation framework implemented from scratch in `evaluate.py`.
+
+### Chunking & Retrieval
+- **BM25 Okapi** — Robertson & Zaragoza (2009): "The Probabilistic Relevance Framework: BM25 and Beyond". Foundation for the BM25 retriever in this module.
+- **ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction** — `arxiv.org/abs/2004.12832`. Advanced dense retrieval that outperforms single-vector embedding.
+
+### Frameworks
+- **LlamaIndex** (`llamaindex.ai/open-source`): Production RAG framework. After this module, its abstractions (Node, Retriever, QueryEngine) will make sense.
+- **LangChain** (`python.langchain.com/docs`): Alternative framework with rich retriever ecosystem. `RecursiveCharacterTextSplitter` matches `ingest.py`'s recursive strategy.
+- **Haystack** (`haystack.deepset.ai`): Enterprise RAG framework with built-in evaluation and pipelines.
+
+### Video
+- **"Building RAG from Scratch"** — various Andrej Karpathy/LlamaIndex tutorials on YouTube: Search "RAG from scratch tutorial" for multiple good walkthroughs.
+- **DeepLearning.AI — "Building and Evaluating Advanced RAG"** (short course, free): Covers reranking, hybrid search, and evaluation — direct extensions of this module.
 
 ---
 

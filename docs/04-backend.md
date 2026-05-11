@@ -18,6 +18,42 @@ cd src/04-backend && python async_tasks.py
 
 ---
 
+## Prerequisites & Overview
+
+**Prerequisites:** Python functions, decorators, and basic HTTP (GET/POST/status codes). No prior Flask or web framework experience needed.
+**Estimated time:** 8–12 hours (4 scripts, each self-contained and runnable without a live server)
+
+### Why This Module Matters
+ML models are useless without a way to call them. Backend engineering is the bridge between a trained model and a user or downstream system. Interview loops at AI/ML companies routinely include system design questions about model serving, rate limiting, auth, and async tasks — all covered here.
+
+### What You'll Build Understanding Of
+
+| Topic | Production Use Case |
+|-------|-------------------|
+| Flask app factory + blueprints | Versioned REST APIs (`/api/v1/`, `/api/v2/`) |
+| ML model registry | Serving multiple models without restart |
+| HMAC auth + token bucket rate limiter | Protecting inference endpoints |
+| Celery task queue | Long-running model training / batch inference |
+
+### Before You Start
+- Python functions and `*args`/`**kwargs`
+- Know what decorators are: `@app.route('/path')` is a decorator
+- Know what HTTP verbs (GET, POST) and status codes (200, 404, 500) mean at a high level
+- `pip install flask`: that's the only required install for the core demo
+
+### HTTP Primer for ML Engineers
+
+| Method | Semantics | ML Use Case |
+|--------|-----------|-------------|
+| `GET` | Read, idempotent | Fetch model metadata, health check |
+| `POST` | Create / trigger action | Submit inference request, upload data |
+| `PUT` | Replace resource | Update model registry entry |
+| `DELETE` | Remove resource | Remove a model version |
+
+Status codes you must know cold: **200** (OK), **201** (Created), **400** (Bad Request — your fault), **401** (Unauthenticated), **403** (Forbidden), **404** (Not Found), **422** (Validation Error), **429** (Rate Limited), **500** (Server Error), **503** (Service Unavailable).
+
+---
+
 ## 1. Flask Internals — Request Lifecycle
 
 Every incoming HTTP request passes through this pipeline:
@@ -759,6 +795,27 @@ class TimingMiddleware:
 
 app.wsgi_app = TimingMiddleware(app.wsgi_app)
 ```
+
+---
+
+## Resources
+
+### Flask & Python Web
+- **Flask documentation** (`flask.palletsprojects.com/en/stable/`): The official docs. Start with "Quickstart" and "Application Factories".
+- **Flask Mega-Tutorial** — Miguel Grinberg: The most complete free Flask tutorial. Covers blueprints, auth, database, deployment. Search "Flask Mega-Tutorial Grinberg".
+- **Werkzeug documentation** (`werkzeug.palletsprojects.com`): Flask is built on Werkzeug; this explains the WSGI internals.
+
+### ML Serving
+- **BentoML** (`bentoml.com`): Higher-level ML serving framework built on similar principles. Read their architecture docs after this module.
+- **TorchServe** (`pytorch.org/serve`): PyTorch's official model server. Uses model registry and handler patterns identical to what's built here.
+- **"Serving Machine Learning Models"** — O'Reilly Report (search title): Covers REST, gRPC, batch, and streaming serving patterns.
+
+### Async Tasks & Queues
+- **Celery documentation** (`docs.celeryq.dev`): Task routing, retries, chord/chain primitives.
+- **Redis documentation** (`redis.io/docs`): The broker/backend used by Celery in production.
+
+### System Design
+- **"Designing Machine Learning Systems"** — Chip Huyen: Chapters on feature pipelines, model deployment, and monitoring directly extend this module.
 
 ---
 
