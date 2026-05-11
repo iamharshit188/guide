@@ -155,6 +155,18 @@ function renderMarkdown(md) {
     hljs.highlightElement(block);
   });
 
+  // Intercept .md links so they open inside the app instead of navigating away
+  $("doc-rendered").querySelectorAll("a[href]").forEach((a) => {
+    const basename = a.getAttribute("href").split("/").pop();
+    const mod = MODULE_META.find((m) => m.file === basename);
+    if (mod) {
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        openModule(mod.file, mod.label);
+      });
+    }
+  });
+
   // Re-render MathJax
   if (window.MathJax && MathJax.typesetPromise) {
     MathJax.typesetPromise([$("doc-rendered")]).catch(console.error);
