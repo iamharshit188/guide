@@ -22,6 +22,334 @@ const MODULE_META = [
   { file: "13-multimodal.md",     label: "Multimodal Models",        tag: "13" },
 ];
 
+const CODE_META = [
+  {
+    "file": "01-math/calculus_demo.py",
+    "label": "calculus_demo.py",
+    "module": "01"
+  },
+  {
+    "file": "01-math/matrix_ops.py",
+    "label": "matrix_ops.py",
+    "module": "01"
+  },
+  {
+    "file": "01-math/probability.py",
+    "label": "probability.py",
+    "module": "01"
+  },
+  {
+    "file": "01-math/vectors.py",
+    "label": "vectors.py",
+    "module": "01"
+  },
+  {
+    "file": "02-ml/clustering.py",
+    "label": "clustering.py",
+    "module": "02"
+  },
+  {
+    "file": "02-ml/decision_tree.py",
+    "label": "decision_tree.py",
+    "module": "02"
+  },
+  {
+    "file": "02-ml/evaluation.py",
+    "label": "evaluation.py",
+    "module": "02"
+  },
+  {
+    "file": "02-ml/gradient_boosting.py",
+    "label": "gradient_boosting.py",
+    "module": "02"
+  },
+  {
+    "file": "02-ml/linear_regression.py",
+    "label": "linear_regression.py",
+    "module": "02"
+  },
+  {
+    "file": "02-ml/logistic_regression.py",
+    "label": "logistic_regression.py",
+    "module": "02"
+  },
+  {
+    "file": "02-ml/pca.py",
+    "label": "pca.py",
+    "module": "02"
+  },
+  {
+    "file": "02-ml/random_forest.py",
+    "label": "random_forest.py",
+    "module": "02"
+  },
+  {
+    "file": "02-ml/svm.py",
+    "label": "svm.py",
+    "module": "02"
+  },
+  {
+    "file": "03-databases/chroma_demo.py",
+    "label": "chroma_demo.py",
+    "module": "03"
+  },
+  {
+    "file": "03-databases/faiss_demo.py",
+    "label": "faiss_demo.py",
+    "module": "03"
+  },
+  {
+    "file": "03-databases/nosql_patterns.py",
+    "label": "nosql_patterns.py",
+    "module": "03"
+  },
+  {
+    "file": "03-databases/pinecone_demo.py",
+    "label": "pinecone_demo.py",
+    "module": "03"
+  },
+  {
+    "file": "03-databases/sql_basics.py",
+    "label": "sql_basics.py",
+    "module": "03"
+  },
+  {
+    "file": "04-backend/app.py",
+    "label": "app.py",
+    "module": "04"
+  },
+  {
+    "file": "04-backend/async_tasks.py",
+    "label": "async_tasks.py",
+    "module": "04"
+  },
+  {
+    "file": "04-backend/middleware.py",
+    "label": "middleware.py",
+    "module": "04"
+  },
+  {
+    "file": "04-backend/ml_serving.py",
+    "label": "ml_serving.py",
+    "module": "04"
+  },
+  {
+    "file": "05-deep-learning/mlflow_demo.py",
+    "label": "mlflow_demo.py",
+    "module": "05"
+  },
+  {
+    "file": "05-deep-learning/monitoring.py",
+    "label": "monitoring.py",
+    "module": "05"
+  },
+  {
+    "file": "05-deep-learning/nn_numpy.py",
+    "label": "nn_numpy.py",
+    "module": "05"
+  },
+  {
+    "file": "05-deep-learning/onnx_export.py",
+    "label": "onnx_export.py",
+    "module": "05"
+  },
+  {
+    "file": "05-deep-learning/optimizers.py",
+    "label": "optimizers.py",
+    "module": "05"
+  },
+  {
+    "file": "06-genai/attention.py",
+    "label": "attention.py",
+    "module": "06"
+  },
+  {
+    "file": "06-genai/kv_cache.py",
+    "label": "kv_cache.py",
+    "module": "06"
+  },
+  {
+    "file": "06-genai/multihead_attention.py",
+    "label": "multihead_attention.py",
+    "module": "06"
+  },
+  {
+    "file": "06-genai/positional_encoding.py",
+    "label": "positional_encoding.py",
+    "module": "06"
+  },
+  {
+    "file": "06-genai/word2vec.py",
+    "label": "word2vec.py",
+    "module": "06"
+  },
+  {
+    "file": "07-transformer/model.cpp",
+    "label": "model.cpp",
+    "module": "07"
+  },
+  {
+    "file": "07-transformer/model.py",
+    "label": "model.py",
+    "module": "07"
+  },
+  {
+    "file": "07-transformer/model_numpy.py",
+    "label": "model_numpy.py",
+    "module": "07"
+  },
+  {
+    "file": "07-transformer/tokenizer.py",
+    "label": "tokenizer.py",
+    "module": "07"
+  },
+  {
+    "file": "07-transformer/train.py",
+    "label": "train.py",
+    "module": "07"
+  },
+  {
+    "file": "08-rag/app.py",
+    "label": "app.py",
+    "module": "08"
+  },
+  {
+    "file": "08-rag/embed_store.py",
+    "label": "embed_store.py",
+    "module": "08"
+  },
+  {
+    "file": "08-rag/evaluate.py",
+    "label": "evaluate.py",
+    "module": "08"
+  },
+  {
+    "file": "08-rag/generator.py",
+    "label": "generator.py",
+    "module": "08"
+  },
+  {
+    "file": "08-rag/ingest.py",
+    "label": "ingest.py",
+    "module": "08"
+  },
+  {
+    "file": "08-rag/retriever.py",
+    "label": "retriever.py",
+    "module": "08"
+  },
+  {
+    "file": "09-finetuning/evaluate.py",
+    "label": "evaluate.py",
+    "module": "09"
+  },
+  {
+    "file": "09-finetuning/lora_theory.py",
+    "label": "lora_theory.py",
+    "module": "09"
+  },
+  {
+    "file": "09-finetuning/merge_push.py",
+    "label": "merge_push.py",
+    "module": "09"
+  },
+  {
+    "file": "09-finetuning/prepare_dataset.py",
+    "label": "prepare_dataset.py",
+    "module": "09"
+  },
+  {
+    "file": "09-finetuning/train_lora.py",
+    "label": "train_lora.py",
+    "module": "09"
+  },
+  {
+    "file": "09-finetuning/train_qlora.py",
+    "label": "train_qlora.py",
+    "module": "09"
+  },
+  {
+    "file": "10-agents/agent_eval.py",
+    "label": "agent_eval.py",
+    "module": "10"
+  },
+  {
+    "file": "10-agents/agent_memory.py",
+    "label": "agent_memory.py",
+    "module": "10"
+  },
+  {
+    "file": "10-agents/react_agent.py",
+    "label": "react_agent.py",
+    "module": "10"
+  },
+  {
+    "file": "10-agents/tool_calling.py",
+    "label": "tool_calling.py",
+    "module": "10"
+  },
+  {
+    "file": "11-deployment/ab_serving.py",
+    "label": "ab_serving.py",
+    "module": "11"
+  },
+  {
+    "file": "11-deployment/health_check.py",
+    "label": "health_check.py",
+    "module": "11"
+  },
+  {
+    "file": "11-deployment/onnx_export.py",
+    "label": "onnx_export.py",
+    "module": "11"
+  },
+  {
+    "file": "11-deployment/quantize.py",
+    "label": "quantize.py",
+    "module": "11"
+  },
+  {
+    "file": "12-rlhf/dpo.py",
+    "label": "dpo.py",
+    "module": "12"
+  },
+  {
+    "file": "12-rlhf/evaluate_alignment.py",
+    "label": "evaluate_alignment.py",
+    "module": "12"
+  },
+  {
+    "file": "12-rlhf/ppo_scratch.py",
+    "label": "ppo_scratch.py",
+    "module": "12"
+  },
+  {
+    "file": "12-rlhf/reward_model.py",
+    "label": "reward_model.py",
+    "module": "12"
+  },
+  {
+    "file": "13-multimodal/captioning.py",
+    "label": "captioning.py",
+    "module": "13"
+  },
+  {
+    "file": "13-multimodal/clip_scratch.py",
+    "label": "clip_scratch.py",
+    "module": "13"
+  },
+  {
+    "file": "13-multimodal/vit_patch.py",
+    "label": "vit_patch.py",
+    "module": "13"
+  },
+  {
+    "file": "13-multimodal/zero_shot.py",
+    "label": "zero_shot.py",
+    "module": "13"
+  }
+];
+
 const PROJECT_META = [
   { file: "p01-pca-compressor.md",     label: "PCA Image Compressor",        module: "01", difficulty: "Beginner"     },
   { file: "p02-titanic-pipeline.md",   label: "Titanic Survival Predictor",  module: "02", difficulty: "Beginner"     },
@@ -186,6 +514,33 @@ function buildProjectNav() {
   });
 }
 
+
+// ── Build code sidebar nav ────────────────────────────────────
+function buildCodeNav() {
+  const ul = $("code-list");
+  ul.innerHTML = "";
+
+  CODE_META.forEach((code, idx) => {
+    const li        = document.createElement("li");
+    li.dataset.file = code.file;
+    li.dataset.idx  = idx;
+    li.className    = "code-item";
+    li.setAttribute("role", "listitem");
+    li.setAttribute("tabindex", "0");
+    li.setAttribute("aria-label", `Code ${code.module}: ${code.label}`);
+
+    li.innerHTML = `
+      <span class="module-num" aria-hidden="true">C${code.module}</span>
+      <span class="module-name">${code.label}</span>
+      <span class="status-dot" aria-hidden="true"></span>
+    `;
+
+    li.addEventListener("click", () => { openCode(code.file, code.label); closeSidebar(); });
+    li.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openCode(code.file, code.label); closeSidebar(); } });
+    ul.appendChild(li);
+  });
+}
+
 // ── Build module welcome grid ────────────────────────────────────
 function buildWelcomeGrid() {
   const grid = $("welcome-grid");
@@ -235,6 +590,32 @@ function buildProjectsGrid() {
 
     card.addEventListener("click", () => openProject(proj.file, proj.label));
     card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openProject(proj.file, proj.label); } });
+    grid.appendChild(card);
+  });
+}
+
+
+// ── Build code welcome grid ──────────────────────────────────
+function buildCodeGrid() {
+  const grid = $("code-grid");
+  if(!grid) return;
+  grid.innerHTML = "";
+
+  CODE_META.forEach((code, idx) => {
+    const card = document.createElement("div");
+    card.className = `welcome-module-card project-card wmc-${idx}`;
+    card.style.animationDelay = `${(idx % 15) * 30}ms`;
+    card.setAttribute("role", "listitem");
+    card.setAttribute("tabindex", "0");
+    card.setAttribute("aria-label", `Open code: ${code.label}`);
+
+    card.innerHTML = `
+      <div class="wmc-num" aria-hidden="true">C${code.module}</div>
+      <div class="wmc-title">${code.label}</div>
+    `;
+
+    card.addEventListener("click", () => openCode(code.file, code.label));
+    card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openCode(code.file, code.label); } });
     grid.appendChild(card);
   });
 }
@@ -320,6 +701,41 @@ async function openProject(file, label) {
   });
 }
 
+
+// ── Open code ─────────────────────────────────────────────────
+async function openCode(file, label) {
+  state.currentFile = file;
+  state.currentType = "code";
+
+  document.querySelectorAll("#module-list li").forEach(li => li.classList.remove("active"));
+  document.querySelectorAll("#project-list li").forEach(li => li.classList.remove("active"));
+  document.querySelectorAll("#code-list li").forEach(li => li.classList.toggle("active", li.dataset.file === file));
+
+  $("breadcrumb").textContent = "CODE — " + label;
+  $("btn-complete").classList.add("hidden"); // No completion for code files
+
+  fadeContent(async () => {
+    $("welcome-screen").classList.add("hidden");
+    $("doc-view").classList.remove("hidden");
+    $("doc-rendered").innerHTML = `<p style="font-family:monospace;color:#888;padding:8px 0;">Loading ${file}…</p>`;
+
+    try {
+      const res = await fetch(`src/${file}`);
+      if (!res.ok) { throw new Error(`HTTP ${res.status}`); }
+      const text = await res.text();
+      let ext = file.split('.').pop();
+      if(ext === 'py') ext = 'python';
+      else if(ext === 'cpp' || ext === 'h') ext = 'cpp';
+      else if(ext === 'sql') ext = 'sql';
+      
+      const md = "```" + ext + "\n" + text + "\n```";
+      renderMarkdown(md);
+    } catch (err) {
+      $("doc-rendered").innerHTML = `<div class="error-box"><strong>Error loading ${file}</strong><br>${err.message}</div>`;
+    }
+  });
+}
+
 // ── Render markdown ──────────────────────────────────────────────
 function renderMarkdown(md) {
   $("doc-rendered").innerHTML = marked.parse(md);
@@ -374,6 +790,7 @@ function toggleComplete() {
   if (isProject) {
     saveProjectsProgress();
     buildProjectNav();
+  buildCodeNav();
     buildProjectsGrid();
   } else {
     saveProgress();
@@ -404,8 +821,10 @@ function resetProgress() {
   saveProjectsProgress();
   buildNav();
   buildProjectNav();
+  buildCodeNav();
   buildWelcomeGrid();
   buildProjectsGrid();
+  buildCodeGrid();
   updateProgressBar();
 }
 
@@ -423,6 +842,7 @@ $("btn-roadmap").addEventListener("click", () => {
     $("btn-complete").classList.add("hidden");
     buildWelcomeGrid();
     buildProjectsGrid();
+    if($('code-grid')) buildCodeGrid();
     updateGreeting();
   });
 });
@@ -450,8 +870,10 @@ document.addEventListener("keydown", e => {
 function init() {
   buildNav();
   buildProjectNav();
+  buildCodeNav();
   buildWelcomeGrid();
   buildProjectsGrid();
+  buildCodeGrid();
   updateProgressBar();
   updateGreeting();
 
@@ -477,13 +899,13 @@ document.addEventListener("DOMContentLoaded", () => {
       tab.classList.add("active");
       
       const target = tab.getAttribute("data-target");
-      if(target === "module-list") {
-        document.getElementById("module-list").classList.remove("hidden");
-        document.getElementById("project-list").classList.add("hidden");
-      } else {
-        document.getElementById("module-list").classList.add("hidden");
-        document.getElementById("project-list").classList.remove("hidden");
-      }
+      ["module-list", "project-list", "code-list"].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) {
+          if(id === target) el.classList.remove("hidden");
+          else el.classList.add("hidden");
+        }
+      });
     });
   });
 });

@@ -82,10 +82,12 @@
     <div id="sidebar-tabs" aria-label="Sidebar tabs">
       <button class="sidebar-tab active" data-target="module-list">MODULES</button>
       <button class="sidebar-tab" data-target="project-list">PROJECTS</button>
+      <button class="sidebar-tab" data-target="code-list">CODE</button>
     </div>
     <nav id="module-nav" aria-label="Content lists">
       <ul id="module-list" role="list"></ul>
       <ul id="project-list" role="list" class="hidden"></ul>
+      <ul id="code-list" role="list" class="hidden"></ul>
     </nav>
 
     <div id="sidebar-footer">
@@ -129,6 +131,14 @@
           <h2>Hands-On Projects</h2>
           <p>One project per module. Approach, phases, checkpoints — no full solutions.</p>
           <div class="welcome-grid" id="projects-grid" role="list" aria-label="Project list"></div>
+        </div>
+
+        <!-- Code Area card -->
+        <div class="welcome-card projects-welcome-card">
+          <div class="welcome-tag projects-tag">CODE</div>
+          <h2>Code Area</h2>
+          <p>Browse through core implementations and reference scripts per module.</p>
+          <div class="welcome-grid" id="code-grid" role="list" aria-label="Code list"></div>
         </div>
 
       </div>
