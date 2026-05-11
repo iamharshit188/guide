@@ -514,6 +514,82 @@ html, body {
   padding: 8px 0;
 }
 
+/* ── Project sidebar list ───────────────────────────────────── */
+#project-list { list-style: none; }
+
+#project-list li {
+  cursor: pointer;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-left: 4px solid transparent;
+  transition: background 0.1s, border-color 0.1s;
+  user-select: none;
+}
+
+#project-list li:hover { background: #1a1a1a; }
+
+#project-list li.active {
+  background: #1a1a1a;
+  border-left-color: var(--orange);
+  color: var(--orange);
+}
+
+#project-list li.completed .status-dot { background: var(--green); }
+#project-list li .status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #444;
+  flex-shrink: 0;
+}
+
+.nav-section-projects { margin-top: 12px; }
+
+/* ── Projects welcome card ──────────────────────────────────── */
+.projects-welcome-card { margin-top: 24px; }
+
+.projects-tag {
+  background: var(--orange);
+}
+
+/* ── Project cards in grid ──────────────────────────────────── */
+.project-card {
+  position: relative;
+  padding-bottom: 32px;
+}
+
+.wpc-0 { border-left: 6px solid var(--blue); }
+.wpc-1 { border-left: 6px solid var(--orange); }
+.wpc-2 { border-left: 6px solid var(--purple); }
+.wpc-3 { border-left: 6px solid var(--green); }
+.wpc-4 { border-left: 6px solid var(--red); }
+.wpc-5 { border-left: 6px solid var(--yellow); }
+.wpc-6 { border-left: 6px solid var(--blue); }
+.wpc-7 { border-left: 6px solid var(--orange); }
+.wpc-8 { border-left: 6px solid var(--purple); }
+
+/* ── Difficulty badge ───────────────────────────────────────── */
+.difficulty-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border: 2px solid var(--black);
+  margin-top: 6px;
+}
+
+.diff-beginner     { background: var(--green);  color: var(--black); }
+.diff-intermediate { background: var(--yellow); color: var(--black); }
+.diff-advanced     { background: var(--red);    color: var(--white); }
+
 /* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 768px) {
   :root { --sidebar-w: 0px; }
