@@ -3,27 +3,37 @@
 **Difficulty:** Advanced  
 **Module:** 14 (Frontend + Backend)
 
-## 📌 The Challenge
-Build a production-grade full-stack web application. It should allow users to log in securely (Google Auth), type a short prompt, generate a polished AI blog post via a Flask backend, save that post permanently to Supabase, and display all their posts in a responsive React/Tailwind dashboard.
+## The Challenge
+Develop a production-grade full-stack web application featuring a decoupled, zero-trust architecture. The system consists of a Vite/React Single Page Application (SPA), a scalable Flask REST API acting as the ML inference gateway, Firebase OAuth 2.0 authentication, and a PostgreSQL database hosted on Supabase strictly enforcing Row Level Security.
 
-## 📖 The Approach
+## The Architecture Map
 
-This project strictly emphasizes architecture connecting decoupled systems, rather than just the code.
+### 1. Client-Side Authentication (Firebase)
+The React application integrates the Firebase Client SDK to handle identity safely.
+- The user authenticates via Google OAuth Provider popup constraint.
+- Firebase securely issues a JSON Web Token (JWT) representing the session.
+- The JWT is stored safely in runtime memory.
+- The JWT structure explicitly contains three cryptographic parts: Header, Payload (claims including `uid`, `exp`), and Signature (HMAC-SHA256).
 
-1. **Frontend Bootstrapping:** 
-   Initialize a React app (e.g. using Vite: `npm create vite@latest`). Configure Tailwind CSS inside it to handle styling purely via utility classes.
-2. **Auth Integration (Firebase/Supabase):** 
-   Let the client SDK handle the popup for Google Login. Retrieve the JWT ID token. Pass this token in the headers of all `fetch()` calls to your backend to ensure security. 
-3. **Backend Middleware (Flask):** 
-   Set up Flask with `flask-cors`. Create a `@require_auth` decorator that uses `firebase-admin` to tear apart the JWT, verify the signature, and attach the `user_uid` to the request context. Reject invalid tokens with `401 Unauthorized`.
-4. **Database Operations (Supabase):** 
-   When the Flask endpoint generates text from the ML model, initialize the `supabase-py` client and execute an `.insert()` to a `posts` table holding `(user_id, title, content, created_at)`.
-5. **State Rendering:** 
-   Back in React, use `useEffect` to fetch all posts for the logged-in user upon load, map over the array, and render Tailwind-styled "cards" for each blog post.
+### 2. API Gateway & Middleware (Flask)
+The Flask backend acts as a stateless broker. 
+- Implements CORS (Cross-Origin Resource Sharing) with strict IP origin limits to prevent CSRF abuse.
+- A custom `@require_auth` decorator intercepts incoming routes, strips the `Authorization: Bearer <token>` header, and uses the `firebase-admin` SDK. This cryptographically verifies the JWT signature against Google's rotating public keys.
+- Invalid or expired tokens immediately reject the request returning a `401 Unauthorized` HTTP status, directly protecting expensive LLM inference compute from unauthorized exploitation.
 
-## ✅ Checkpoints
-- [ ] Connect Firebase SDK to React app with a "Sign In With Google" button.
-- [ ] Create a secure Flask endpoint that decodes the Bearer token.
-- [ ] Call the selected LLM API inside Flask to generate blog content.
-- [ ] Stand up a Supabase Postgres table and insert records using the extracted user ID.
-- [ ] Create a Tailwind Grid to map and display the fetched database rows beautifully.
+### 3. Database Schema & Operations (Supabase)
+The persistent data layer runs on managed PostgreSQL.
+- **Table `users`:** `id` (UUID, Primary Key), `email`, `created_at`.
+- **Table `posts`:** `id` (UUID), `user_id` (Foreign Key -> `users.id`), `title`, `content` (Text), `embedding` (Optional: vector type placeholder for semantic search integration), `created_at`.
+- The Flask backend utilizes the native `supabase-py` client abstraction to perform synchronous `INSERT` and `SELECT` RPC operations strictly after the LLM generates the blog content, mapping the user's `uid` to the database relation.
+
+## Implementation Checkpoints
+
+- [ ] **Phase 1: React Initialization.** Scaffold a Vite React app. Install Tailwind CSS and configure the PostCSS pipeline `tailwind.config.js`. Build a clean, responsive grid layout for the blog dashboard interface.
+- [ ] **Phase 2: Auth Provider Architecture.** Implement a React Context Provider to wrap the top-level application. Expose the `currentUser` state payload and login/logout methods via the initialized Firebase SDK.
+- [ ] **Phase 3: Secure API Layer.** Stand up the Flask application. Write the token verification middleware using the `firebase-admin` certificate logic.
+- [ ] **Phase 4: LLM Generation.** Expose a secure `POST /api/generate` endpoint. Extract the verified `uid` context and prompt payload. Interface with your selected model engine (OpenAI/Ollama) to synthetically generate markdown blog content.
+- [ ] **Phase 5: Persistent Relational Storage.** Connect Flask to the Supabase endpoint. Write the generated generation output strictly to the `posts` table alongside the matched `user_id`.
+- [ ] **Phase 6: Client Hydration.** On the React frontend, utilize `useEffect` to trigger a `GET /api/posts` request upon mount. Parse the incoming JSON array and iteratively `.map()` the data into conditionally styled, Tailwind card components.
+
+🚀 Deployment Ready
