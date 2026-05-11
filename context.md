@@ -4,7 +4,7 @@
 ## 1. ORIENTATION & STATUS
 **What:** Self-hosted AI/ML placement prep platform targeting senior roles.
 **Where:** Local: `/Users/iamharshit188/Desktop/placement/prepration/guide/` | Live: `https://harshittiwari.me/guide/`
-**Status:** Fully built! 13 Modules, 9 Projects, Dark Neo-Brutalism UI, Content Polish (Q&A/Cheat sheets).
+**Status:** Fully built! 13 Modules, 9+ Projects, Code Area, Dark Neo-Brutalism UI, Content Polish (Q&A/Cheat sheets/Beginner Basics).
 **Boot Sequence:** 1. Read this file. 2. `git log --oneline -5`. 3. Ask user for task. 4. Wait for confirmation.
 
 ## 2. REPOSITORY STRUCTURE
@@ -14,6 +14,7 @@
 - `src/`: Runnable Python/C++ scripts matching modules (`src/01-math/` to `src/13-multimodal/`).
 
 ## 3. CURRICULUM & MODULE DETAILED SPECS
+*Strategy: Start with intuitive basics and real-world examples for beginners, then escalate to rigorous math/derivations.*
 *Guides: Math-first derivations, Code equivalents, Q&A prep, Cheat sheets, Resources. Scripts: `if __name__ == "__main__": main()`, no `matplotlib.show()`, `try/except` for heavy deps.*
 - **01 Math:** `src/01-math/`. LinAlg (L1/L2, cosine, $A = V\Lambda V^{-1}$, SVD PCA), Calculus (Jacobian, Hessian, GD), Prob (MLE, cross-entropy, KL divergence).
 - **02 ML Basics:** `src/02-ml/`. Lin/Log Reg (OLS, BCE), Eval (Bias-Var, ROC, CV), Clustering, PCA, RF (Gini/Entropy, MDI, OOB), SVM (Mercer, hinge), Boosting (XGBoost 2nd-order).
