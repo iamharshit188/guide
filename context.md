@@ -30,7 +30,7 @@
 - **11 Deployment:** Intuition (Shipping a product) -> Rigor (Docker, ONNX export, INT8 Quantization, A/B Serving).
 - **12 RLHF:** Intuition (Training a dog with treats) -> Rigor (Bradley-Terry, PPO, DPO, MT-Bench).
 - **13 Multimodal:** Intuition (Connecting eyes and ears) -> Rigor (CLIP InfoNCE, ViT patches, Cross-modal attention).
-- **14 Frontend (React + Tailwind):** Intuition (Building UI blocks) -> Rigor (JS ES6 foundations, React Hooks, State Management, Tailwind utility classes).
+- **14 Frontend (React + Tailwind):** Intuition (Building UI blocks) -> Rigor (Fiber/Event Loop) -> Code Examples (JSX syntax, Hooks logic, Tailwind utility integration).
 
 ## 4. PROJECTS SECTION
 16 individual project guides mapped meticulously to difficulty levels.
@@ -47,7 +47,7 @@
 - (p11) A/B Testing Deploy API (Advanced)
 - (p12) Mini-RLHF Tuner (Expert)
 - (p13) Image-Text Hybrid Search (Expert)
-- (p14) Full-Stack AI Blog (React, Tailwind, Supabase, Firebase, Flask) (Advanced)
+- (p14) Full-Stack AI Blog (Concrete code outlines: React Auth, Flask Middleware, Supabase Client) (Advanced)
 - (p15) Real-Time Voice Assistant (Expert)
 - (p16) MLOps Feature Store (Expert)
 
