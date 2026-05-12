@@ -6,10 +6,8 @@
   <title>AI/ML Learning Platform</title>
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Markdown rendering -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-  <!-- Syntax highlighting -->
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/onedark.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -18,7 +16,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
 
-  <!-- Math rendering -->
   <script>
     window.MathJax = {
       tex: {
@@ -30,17 +27,16 @@
     };
   </script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
-  <!-- Fonts for Dark Neo-Brutalism -->
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Outfit:wght@400;500;600;700&family=Space+Grotesk:wght@500;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- Skip to content (accessibility) -->
   <a class="skip-link" href="#content-area">Skip to content</a>
 
-  <!-- ── Loading Screen ── -->
+  <!-- Loading Screen -->
   <div id="loading-screen" role="status" aria-label="Loading platform">
     <div class="loading-logo" aria-hidden="true">ML</div>
     <div class="loading-title">AI/ML PLATFORM</div>
@@ -50,17 +46,20 @@
     <div class="loading-subtitle">INITIALISING MODULES</div>
   </div>
 
-  <!-- ── Mobile sidebar overlay ── -->
+  <!-- Sidebar hover zone — active in focus mode -->
+  <div id="sidebar-hover-zone" aria-hidden="true"></div>
+
+  <!-- Mobile overlay -->
   <div id="sidebar-overlay" aria-hidden="true"></div>
 
-  <!-- ── Mobile hamburger ── -->
+  <!-- Mobile hamburger -->
   <button id="sidebar-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="sidebar">
     <span class="ham-line"></span>
     <span class="ham-line"></span>
     <span class="ham-line"></span>
   </button>
 
-  <!-- ── Sidebar ── -->
+  <!-- Sidebar -->
   <aside id="sidebar" role="navigation" aria-label="Module navigation">
     <div id="sidebar-header">
       <div class="logo-block">
@@ -68,10 +67,10 @@
         <h1>AI/ML Platform</h1>
       </div>
       <div id="progress-container" role="progressbar"
-           aria-valuenow="0" aria-valuemin="0" aria-valuemax="13"
+           aria-valuenow="0" aria-valuemin="0" aria-valuemax="14"
            aria-label="Module completion progress">
         <div id="progress-label">
-          <span id="progress-count">0</span> / <span id="module-total">13</span> complete
+          <span id="progress-count">0</span> / <span id="module-total">14</span> complete
         </div>
         <div id="progress-bar-track">
           <div id="progress-bar-fill"></div>
@@ -84,6 +83,7 @@
       <button class="sidebar-tab" data-target="project-list">PROJECTS</button>
       <button class="sidebar-tab" data-target="code-list">CODE</button>
     </div>
+
     <nav id="module-nav" aria-label="Content lists">
       <ul id="module-list" role="list"></ul>
       <ul id="project-list" role="list" class="hidden"></ul>
@@ -91,18 +91,22 @@
     </nav>
 
     <div id="sidebar-footer">
-      <button id="btn-roadmap" class="nav-btn active" data-view="roadmap" aria-label="Go to roadmap">ROADMAP</button>
-      <button id="btn-reset" class="nav-btn danger" onclick="resetProgress()" aria-label="Reset all progress">RESET</button>
+      <button id="btn-roadmap" class="nav-btn" data-view="roadmap" aria-label="Go to roadmap">HOME</button>
     </div>
   </aside>
 
-  <!-- ── Main Content ── -->
+  <!-- Main Content -->
   <main id="main" aria-label="Main content">
     <div id="topbar">
       <div id="breadcrumb" aria-live="polite" aria-label="Current location">Roadmap</div>
       <div id="topbar-actions">
-        <button id="btn-search" class="nav-btn" aria-label="Search (Ctrl+K)">🔍 SEARCH</button>
-        <button id="btn-notes" class="nav-btn" aria-label="Toggle Notes">📝 NOTES</button>
+        <button id="btn-focus" class="nav-btn focus-btn" aria-label="Toggle Focus Mode (F)" title="Focus Mode — F">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+            <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+          FOCUS
+        </button>
         <button id="btn-complete" class="complete-btn hidden" onclick="toggleComplete()"
                 aria-label="Toggle module completion">
           MARK COMPLETE
@@ -111,64 +115,153 @@
     </div>
 
     <div id="content-area" tabindex="-1">
+
+      <!-- Welcome Screen -->
       <div id="welcome-screen">
 
-        <!-- Greeting bar -->
-        <div id="greeting-bar" aria-live="polite">
-          <span id="greeting-time"></span>
-          <span id="greeting-stats"></span>
+        <!-- Hero -->
+        <div id="welcome-hero">
+          <div id="greeting-bar" aria-live="polite">
+            <div id="greeting-left">
+              <span id="greeting-time"></span>
+              <span id="greeting-stats"></span>
+            </div>
+            <div id="greeting-right">
+              <div id="progress-ring-wrap" aria-hidden="true">
+                <svg id="progress-ring" viewBox="0 0 120 120">
+                  <circle class="ring-bg" cx="60" cy="60" r="50"/>
+                  <circle class="ring-fill" cx="60" cy="60" r="50" id="ring-fill"/>
+                </svg>
+                <div id="ring-label">
+                  <span id="ring-pct">0%</span>
+                  <span id="ring-sub">done</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="welcome-headline">
+            <div class="welcome-tag">PLACEMENT PREP</div>
+            <h2 id="welcome-title">AI/ML/GenAI/Backend<br>Learning Platform</h2>
+            <p id="welcome-sub">14 modules &nbsp;·&nbsp; 16 projects &nbsp;·&nbsp; Math to Multimodal. Select a module to begin.</p>
+          </div>
         </div>
 
-        <!-- Module card -->
-        <div class="welcome-card">
-          <div class="welcome-tag">START HERE</div>
-          <h2>AI/ML/GenAI/Backend<br>Learning Platform</h2>
-          <p>13 modules · 9 projects. Math to Multimodal. Select a module to begin.</p>
+        <!-- Tab bar -->
+        <div id="welcome-tabs" role="tablist" aria-label="Content type">
+          <button class="welcome-tab active" role="tab" aria-selected="true" data-panel="modules-panel">
+            <span class="wtab-num">14</span> Modules
+          </button>
+          <button class="welcome-tab" role="tab" aria-selected="false" data-panel="projects-panel">
+            <span class="wtab-num">16</span> Projects
+          </button>
+          <button class="welcome-tab" role="tab" aria-selected="false" data-panel="code-panel">
+            <span class="wtab-num">60+</span> Code Files
+          </button>
+        </div>
+
+        <!-- Panels -->
+        <div id="modules-panel" class="welcome-panel" role="tabpanel">
           <div class="welcome-grid" id="welcome-grid" role="list" aria-label="Module list"></div>
         </div>
 
-        <!-- Projects card -->
-        <div class="welcome-card projects-welcome-card">
-          <div class="welcome-tag projects-tag">BUILD</div>
-          <h2>Hands-On Projects</h2>
-          <p>One project per module. Approach, phases, checkpoints — no full solutions.</p>
+        <div id="projects-panel" class="welcome-panel hidden" role="tabpanel">
           <div class="welcome-grid" id="projects-grid" role="list" aria-label="Project list"></div>
         </div>
 
-        <!-- Code Area card -->
-        <div class="welcome-card projects-welcome-card">
-          <div class="welcome-tag projects-tag">CODE</div>
-          <h2>Code Area</h2>
-          <p>Browse through core implementations and reference scripts per module.</p>
-          <div class="welcome-grid" id="code-grid" role="list" aria-label="Code list"></div>
+        <div id="code-panel" class="welcome-panel hidden" role="tabpanel">
+          <div id="code-by-module" aria-label="Code files grouped by module"></div>
         </div>
 
       </div>
 
+      <!-- Doc View -->
       <div id="doc-view" class="hidden" aria-live="polite">
         <div id="doc-rendered"></div>
       </div>
-    </div>
 
-    <footer id="site-footer" role="contentinfo">
-      Made with ❤️ by Harshit and AI
-    </footer>
+    </div>
   </main>
 
+  <!-- macOS-style Dock -->
+  <div id="dock" role="navigation" aria-label="Quick actions">
+    <button class="dock-item" id="dock-home" title="Home (Esc)" aria-label="Go to home">
+      <span class="dock-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </span>
+      <span class="dock-label">Home</span>
+    </button>
 
-  <!-- ── Search Modal ── -->
-  <div id="search-modal" class="hidden" aria-modal="true" role="dialog">
+    <div class="dock-sep" aria-hidden="true"></div>
+
+    <button class="dock-item" id="dock-focus" title="Focus Mode (F)" aria-label="Toggle focus mode">
+      <span class="dock-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+          <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+        </svg>
+      </span>
+      <span class="dock-label">Focus</span>
+    </button>
+
+    <button class="dock-item" id="dock-search" title="Search (Ctrl+K)" aria-label="Search">
+      <span class="dock-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </span>
+      <span class="dock-label">Search</span>
+    </button>
+
+    <button class="dock-item" id="dock-notes" title="Personal Notes" aria-label="Toggle notes">
+      <span class="dock-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      </span>
+      <span class="dock-label">Notes</span>
+    </button>
+
+    <div class="dock-sep" aria-hidden="true"></div>
+
+    <button class="dock-item dock-danger" id="dock-reset" title="Reset all progress" aria-label="Reset progress">
+      <span class="dock-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="1 4 1 10 7 10"/>
+          <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+        </svg>
+      </span>
+      <span class="dock-label">Reset</span>
+    </button>
+
+    <div class="dock-sep" aria-hidden="true"></div>
+
+    <div class="dock-made-with" aria-label="Made with love">
+      <span>made with</span>
+      <svg class="dock-heart" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Search Modal -->
+  <div id="search-modal" class="hidden" aria-modal="true" role="dialog" aria-label="Search">
     <div class="search-container">
       <input type="text" id="search-input" placeholder="Search modules, projects, code... (Esc to close)" autocomplete="off" />
       <ul id="search-results" role="list"></ul>
     </div>
   </div>
 
-  <!-- ── Sidenotes Panel ── -->
+  <!-- Notes Panel -->
   <div id="notes-panel" class="hidden">
     <div class="notes-header">
       <h3>Personal Notes</h3>
-      <button id="close-notes">✕</button>
+      <button id="close-notes" aria-label="Close notes">✕</button>
     </div>
     <textarea id="notes-content" placeholder="Jot down your local notes here. They save automatically..."></textarea>
   </div>
