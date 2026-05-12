@@ -62,9 +62,17 @@
   <!-- Sidebar -->
   <aside id="sidebar" role="navigation" aria-label="Module navigation">
     <div id="sidebar-header">
-      <div class="logo-block">
-        <span class="logo-tag" aria-hidden="true">ML</span>
-        <h1>AI/ML Platform</h1>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+        <div class="logo-block">
+          <span class="logo-tag" aria-hidden="true">ML</span>
+          <h1>AI/ML Platform</h1>
+        </div>
+        <button id="btn-pin-sidebar" class="sidebar-pin-btn" title="Toggle Floating Sidebar" aria-label="Toggle Floating Sidebar">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+          </svg>
+        </button>
       </div>
       <div id="progress-container" role="progressbar"
            aria-valuenow="0" aria-valuemin="0" aria-valuemax="14"

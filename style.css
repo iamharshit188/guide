@@ -162,7 +162,8 @@ html, body {
   cursor: pointer;
 }
 
-body.focus-mode #sidebar-hover-zone { display: block; }
+body.focus-mode #sidebar-hover-zone,
+body.floating-mode #sidebar-hover-zone { display: block; }
 
 /* ── Mobile overlay ─────────────────────────────────────────── */
 #sidebar-overlay {
@@ -210,8 +211,8 @@ body.focus-mode #sidebar-hover-zone { display: block; }
 /* ── Layout ─────────────────────────────────────────────────── */
 #sidebar {
   position: fixed;
-  left: 16px; top: 20vh;
-  height: 60vh;
+  left: 16px; top: 15vh;
+  height: 70vh;
   width: var(--sidebar-w);
   /* Sidebar dark-mode brutalist explicit overrides */
   background: rgba(18, 18, 18, 0.95);
@@ -227,17 +228,20 @@ body.focus-mode #sidebar-hover-zone { display: block; }
 }
 
 /* Focus mode — sidebar hides, reveals on hover */
-body.focus-mode #sidebar {
+body.focus-mode #sidebar,
+body.floating-mode #sidebar {
   transform: translateX(calc(-1 * var(--sidebar-w) - 32px));
   box-shadow: none;
 }
 
-body.focus-mode #sidebar.focus-revealed {
+body.focus-mode #sidebar.focus-revealed,
+body.floating-mode #sidebar.focus-revealed {
   transform: translateX(0);
   box-shadow: 8px 8px 0px var(--yellow);
 }
 
-body.focus-mode #main {
+body.focus-mode #main,
+body.floating-mode #main {
   margin-left: 0 !important;
   transition: margin-left 0.3s ease;
 }
@@ -1021,7 +1025,7 @@ body.focus-mode #doc-view {
 }
 
 body.focus-mode #doc-rendered {
-  max-width: 720px;
+  max-width: 1200px;
 }
 
 #doc-rendered h1 {
@@ -1396,13 +1400,15 @@ body.light-mode #topbar {
 
 /* Sidebar in light mode */
 body.light-mode #sidebar {
-  background: #EBEBEA;
-  border-right-color: rgba(0,0,0,0.08);
+  border: 3px solid #000000;
+  box-shadow: 6px 6px 0px #000000;
+  border-radius: 16px;
+  background: #FFF5E1;
 }
 
-body.light-mode #sidebar-header { background: #E0E0DE; }
-body.light-mode #sidebar-footer { background: #E0E0DE; border-top-color: rgba(0,0,0,0.08); }
-body.light-mode #sidebar-tabs   { background: #EBEBEA; border-bottom-color: rgba(0,0,0,0.08); }
+body.light-mode #sidebar-header { background: transparent; }
+body.light-mode #sidebar-footer { background: transparent; border-top-color: rgba(0,0,0,0.08); }
+body.light-mode #sidebar-tabs   { background: transparent; border-bottom-color: rgba(0,0,0,0.08); }
 body.light-mode .sidebar-tab    { color: #888; border-right-color: rgba(0,0,0,0.08); }
 body.light-mode .sidebar-tab:hover { color: #333; background: rgba(0,0,0,0.04); }
 body.light-mode .sidebar-tab.active { color: #111; background: rgba(0,0,0,0.06); }
@@ -1774,4 +1780,45 @@ body.light-mode .dock-item:hover {
   background: #E6FF00;
   color: #000000;
   border: 2px solid #000;
+}
+
+
+@keyframes macDockJump {
+  0% { transform: translateY(0); }
+  25% { transform: translateY(-25px); }
+  50% { transform: translateY(0); }
+  75% { transform: translateY(-12px); }
+  100% { transform: translateY(0); }
+}
+
+.dock-item.dock-jump {
+  animation: macDockJump 1s cubic-bezier(0.28, 0.84, 0.42, 1) 1s;
+  animation-fill-mode: both;
+}
+
+.dock-item.dock-reveal-label .dock-label {
+  opacity: 1 !important;
+  transform: translateY(-8px) scale(1) !important;
+  pointer-events: auto !important;
+}
+
+.sidebar-pin-btn {
+  background: transparent;
+  color: #888;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.sidebar-pin-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #FFF;
+}
+body.light-mode .sidebar-pin-btn:hover {
+  background: rgba(0,0,0,0.05);
+  color: #000;
 }

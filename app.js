@@ -117,7 +117,8 @@ let state = {
   progress:         loadProgress(),
   projectsProgress: loadProjectsProgress(),
   focusMode:        false,
-  lightMode:        localStorage.getItem("aiml_theme") === "light",
+  floatingMode:     false,
+  lightMode:        localStorage.getItem("aiml_theme") ? localStorage.getItem("aiml_theme") === "light" : true,
   notes:            localStorage.getItem("aiml_notes") || "",
 };
 
@@ -237,6 +238,20 @@ function toggleTheme() {
   localStorage.setItem("aiml_theme", state.lightMode ? "light" : "dark");
   applyTheme(state.lightMode);
 }
+
+
+// ── Floating Sidebar Mode ───────────────────────────────────────
+function toggleFloatingMode() {
+  state.floatingMode = !state.floatingMode;
+  document.body.classList.toggle("floating-mode", state.floatingMode);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const pinBtn = document.getElementById("btn-pin-sidebar");
+  if (pinBtn) {
+    pinBtn.addEventListener("click", toggleFloatingMode);
+  }
+});
 
 // ── Focus Mode ───────────────────────────────────────────────────
 function toggleFocusMode() {
@@ -971,6 +986,18 @@ $("dock-reset").addEventListener("click",  resetProgress);
 function init() {
   // Apply saved theme before any content renders
   applyTheme(state.lightMode);
+
+  // Jump animation on very first load
+  if (!localStorage.getItem("aiml_first_load_jump")) {
+    const themeBtn = document.getElementById("dock-theme");
+    if (themeBtn) {
+      themeBtn.classList.add("dock-jump", "dock-reveal-label");
+      setTimeout(() => {
+        themeBtn.classList.remove("dock-jump", "dock-reveal-label");
+        localStorage.setItem("aiml_first_load_jump", "1");
+      }, 2500);
+    }
+  }
 
   buildNav();
   buildProjectNav();
