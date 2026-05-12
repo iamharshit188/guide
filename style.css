@@ -3,11 +3,11 @@
 
 :root {
   --black:       #000000;
-  --black-soft:  #0a0a0a;
-  --black-card:  #111111;
-  --black-mid:   #1a1a1a;
-  --white:       #F8F9FA;
-  --white-dim:   #CCCCCC;
+  --black-soft:  #141414;
+  --black-card:  #1c1c1c;
+  --black-mid:   #222222;
+  --white:       #FFFFFF;
+  --white-dim:   #E0E0DE;
   --yellow:      #E6FF00;
   --blue:        #2979FF;
   --red:         #FF1744;
@@ -19,42 +19,34 @@
   --teal:        #1DE9B6;
   --indigo:      #651FFF;
   --lime:        #C6FF00;
-  --gray-light:  #1A1A1A;
-  --gray-mid:    #2A2A2A;
-  --gray-border: rgba(255,255,255,0.10);
-  --shadow:      4px 4px 0px rgba(255,255,255,0.15);
+  --gray-light:  #222222;
+  --gray-mid:    #333333;
+  --gray-border: #333333;
+  --shadow:      4px 4px 0px var(--yellow);
   --shadow-lg:   8px 8px 0px var(--yellow);
   --shadow-hover:6px 6px 0px var(--yellow);
-  --border:      2px solid rgba(255,255,255,0.12);
-  --border-strong: 2px solid rgba(255,255,255,0.25);
+  --border:      2px solid var(--white-dim);
+  --border-strong: 3px solid var(--white);
   --font-mono:   'JetBrains Mono', monospace;
   --font-sans:   'Space Grotesk', sans-serif;
   --font-body:   'Outfit', sans-serif;
   --sidebar-w:   290px;
-  --topbar-h:    56px;
+  --topbar-h:    60px;
   --dock-h:      72px;
-  --transition:  0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --transition:  0.2s ease-out;
   --transition-smooth: 0.2s ease-out;
 }
 
 html, body {
   height: 100%;
   overflow: hidden;
-  background: #020206;
+  background: #000000;
   font-family: var(--font-body);
   color: var(--white);
   line-height: 1.6;
 }
 
-/* Muted gradient blobs for dark mode only (very simple) */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(200, 255, 0, 0.02) 0%, transparent 60%);
-}
+
 
 /* ── Skip Link ───────────────────────────────────────────────── */
 .skip-link {
@@ -221,32 +213,33 @@ body.focus-mode #sidebar-hover-zone { display: block; }
 /* ── Layout ─────────────────────────────────────────────────── */
 #sidebar {
   position: fixed;
-  left: 0; top: 0; bottom: 0;
+  left: 16px; top: 16px; bottom: 16px;
+  height: calc(100vh - 32px);
   width: var(--sidebar-w);
-  /* Sidebar glass: translucent, blurs the ambient blobs behind it */
-  background: rgba(8, 8, 14, 0.72);
+  /* Brutalist transparent floating sidebar */
+  background: rgba(15, 15, 15, 0.7);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: var(--white);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(255,255,255,0.07);
+  border: var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
   overflow: hidden;
   z-index: 160;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s ease;
-  box-shadow: 4px 0 32px rgba(0,0,0,0.5);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Focus mode — sidebar hides, reveals on hover */
 body.focus-mode #sidebar {
-  transform: translateX(calc(-1 * var(--sidebar-w)));
+  transform: translateX(calc(-1 * var(--sidebar-w) - 32px));
   box-shadow: none;
 }
 
 body.focus-mode #sidebar.focus-revealed {
   transform: translateX(0);
-  box-shadow: 20px 0 60px rgba(0, 0, 0, 0.9);
+  box-shadow: var(--shadow-lg);
 }
 
 body.focus-mode #main {
@@ -255,7 +248,7 @@ body.focus-mode #main {
 }
 
 #main {
-  margin-left: var(--sidebar-w);
+  margin-left: calc(var(--sidebar-w) + 32px);
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -1257,8 +1250,8 @@ body.focus-mode #doc-rendered {
   background: rgba(30, 30, 30, 0.85);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid var(--gray-border);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  border: var(--border);
+  box-shadow: var(--shadow-lg);
 }
 
 
@@ -1389,39 +1382,32 @@ body.focus-mode #dock {
 
 /* ── Light Mode ─────────────────────────────────────────────── */
 body.light-mode {
-  --black:        #F4F4F0;
-  --black-soft:   #EBEBE8;
-  --black-card:   #E6E6E2;
-  --black-mid:    #DCDCD8;
-  --white:        #050505;
-  --white-dim:    #333333;
+  --black:        #F0F0F0;
+  --black-soft:   #FFFFFF;
+  --black-card:   #FFFFFF;
+  --black-mid:    #EBEBEA;
+  --white:        #000000;
+  --white-dim:    #111111;
   --gray-light:   #E0E0DE;
-  --gray-mid:     #BBBBBA;
-  --gray-border:  #111111;
-  --shadow:       4px 4px 0px #111111;
-  --shadow-lg:    8px 8px 0px var(--yellow);
-  --shadow-hover: 6px 6px 0px #111111;
-  --border:       2px solid #111111;
+  --gray-mid:     #CCCCCC;
+  --gray-border:  #000000;
+  --shadow:       4px 4px 0px #000000;
+  --shadow-lg:    8px 8px 0px #000000;
+  --shadow-hover: 6px 6px 0px #000000;
+  --border:       2px solid #000000;
   --border-strong:3px solid #000000;
-  background: #F4F4F0;
-  color: #050505;
+  background: #F0F0F0;
+  color: #000000;
 }
 
-/* Light mode ambient blobs */
-body.light-mode::before {
-  background:
-    /* Muted gray/yellow for proper neobrutalism in light mode */
-    radial-gradient(ellipse 80vw 60vh at 20% 20%, rgba(0, 0, 0, 0.04) 0%, transparent 60%),
-    radial-gradient(ellipse 60vw 70vh at 80% 80%, rgba(230, 255, 0, 0.05) 0%, transparent 60%),
-    radial-gradient(ellipse 50vw 50vh at 50% 50%, rgba(0, 0, 0, 0.02) 0%, transparent 50%);
-}
+
 
 /* Topbar neobrutalism in light mode */
 body.light-mode #topbar {
-  background: #F4F4F0;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border-bottom: 2px solid #111111;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 3px solid #000;
   box-shadow: none;
 }
 
@@ -1503,11 +1489,12 @@ body.light-mode #doc-rendered tr:hover td { background: rgba(0,0,0,0.03); color:
 
 /* Dock neobrutalism in light mode */
 body.light-mode #dock {
-  background: #F4F4F0;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border: 2px solid #111;
-  box-shadow: 6px 6px 0px #111;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 3px solid #000;
+  box-shadow: 6px 6px 0px #000;
+  border-radius: 20px;
 }
 
 body.light-mode .dock-item         { color: rgba(0,0,0,0.45); }
