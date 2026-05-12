@@ -22,15 +22,15 @@
   --gray-light:  #222222;
   --gray-mid:    #333333;
   --gray-border: #333333;
-  --shadow:      4px 4px 0px var(--yellow);
-  --shadow-lg:   8px 8px 0px var(--yellow);
-  --shadow-hover:6px 6px 0px var(--yellow);
-  --border:      2px solid var(--white-dim);
-  --border-strong: 3px solid var(--white);
+  --shadow:      0 8px 24px rgba(0,0,0,0.4);
+  --shadow-lg:   0 12px 40px rgba(0,0,0,0.6);
+  --shadow-hover:0 12px 32px rgba(0,0,0,0.5);
+  --border:      1px solid rgba(255,255,255,0.08);
+  --border-strong: 1px solid rgba(255,255,255,0.15);
   --font-mono:   'JetBrains Mono', monospace;
   --font-sans:   'Space Grotesk', sans-serif;
   --font-body:   'Outfit', sans-serif;
-  --sidebar-w:   290px;
+  --sidebar-w:   250px;
   --topbar-h:    60px;
   --dock-h:      72px;
   --transition:  0.2s ease-out;
@@ -170,7 +170,6 @@ body.focus-mode #sidebar-hover-zone { display: block; }
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(8px);
   z-index: 150;
   opacity: 0;
   transition: opacity var(--transition-smooth);
@@ -182,18 +181,16 @@ body.focus-mode #sidebar-hover-zone { display: block; }
 #sidebar-toggle {
   display: none;
   position: fixed;
-  top: 12px;
-  left: 12px;
+  top: 16px;
+  left: 16px;
   z-index: 201;
   background: var(--black-card);
-  border: var(--border-strong);
-  padding: 10px;
+  border: var(--border);
+  padding: 8px;
+  border-radius: 8px;
+  color: var(--white);
   cursor: pointer;
-  gap: 5px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  transition: border-color var(--transition-smooth);
+  box-shadow: var(--shadow);
 }
 
 #sidebar-toggle:hover { border-color: var(--yellow); }
@@ -216,16 +213,14 @@ body.focus-mode #sidebar-hover-zone { display: block; }
   left: 16px; top: 16px; bottom: 16px;
   height: calc(100vh - 32px);
   width: var(--sidebar-w);
-  /* Brutalist transparent floating sidebar */
-  background: rgba(15, 15, 15, 0.7);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  /* Sidebar dark-mode brutalist explicit overrides */
+  background: rgba(18, 18, 18, 0.95);
   color: var(--white);
   display: flex;
   flex-direction: column;
-  border: var(--border);
+  border: 2px solid var(--white-dim);
   border-radius: 12px;
-  box-shadow: var(--shadow);
+  box-shadow: 4px 4px 0px var(--yellow);
   overflow: hidden;
   z-index: 160;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -239,7 +234,7 @@ body.focus-mode #sidebar {
 
 body.focus-mode #sidebar.focus-revealed {
   transform: translateX(0);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 8px 8px 0px var(--yellow);
 }
 
 body.focus-mode #main {
@@ -555,8 +550,7 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
 #welcome-hero {
   padding: 0 48px 0;
   background: rgba(255,255,255,0.02);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  -webkit-
   border-bottom: 1px solid rgba(255,255,255,0.06);
   position: relative;
 }
@@ -708,8 +702,7 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
   padding: 0 48px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   background: rgba(255,255,255,0.018);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  -webkit-
   position: sticky;
   top: 0;
   z-index: 10;
@@ -769,8 +762,7 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
   cursor: pointer;
   /* Glass card */
   background: rgba(255,255,255,0.03);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  -webkit-
   transition: border-color var(--transition-smooth),
               transform var(--transition),
               background var(--transition-smooth),
@@ -936,8 +928,7 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
   padding: 12px 14px;
   cursor: pointer;
   background: rgba(255,255,255,0.025);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  -webkit-
   transition: border-color var(--transition-smooth),
               background var(--transition-smooth),
               transform var(--transition),
@@ -991,8 +982,7 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
 
   /* Glass reading panel */
   background: rgba(255,255,255,0.025);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  -webkit-
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: 4px;
   padding: 48px 56px;
@@ -1216,9 +1206,8 @@ body.focus-mode #doc-rendered {
   z-index: 20;
 
   /* Traditional transparency with simple blur for max performance */
-  background: rgba(15, 15, 15, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(12, 12, 12, 0.95);
+  -webkit-
 
   border-bottom: 1px solid var(--gray-border);
 }
@@ -1246,10 +1235,7 @@ body.focus-mode #doc-rendered {
   z-index: 500;
   white-space: nowrap;
 
-  /* Classic transparency to save CPU */
-  background: rgba(30, 30, 30, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(20, 20, 20, 0.95);
   border: var(--border);
   box-shadow: var(--shadow-lg);
 }
@@ -1376,27 +1362,26 @@ body.focus-mode #doc-rendered {
 /* Focus mode — dock minimal */
 body.focus-mode #dock {
   background: rgba(10, 10, 10, 0.95);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  -webkit-
 }
 
 /* ── Light Mode ─────────────────────────────────────────────── */
 body.light-mode {
-  --black:        #F0F0F0;
+  --black:        #F4F4F0;
   --black-soft:   #FFFFFF;
   --black-card:   #FFFFFF;
   --black-mid:    #EBEBEA;
   --white:        #000000;
-  --white-dim:    #111111;
+  --white-dim:    #222222;
   --gray-light:   #E0E0DE;
   --gray-mid:     #CCCCCC;
   --gray-border:  #000000;
   --shadow:       4px 4px 0px #000000;
-  --shadow-lg:    8px 8px 0px #000000;
-  --shadow-hover: 6px 6px 0px #000000;
+  --shadow-lg:    6px 6px 0px #000000;
+  --shadow-hover: 4px 4px 0px #000000;
   --border:       2px solid #000000;
   --border-strong:3px solid #000000;
-  background: #F0F0F0;
+  background: #F4F4F0;
   color: #000000;
 }
 
@@ -1404,9 +1389,7 @@ body.light-mode {
 
 /* Topbar neobrutalism in light mode */
 body.light-mode #topbar {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(244, 244, 240, 0.95);
   border-bottom: 3px solid #000;
   box-shadow: none;
 }
@@ -1489,9 +1472,7 @@ body.light-mode #doc-rendered tr:hover td { background: rgba(0,0,0,0.03); color:
 
 /* Dock neobrutalism in light mode */
 body.light-mode #dock {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(244, 244, 240, 0.95);
   border: 3px solid #000;
   box-shadow: 6px 6px 0px #000;
   border-radius: 20px;
@@ -1605,7 +1586,6 @@ body.light-mode #sidebar-overlay { background: rgba(200,200,200,0.5); }
   justify-content: center;
   align-items: flex-start;
   padding-top: 10vh;
-  backdrop-filter: blur(8px);
 }
 
 #search-modal.hidden { display: none; }
