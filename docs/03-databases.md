@@ -2,586 +2,1185 @@
 
 > **Runnable code:** `src/03-databases/`
 > ```bash
-> cd src/03-databases
-> python sql_basics.py          # no extra install — uses sqlite3
-> python nosql_patterns.py      # no extra install — pure Python simulation
-> python chroma_demo.py         # pip install chromadb
-> python pinecone_demo.py       # runs in mock mode (no API key needed)
-> python faiss_demo.py          # pip install faiss-cpu
+> python src/03-databases/sql_basics.py          # uses sqlite3 (built-in)
+> python src/03-databases/nosql_patterns.py      # pure Python
+> python src/03-databases/chroma_demo.py         # pip install chromadb
+> python src/03-databases/faiss_demo.py          # pip install faiss-cpu
 > ```
 
 ---
 
 ## Prerequisites & Overview
 
-**Prerequisites:** Basic Python, some SQL exposure (know what SELECT/WHERE/JOIN mean conceptually). No vector DB or NoSQL experience required.
-**Estimated time:** 8–12 hours (5 scripts; SQL and FAISS sections are the deepest)
+**Prerequisites:** Basic Python, know what SELECT/WHERE mean conceptually. Module 01 cosine similarity.
+**Estimated time:** 8–12 hours
+
+**Install:**
+```bash
+pip install chromadb faiss-cpu numpy
+```
 
 ### Why This Module Matters
-AI/ML systems live inside data pipelines. You need SQL for feature retrieval, joins, and window functions in analytics. You need vector databases for semantic search and RAG. Understanding index internals (B+ tree, HNSW, IVF) is what separates engineers who can tune query performance from those who guess.
+
+AI/ML systems live inside data pipelines. You need:
+- **SQL** — feature retrieval, analytics, joins across tables
+- **NoSQL** — caching session data, ML metadata, high-write workloads
+- **Vector DBs** — semantic search, RAG systems, embedding storage
+
+Understanding index internals (B+ tree, HNSW, IVF) separates engineers who can tune query performance from those who guess.
 
 ### Module Map
 
 | Section | What You'll Learn | Used In |
-|---------|------------------|---------|
-| SQL (1–2) | Joins, indexes, window functions, query planning | Feature stores, analytics, interview SQL rounds |
-| NoSQL (3) | CAP theorem, document/KV/graph trade-offs | Caching, session stores, ML metadata |
-| Vector DBs — Math (4) | ANN metrics: cosine, L2, IP | Embedding similarity |
-| HNSW / IVF / PQ (5–6) | Index algorithms and their parameters | Choosing and tuning a vector DB |
-| ChromaDB / Pinecone / FAISS (7) | Production APIs and patterns | RAG (Module 08) |
-
-### Before You Start
-- Know Python dictionaries and lists
-- Understand what a database table is (rows, columns, primary keys)
-- Know what "cosine similarity" means from Module 01 (dot product / norms)
+|---------|-----------------|---------|
+| SQL | Joins, indexes, window functions, EXPLAIN | Feature stores, analytics |
+| NoSQL | CAP theorem, document/KV trade-offs | Caching, metadata, sessions |
+| Vector Math | Cosine, L2, inner product distance | Embedding similarity |
+| HNSW / IVF / PQ | Index algorithms | Choosing and tuning vector DBs |
+| ChromaDB / FAISS | Production APIs | RAG (Module 08) |
 
 ---
 
-## 1. Relational Databases & SQL
+# 1. Relational Databases & SQL
 
-### 1.1 Data Model
+## Intuition
 
-**Relations (tables):** Named set of tuples. Schema = column names + types.
+A database is like a well-organized filing cabinet. Each drawer is a **table** (spreadsheet). Every row is one record (person, product, transaction). Every column is a property (name, price, date).
 
-**Keys:**
-- **Primary key (PK):** Uniquely identifies each row. `NOT NULL`, immutable, indexed automatically.
-- **Foreign key (FK):** References PK in another table. Enforces referential integrity.
-- **Candidate key:** Minimal set of columns that could serve as PK.
-- **Composite key:** PK spanning multiple columns.
+SQL is the language to read, write, and combine this data.
 
-**Constraints:** `NOT NULL`, `UNIQUE`, `CHECK`, `DEFAULT`, `FOREIGN KEY`.
+## 1.1 Creating Tables and Inserting Data
 
-### 1.2 Joins
+```python
+import sqlite3
 
-Given tables $R$ and $S$ with a join condition $\theta$:
+# Connect to in-memory database (no file needed)
+conn   = sqlite3.connect(":memory:")
+cursor = conn.cursor()
 
-| Join Type | Definition | Rows returned |
-|-----------|-----------|--------------|
-| `INNER JOIN` | $R \bowtie_\theta S$ | Matching rows only |
-| `LEFT JOIN` | $R \text{ ⟕}_\theta S$ | All of R + matched S (NULL if no match) |
-| `RIGHT JOIN` | $R \text{ ⟖}_\theta S$ | All of S + matched R |
-| `FULL OUTER` | $R \text{ ⟗}_\theta S$ | All rows from both, NULLs for mismatches |
-| `CROSS JOIN` | $R \times S$ | Cartesian product — $|R| \times |S|$ rows |
-| `SELF JOIN` | $R \bowtie_\theta R$ | Table joined with itself (alias required) |
+# ── Create tables ───────────────────────────────────────────
+cursor.executescript("""
+    CREATE TABLE users (
+        user_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+        name      TEXT    NOT NULL,
+        email     TEXT    UNIQUE NOT NULL,
+        age       INTEGER CHECK(age > 0),
+        join_date TEXT    DEFAULT CURRENT_DATE
+    );
 
-**Join algorithms (query planner chooses):**
-- **Nested Loop Join:** $O(|R| \cdot |S|)$ — small tables or indexed inner
-- **Hash Join:** $O(|R| + |S|)$ — large unsorted tables, no useful index
-- **Sort-Merge Join:** $O(|R|\log|R| + |S|\log|S|)$ — when both inputs sortable
+    CREATE TABLE products (
+        product_id  INTEGER PRIMARY KEY AUTOINCREMENT,
+        name        TEXT    NOT NULL,
+        category    TEXT,
+        price       REAL    NOT NULL,
+        stock       INTEGER DEFAULT 0
+    );
 
-### 1.3 Indexes
+    CREATE TABLE orders (
+        order_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id    INTEGER REFERENCES users(user_id),
+        product_id INTEGER REFERENCES products(product_id),
+        quantity   INTEGER NOT NULL,
+        order_date TEXT    DEFAULT CURRENT_DATE,
+        total      REAL
+    );
+""")
 
-An index is a separate data structure (B+ tree by default in most RDBMS) that maps column values → row locations, enabling $O(\log N)$ lookups instead of $O(N)$ full scans.
+# ── Insert data ─────────────────────────────────────────────
+users_data = [
+    ("Alice", "alice@email.com", 28),
+    ("Bob",   "bob@email.com",   35),
+    ("Carol", "carol@email.com", 24),
+    ("Dave",  "dave@email.com",  42),
+]
+cursor.executemany("INSERT INTO users (name, email, age) VALUES (?,?,?)", users_data)
 
-**B+ tree index:**
-- Internal nodes store keys as routing guides
-- Leaf nodes store (key, row_pointer) pairs in sorted order
-- Supports: equality `=`, range `<`, `>`, `BETWEEN`, `ORDER BY`, `GROUP BY`
-- **Height:** $\lceil \log_{B}(N) \rceil$ where $B$ = branching factor (~100-1000)
+products_data = [
+    ("Laptop",  "Electronics", 999.99, 15),
+    ("Phone",   "Electronics", 599.99, 30),
+    ("Book",    "Education",   29.99,  100),
+    ("Headset", "Electronics", 149.99, 25),
+    ("Course",  "Education",   199.99, 999),
+]
+cursor.executemany("INSERT INTO products (name, category, price, stock) VALUES (?,?,?,?)", products_data)
 
-**Hash index:** $O(1)$ equality lookup. Does NOT support range queries. Used in hash joins.
+orders_data = [
+    (1, 1, 1, 999.99),   # Alice bought Laptop
+    (1, 3, 2, 59.98),    # Alice bought 2 Books
+    (2, 2, 1, 599.99),   # Bob bought Phone
+    (3, 4, 1, 149.99),   # Carol bought Headset
+    (2, 3, 3, 89.97),    # Bob bought 3 Books
+    (4, 5, 1, 199.99),   # Dave bought Course
+]
+cursor.executemany("INSERT INTO orders (user_id, product_id, quantity, total) VALUES (?,?,?,?)", orders_data)
 
-**Composite index on `(a, b, c)`:**
-- Useful for queries on: `a`, `(a, b)`, `(a, b, c)` — left-prefix rule
-- NOT useful for queries on just `b` or `c`
-- Column order matters: put equality-predicate columns first, range-predicate last
-
-**When indexes hurt:**
-- High write tables (index must be updated on every INSERT/UPDATE/DELETE)
-- Very small tables (full scan is faster — index overhead not worth it)
-- Low-selectivity columns (e.g., boolean flags)
-
-**Index-only scan:** If query only reads indexed columns, planner can answer entirely from index without touching the table.
-
-### 1.4 Query Execution & EXPLAIN
-
-SQL query execution pipeline:
-1. **Parse** → AST
-2. **Bind** → resolve table/column names
-3. **Optimize** → enumerate join orders, choose access paths, cost model
-4. **Execute** → volcano/iterator model (each operator pulls rows from child)
-
-Read `EXPLAIN QUERY PLAN` output:
-- `SCAN TABLE` → full table scan ($O(N)$) — add index?
-- `SEARCH TABLE USING INDEX` → index scan ($O(\log N)$)
-- `SEARCH TABLE USING INTEGER PRIMARY KEY` → rowid lookup ($O(\log N)$)
-- `USE TEMP B-TREE FOR ORDER BY` → sort needed — index on ORDER BY column?
-
-**Cost model:** Optimizer estimates rows × page I/Os. Statistics (histogram of column values) must be up-to-date (`ANALYZE` in SQLite/PostgreSQL).
-
-### 1.5 Window Functions
-
-```sql
-SELECT
-    user_id,
-    purchase_amount,
-    SUM(purchase_amount) OVER (PARTITION BY user_id ORDER BY date
-                               ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total,
-    RANK() OVER (PARTITION BY category ORDER BY purchase_amount DESC) AS rank_in_category,
-    LAG(purchase_amount, 1) OVER (PARTITION BY user_id ORDER BY date) AS prev_purchase
-FROM orders;
+conn.commit()
+print("Tables created and populated successfully!")
 ```
 
-Execute after `WHERE` and `GROUP BY`, before `ORDER BY` and `LIMIT`. Cannot be used in `WHERE`.
+## 1.2 Basic Queries
 
-### 1.6 CTEs & Subqueries
+```python
+# ── SELECT with WHERE ───────────────────────────────────────
+print("Electronics products under $700:")
+cursor.execute("""
+    SELECT name, price, stock
+    FROM products
+    WHERE category = 'Electronics' AND price < 700
+    ORDER BY price DESC
+""")
+for row in cursor.fetchall():
+    print(f"  {row[0]:<12} ${row[1]:.2f}  (stock: {row[2]})")
 
-**CTE (Common Table Expression):** Named temporary result set, improves readability, enables recursion.
-
-```sql
-WITH monthly_sales AS (
-    SELECT DATE_TRUNC('month', order_date) AS month,
-           SUM(amount) AS revenue
-    FROM orders GROUP BY 1
-),
-growth AS (
-    SELECT month, revenue,
-           LAG(revenue) OVER (ORDER BY month) AS prev_revenue
-    FROM monthly_sales
-)
-SELECT month,
-       revenue,
-       ROUND((revenue - prev_revenue) / prev_revenue * 100, 2) AS growth_pct
-FROM growth;
+# ── Aggregate functions ─────────────────────────────────────
+print("\nSpending by category:")
+cursor.execute("""
+    SELECT p.category,
+           COUNT(o.order_id)  AS order_count,
+           SUM(o.total)       AS revenue,
+           AVG(o.total)       AS avg_order
+    FROM orders o
+    JOIN products p ON o.product_id = p.product_id
+    GROUP BY p.category
+    ORDER BY revenue DESC
+""")
+for row in cursor.fetchall():
+    print(f"  {row[0]:<15} orders={row[1]}, revenue=${row[2]:.2f}, avg=${row[3]:.2f}")
 ```
 
-**Recursive CTE:** Traversing hierarchical data (org charts, BOM):
-```sql
-WITH RECURSIVE tree AS (
-    SELECT id, name, parent_id, 0 AS depth FROM employees WHERE parent_id IS NULL
-    UNION ALL
-    SELECT e.id, e.name, e.parent_id, t.depth + 1
-    FROM employees e JOIN tree t ON e.parent_id = t.id
-)
-SELECT * FROM tree ORDER BY depth;
+## 1.3 Joins — Combining Tables
+
+```python
+# ── INNER JOIN: only rows that match in BOTH tables ─────────
+print("INNER JOIN — users who placed orders:")
+cursor.execute("""
+    SELECT u.name, p.name AS product, o.quantity, o.total
+    FROM orders o
+    INNER JOIN users    u ON o.user_id    = u.user_id
+    INNER JOIN products p ON o.product_id = p.product_id
+    ORDER BY u.name
+""")
+for row in cursor.fetchall():
+    print(f"  {row[0]:<8} bought {row[1]:<12} ×{row[2]}  ${row[3]:.2f}")
+
+# ── LEFT JOIN: all users, even those without orders ─────────
+print("\nLEFT JOIN — all users (even without orders):")
+cursor.execute("""
+    SELECT u.name, COUNT(o.order_id) AS order_count, COALESCE(SUM(o.total), 0) AS total_spent
+    FROM users u
+    LEFT JOIN orders o ON u.user_id = o.user_id
+    GROUP BY u.user_id, u.name
+    ORDER BY total_spent DESC
+""")
+for row in cursor.fetchall():
+    print(f"  {row[0]:<8} {row[1]} orders, ${row[2]:.2f} total")
 ```
 
-> **Run:** `python src/03-databases/sql_basics.py`
+**Key difference:**
+- `INNER JOIN` — Dave has no Electronics orders, so he might be excluded
+- `LEFT JOIN` — Dave always appears, with NULL for missing order columns
+
+## 1.4 Indexes — Making Queries Fast
+
+```python
+# Without index: SQLite scans every row (O(N))
+cursor.execute("EXPLAIN QUERY PLAN SELECT * FROM users WHERE email = 'alice@email.com'")
+print("\nQuery plan WITHOUT index:")
+for row in cursor.fetchall():
+    print(f"  {row}")
+
+# Create index
+cursor.execute("CREATE INDEX idx_users_email ON users(email)")
+cursor.execute("CREATE INDEX idx_orders_user ON orders(user_id)")
+cursor.execute("CREATE INDEX idx_orders_product ON orders(product_id)")
+
+# With index: direct lookup (O(log N))
+cursor.execute("EXPLAIN QUERY PLAN SELECT * FROM users WHERE email = 'alice@email.com'")
+print("\nQuery plan WITH index:")
+for row in cursor.fetchall():
+    print(f"  {row}")
+```
+
+**B+ Tree internals:**
+- Leaf nodes store `(column_value, row_id)` pairs in sorted order
+- Internal nodes are routing guides
+- Height ≈ $\lceil\log_B(N)\rceil$ where $B$ ≈ 100–1000 → even 1M rows needs height ≈ 3
+- Supports range queries: `WHERE age BETWEEN 20 AND 30` — great for B-trees
+
+**When NOT to index:**
+- Columns with few distinct values (low cardinality): boolean flags, enum columns
+- Tables with very heavy writes (index must be updated on every insert/update/delete)
+- Tables with fewer than ~1000 rows (full scan is faster)
+
+## 1.5 Window Functions
+
+Window functions compute values across a "window" of rows without collapsing them into groups (unlike GROUP BY).
+
+```python
+cursor.executescript("""
+    CREATE VIEW order_details AS
+    SELECT
+        u.name AS user_name,
+        p.category,
+        p.name AS product_name,
+        o.total,
+        o.order_date
+    FROM orders o
+    JOIN users u    ON o.user_id    = u.user_id
+    JOIN products p ON o.product_id = p.product_id;
+""")
+
+# RANK per category, running total, percentage of total
+cursor.execute("""
+    SELECT
+        user_name,
+        product_name,
+        total,
+        RANK() OVER (ORDER BY total DESC) AS global_rank,
+        SUM(total) OVER () AS grand_total,
+        ROUND(total * 100.0 / SUM(total) OVER (), 2) AS pct_of_total
+    FROM order_details
+    ORDER BY total DESC
+""")
+
+print("\nWindow function results:")
+print(f"  {'User':<8} {'Product':<12} {'Total':>8} {'Rank':>6} {'% Total':>8}")
+for row in cursor.fetchall():
+    print(f"  {row[0]:<8} {row[1]:<12} {row[2]:>8.2f} {row[3]:>6} {row[5]:>7.1f}%")
+```
+
+## 1.6 Transactions and ACID
+
+```python
+# ACID: Atomicity, Consistency, Isolation, Durability
+
+# Correct pattern: use transactions
+try:
+    conn.execute("BEGIN")
+
+    # Deduct stock
+    conn.execute("UPDATE products SET stock = stock - 1 WHERE product_id = 1")
+    # Insert order
+    conn.execute("INSERT INTO orders (user_id, product_id, quantity, total) VALUES (3, 1, 1, 999.99)")
+    # (In real code: these must both succeed or both fail)
+
+    conn.execute("COMMIT")
+    print("Order placed successfully (both updates committed)")
+
+except Exception as e:
+    conn.execute("ROLLBACK")
+    print(f"Transaction rolled back: {e}")
+
+conn.close()
+```
 
 ---
 
-## 2. NoSQL Databases
+# 2. NoSQL Databases
 
-### 2.1 CAP Theorem
+## Intuition
 
-**Consistency (C):** All nodes see the same data at the same time.
-**Availability (A):** Every request receives a (non-error) response.
-**Partition Tolerance (P):** System continues operating despite network partitions.
+SQL databases are great for structured, relational data. But:
+- What if your data schema changes frequently?
+- What if you need to scale to millions of writes per second?
+- What if your data is hierarchical (JSON documents)?
 
-**CAP theorem:** A distributed system can guarantee at most **two** of {C, A, P} simultaneously.
+NoSQL databases trade some SQL guarantees for flexibility and scale.
 
-Since network partitions are a reality in distributed systems, the real tradeoff is:
-- **CP systems** (sacrifice availability during partition): HBase, ZooKeeper, MongoDB (with strong consistency)
-- **AP systems** (sacrifice consistency, stay available): Cassandra, DynamoDB, CouchDB
+## 2.1 NoSQL Types
 
-**PACELC extension:** Even without partitions, tradeoff exists between latency (L) and consistency (C).
+| Type | Model | Key Operations | Example Use |
+|------|-------|---------------|-------------|
+| Document | JSON-like docs | CRUD, search | MongoDB, Firestore |
+| Key-Value | Key → blob | Get/Set/Delete | Redis, DynamoDB |
+| Column-Family | Column groups | Batch reads | Cassandra, HBase |
+| Graph | Nodes + edges | Traversal, paths | Neo4j |
 
-### 2.2 NoSQL Types
+## 2.2 CAP Theorem
 
-| Type | Data Model | Query | Examples | ML Use |
-|------|-----------|-------|---------|--------|
-| Document | JSON/BSON documents | Rich queries on nested fields | MongoDB, Firestore | Model configs, feature stores |
-| Key-Value | Flat key → blob | GET/SET/DELETE by key | Redis, DynamoDB | Caching, session state |
-| Column-family | Rows + dynamic columns | Row-key + column range | Cassandra, HBase | Time-series, IoT |
-| Graph | Nodes + edges | Traversal queries (Cypher) | Neo4j, TigerGraph | Knowledge graphs, GNN data |
-| Time-series | Timestamped measurements | Range + downsample | InfluxDB, TimescaleDB | Model monitoring, metrics |
+A distributed system can only guarantee **2 of 3**:
 
-### 2.3 MongoDB Document Model
+| Property | Meaning |
+|----------|---------|
+| **C**onsistency | Every read returns the latest write |
+| **A**vailability | Every request gets a response |
+| **P**artition tolerance | System works despite network splits |
 
-```json
-{
-  "_id": ObjectId("..."),
-  "embedding_id": "emb_001",
-  "text": "Machine learning is great",
-  "metadata": {
-    "source": "arxiv",
-    "tags": ["ml", "ai"],
-    "created_at": ISODate("2024-01-01")
-  },
-  "vector": [0.1, 0.2, ...]
-}
+Network partitions always happen in practice → choose CP or AP:
+- **CP** (MongoDB, HBase): consistent reads, may reject writes during partition
+- **AP** (Cassandra, DynamoDB): always available, may return stale data
+
+**PACELC extension:** Even without partitions, must trade off **L**atency vs **C**onsistency.
+
+```python
+# Simulating document store behavior
+class DocumentStore:
+    """Simple in-memory document store (like MongoDB)."""
+
+    def __init__(self):
+        self._store = {}
+
+    def insert(self, collection, doc_id, document):
+        if collection not in self._store:
+            self._store[collection] = {}
+        self._store[collection][doc_id] = document.copy()
+        return doc_id
+
+    def find(self, collection, query=None):
+        if collection not in self._store:
+            return []
+        docs = list(self._store[collection].values())
+        if query is None:
+            return docs
+        # Simple equality filter
+        return [d for d in docs if all(d.get(k) == v for k, v in query.items())]
+
+    def update(self, collection, doc_id, updates):
+        if collection in self._store and doc_id in self._store[collection]:
+            self._store[collection][doc_id].update(updates)
+            return True
+        return False
+
+    def delete(self, collection, doc_id):
+        if collection in self._store and doc_id in self._store[collection]:
+            del self._store[collection][doc_id]
+            return True
+        return False
+
+db = DocumentStore()
+
+# Insert ML experiment metadata
+db.insert("experiments", "exp_001", {
+    "name": "bert-finetune-v1",
+    "model": "bert-base",
+    "dataset": "imdb",
+    "epochs": 5,
+    "lr": 2e-5,
+    "metrics": {"accuracy": 0.923, "f1": 0.921},
+    "tags": ["nlp", "classification", "bert"]
+})
+
+db.insert("experiments", "exp_002", {
+    "name": "gpt2-finetune-v1",
+    "model": "gpt2",
+    "dataset": "imdb",
+    "epochs": 3,
+    "lr": 5e-5,
+    "metrics": {"accuracy": 0.895, "f1": 0.893},
+    "tags": ["nlp", "classification", "gpt2"]
+})
+
+db.insert("experiments", "exp_003", {
+    "name": "bert-finetune-v2",
+    "model": "bert-base",
+    "dataset": "yelp",
+    "epochs": 10,
+    "lr": 1e-5,
+    "metrics": {"accuracy": 0.941, "f1": 0.940},
+    "tags": ["nlp", "classification", "bert", "improved"]
+})
+
+# Query: all bert experiments
+bert_exps = db.find("experiments", {"model": "bert-base"})
+print(f"BERT experiments found: {len(bert_exps)}")
+for exp in bert_exps:
+    print(f"  {exp['name']}: accuracy={exp['metrics']['accuracy']}")
+
+# Update an experiment
+db.update("experiments", "exp_001", {"status": "deployed"})
+print(f"\nexp_001 status: {db.find('experiments', {'name': 'bert-finetune-v1'})[0].get('status')}")
 ```
 
-**Aggregation pipeline** — each stage transforms the document stream:
-```
-$match → $group → $project → $sort → $limit → $lookup (join) → $unwind
-```
+## 2.3 Redis-Style Key-Value Store
 
-> **Run:** `python src/03-databases/nosql_patterns.py`
+```python
+import time
+
+class RedisLike:
+    """In-memory KV store with TTL (like Redis)."""
+
+    def __init__(self):
+        self._data   = {}
+        self._expiry = {}
+
+    def set(self, key, value, ttl_seconds=None):
+        self._data[key] = value
+        if ttl_seconds:
+            self._expiry[key] = time.time() + ttl_seconds
+
+    def get(self, key):
+        # Check TTL
+        if key in self._expiry and time.time() > self._expiry[key]:
+            del self._data[key]
+            del self._expiry[key]
+            return None
+        return self._data.get(key)
+
+    def delete(self, key):
+        self._data.pop(key, None)
+        self._expiry.pop(key, None)
+
+    def incr(self, key, amount=1):
+        val = int(self._data.get(key, 0)) + amount
+        self._data[key] = val
+        return val
+
+cache = RedisLike()
+
+# Cache ML model predictions (avoid recomputing)
+def expensive_ml_prediction(user_id):
+    time.sleep(0.01)  # simulate model inference
+    return {"score": 0.87, "class": "positive"}
+
+def cached_predict(user_id, cache_obj):
+    cache_key = f"prediction:{user_id}"
+    cached    = cache_obj.get(cache_key)
+    if cached:
+        return cached, True   # cache hit
+
+    result = expensive_ml_prediction(user_id)
+    cache_obj.set(cache_key, result, ttl_seconds=300)  # cache for 5 min
+    return result, False  # cache miss
+
+result, hit = cached_predict("user_123", cache)
+print(f"First call — cache hit: {hit}")
+
+result, hit = cached_predict("user_123", cache)
+print(f"Second call — cache hit: {hit}")
+
+# Counter (request rate limiting)
+for i in range(5):
+    count = cache.incr("api_requests_today")
+    print(f"Request {i+1}: total today = {count}")
+```
 
 ---
 
-## 3. Embeddings & Similarity Search
+# 3. Vector Databases — Semantic Search
 
-### 3.1 Why Vector DBs Exist
+## Intuition
 
-Dense embeddings (from transformers, word2vec, etc.) represent semantic meaning as points in $\mathbb{R}^d$ (typically $d = 384, 768, 1536$).
+Traditional databases match by **exact value**: `WHERE name = 'Alice'`. But how do you search for "documents about machine learning" when no document contains those exact words?
 
-**Naive similarity search:** Compare query vector against every stored vector — $O(N \cdot d)$. At $N=10^9$, $d=768$: ~$10^{12}$ FLOPS per query → infeasible.
+Vector databases match by **meaning**. Every piece of content (text, image, audio) is converted to a vector (embedding). Similar content has vectors pointing in similar directions. Search finds vectors closest to the query vector.
 
-**Approximate Nearest Neighbor (ANN):** Trade exact answers for speed. Goal: find $k$ vectors with highest similarity in $O(\log N)$ or $O(1)$ time with high recall.
+## 3.1 Distance Metrics
 
-### 3.2 Similarity Metrics
+| Metric | Formula | Use case |
+|--------|---------|---------|
+| Cosine Similarity | $\frac{\mathbf{u}\cdot\mathbf{v}}{\|\mathbf{u}\|\|\mathbf{v}\|}$ | Text similarity (normalized embeddings) |
+| Euclidean (L2) | $\|\mathbf{u} - \mathbf{v}\|_2$ | Image features, spatial data |
+| Inner Product | $\mathbf{u}\cdot\mathbf{v}$ | When embeddings are not normalized |
+| Manhattan (L1) | $\sum_i |u_i - v_i|$ | Sparse high-dimensional features |
 
-**Cosine similarity** (angle-based, magnitude-invariant):
-$$\text{sim}(\mathbf{q}, \mathbf{v}) = \frac{\mathbf{q} \cdot \mathbf{v}}{\|\mathbf{q}\|_2 \|\mathbf{v}\|_2}$$
+```python
+import numpy as np
 
-**L2 distance** (Euclidean):
-$$d(\mathbf{q}, \mathbf{v}) = \|\mathbf{q} - \mathbf{v}\|_2 = \sqrt{\sum_i (q_i - v_i)^2}$$
+def cosine_similarity(u, v):
+    return np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v))
 
-**Dot product** (inner product — for normalized vectors, equivalent to cosine):
-$$\text{score}(\mathbf{q}, \mathbf{v}) = \mathbf{q} \cdot \mathbf{v} = \sum_i q_i v_i$$
+def euclidean_distance(u, v):
+    return np.linalg.norm(u - v)
 
-**Relationship:** For L2-normalized vectors ($\|\mathbf{v}\|_2 = 1$):
-$$\|\mathbf{q} - \mathbf{v}\|^2 = 2 - 2(\mathbf{q} \cdot \mathbf{v}) \quad \Rightarrow \quad \text{cosine} \equiv \text{dot product} \equiv -\frac{1}{2}\text{L2}^2$$
+def inner_product(u, v):
+    return np.dot(u, v)
 
----
+# Simulate embeddings
+rng = np.random.default_rng(42)
 
-## 4. HNSW — Hierarchical Navigable Small World
+# Three "documents" as 4D embeddings
+tech_doc    = np.array([0.8, 0.9, 0.1, 0.2])   # tech content
+science_doc = np.array([0.7, 0.8, 0.2, 0.1])   # similar to tech
+cooking_doc = np.array([0.1, 0.2, 0.9, 0.8])   # very different
 
-### 4.1 Algorithm
+query = np.array([0.75, 0.85, 0.15, 0.1])  # "machine learning" query
 
-HNSW builds a multi-layer graph:
-- **Layer 0:** All nodes, dense connections (short-range)
-- **Layer 1, 2, ...:** Exponentially fewer nodes, long-range connections (highway)
+docs = {"tech": tech_doc, "science": science_doc, "cooking": cooking_doc}
 
-**Insert node $q$ at layer $\ell$:**
-1. Assign max layer $l_q \sim -\ln(\text{Uniform}(0,1)) \cdot \frac{1}{\ln M}$
-2. Greedily traverse from entry point top → layer $l_q+1$ to find entry point
-3. At each layer $\leq l_q$: find $ef_{construction}$ nearest neighbors, add bidirectional edges (max $M$ per node)
+print(f"Query similarity to each document:")
+print(f"{'Document':<12} {'Cosine':>10} {'Euclidean':>12} {'Inner Prod':>12}")
+print("-" * 48)
 
-**Query for $k$-NN:**
-1. Start at entry point in top layer
-2. Greedy descent: at each layer, move to neighbor closest to query
-3. At layer 0: beam search with $ef$ candidates, return top $k$
+for name, doc in docs.items():
+    cos = cosine_similarity(query, doc)
+    euc = euclidean_distance(query, doc)
+    ip  = inner_product(query, doc)
+    print(f"{name:<12} {cos:>10.4f} {euc:>12.4f} {ip:>12.4f}")
 
-**Complexity:**
-- Build: $O(N \cdot \log N \cdot M \cdot ef_{construction})$
-- Query: $O(\log N)$ expected hops at each layer
+print(f"\nBest match by cosine: {max(docs, key=lambda k: cosine_similarity(query, docs[k]))}")
+```
+
+## 3.2 Naive Nearest-Neighbor Search
+
+Brute-force: compute similarity to every vector. $O(N \cdot d)$ per query. Works for small collections.
+
+```python
+import numpy as np
+
+class NaiveVectorDB:
+    """Brute-force vector store — exact but slow at scale."""
+
+    def __init__(self, dim):
+        self.dim      = dim
+        self.vectors  = []   # list of (id, vector, metadata)
+
+    def add(self, doc_id, vector, metadata=None):
+        vector = np.array(vector, dtype=np.float32)
+        vector = vector / np.linalg.norm(vector)  # normalize to unit length
+        self.vectors.append((doc_id, vector, metadata or {}))
+
+    def search(self, query, k=3):
+        if not self.vectors:
+            return []
+
+        query  = np.array(query, dtype=np.float32)
+        query  = query / np.linalg.norm(query)   # normalize query
+
+        # Compute cosine similarity to every vector
+        scores = []
+        for doc_id, vec, meta in self.vectors:
+            score = np.dot(query, vec)   # dot of unit vectors = cosine sim
+            scores.append((score, doc_id, meta))
+
+        # Return top-k
+        scores.sort(key=lambda x: x[0], reverse=True)
+        return scores[:k]
+
+rng = np.random.default_rng(42)
+dim = 16  # small dimension for demo
+
+db = NaiveVectorDB(dim)
+
+# Add movie "embeddings" (fake — in real life, use a sentence transformer)
+movies = [
+    ("The Matrix",            rng.normal([1, 0.8, 0.1, 0.9] + [0]*12, 0.1)),
+    ("Inception",             rng.normal([0.9, 0.7, 0.2, 0.8] + [0]*12, 0.1)),
+    ("The Dark Knight",       rng.normal([0.7, 0.5, 0.8, 0.6] + [0]*12, 0.1)),
+    ("Ratatouille",           rng.normal([0.1, 0.2, 0.9, 0.1] + [0]*12, 0.1)),
+    ("The Grand Budapest",    rng.normal([0.2, 0.3, 0.8, 0.2] + [0]*12, 0.1)),
+    ("Interstellar",          rng.normal([0.95, 0.85, 0.1, 0.7] + [0]*12, 0.1)),
+    ("Mad Max Fury Road",     rng.normal([0.5, 0.4, 0.7, 0.9] + [0]*12, 0.1)),
+]
+
+for title, emb in movies:
+    db.add(title, emb[:dim], {"genre": "sci-fi"})
+
+# Search: "movies like The Matrix"
+query_emb = np.array([1.0, 0.8, 0.1, 0.9] + [0]*12)
+results   = db.search(query_emb, k=3)
+
+print("Movies similar to 'The Matrix' query:")
+for score, doc_id, _ in results:
+    bar = "█" * int(score * 30)
+    print(f"  {doc_id:<25} similarity={score:.4f}  {bar}")
+```
+
+## 3.3 HNSW — Hierarchical Navigable Small World
+
+Approximate Nearest Neighbor (ANN) index. Instead of $O(N\cdot d)$ per query, achieves $O(\log N \cdot d)$.
+
+**How it works:**
+1. Build a multi-layer graph where nodes = vectors
+2. Layer 0: dense graph (all connections), Layer 1: sparser, Layer 2: sparsest
+3. Search starts at the top layer, greedily descends toward query
+4. At bottom layer, explore local neighborhood to find best candidates
 
 **Parameters:**
-| Param | Effect | Default |
-|-------|--------|---------|
-| `M` | Max connections per node. Higher → better recall, more memory | 16 |
-| `ef_construction` | Beam width during build. Higher → better graph quality, slower build | 200 |
-| `ef_search` | Beam width during query. Tune recall/speed tradeoff at runtime | 50 |
-
-### 4.2 IVF — Inverted File Index
-
-**Idea:** Cluster vectors into $n_{list}$ Voronoi cells (K-Means). Store inverted lists of vectors per cluster.
-
-**Query:**
-1. Find $n_{probe}$ nearest cluster centroids to query
-2. Exhaustively search vectors in those $n_{probe}$ lists
-3. Return global top-$k$
-
-**Tradeoff:** $n_{probe}$ controls recall vs speed. Higher $n_{probe}$ → higher recall, slower.
-
-**Complexity:** $O(\sqrt{N})$ expected with $n_{probe}=1$; $O(N)$ when $n_{probe} = n_{list}$.
-
-### 4.3 Product Quantization (PQ)
-
-Compress $d$-dim vectors to fixed bytes. Split vector into $M$ sub-vectors of size $d/M$. Quantize each sub-vector to 1 byte (256 centroids per sub-space).
-
-**Storage:** $d$-dim float32 vector (4d bytes) → $M$ bytes. Compression ratio = $4d/M$.
-
-**ADC (Asymmetric Distance Computation):** Precompute distances from query sub-vectors to all codebook entries → fast approximate distances without decoding.
-
-**IVFPQ:** IVF coarse quantization + PQ fine quantization — standard for billion-scale search.
-
----
-
-## 5. ChromaDB
-
-### 5.1 Architecture
-
-ChromaDB is an open-source embedding database. Storage backends: DuckDB+Parquet (local), ClickHouse (server). Default ANN: HNSW via `hnswlib`.
-
-**Core concepts:**
-- **Collection:** Named namespace for vectors + metadata + documents
-- **Embedding function:** Callable that maps text → vectors (pluggable)
-- **Metadata:** Arbitrary JSON dict per document (filterable)
-- **Distance functions:** `l2`, `cosine`, `ip` (inner product)
-
-### 5.2 Key Operations
+- `M` — connections per node (higher = better recall, more memory)
+- `ef_construction` — search width during index building (higher = slower build, better quality)
+- `ef_search` — search width during query (trade recall vs speed)
 
 ```python
-import chromadb
+# HNSW intuition — simulating the greedy layer search
+import numpy as np
 
-client = chromadb.Client()                    # in-memory
-# client = chromadb.PersistentClient("./db")  # on disk
+rng = np.random.default_rng(42)
 
-collection = client.create_collection(
-    name="docs",
-    metadata={"hnsw:space": "cosine"}         # distance metric
-)
+# Simulate HNSW search concept
+def hnsw_search_concept(query, vectors, ef=10):
+    """
+    Simplified HNSW search:
+    1. Pick a random entry point
+    2. Greedily move to nearest neighbor
+    3. At bottom layer, expand neighborhood with ef candidates
+    """
+    n = len(vectors)
+    query = query / np.linalg.norm(query)
 
-# Add — IDs must be unique strings
-collection.add(
-    ids=["doc1", "doc2"],
-    embeddings=[[0.1, 0.2, ...], [0.3, 0.4, ...]],
-    documents=["text of doc1", "text of doc2"],
-    metadatas=[{"source": "arxiv", "year": 2024}, {"source": "web"}]
-)
+    # Entry point: pick a random vector as start
+    entry = rng.integers(n)
 
-# Query
-results = collection.query(
-    query_embeddings=[[0.1, 0.2, ...]],
-    n_results=5,
-    where={"source": {"$eq": "arxiv"}},           # metadata filter
-    where_document={"$contains": "neural"},       # document content filter
-    include=["documents", "metadatas", "distances"]
-)
+    # Greedy descent (simplified — real HNSW uses multiple layers)
+    visited   = {entry}
+    current   = entry
+    best_dist = np.dot(query, vectors[current] / np.linalg.norm(vectors[current]))
 
-# Metadata filter operators: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin
-# Combine: {"$and": [{"year": {"$gte": 2023}}, {"source": {"$eq": "arxiv"}}]}
+    for _ in range(20):  # max hops
+        # Explore neighbors (random simulation — real HNSW uses graph edges)
+        neighbors = rng.choice(n, min(ef, n), replace=False)
+        improved  = False
+
+        for nb in neighbors:
+            if nb not in visited:
+                visited.add(nb)
+                sim = np.dot(query, vectors[nb] / np.linalg.norm(vectors[nb]))
+                if sim > best_dist:
+                    best_dist = sim
+                    current   = nb
+                    improved  = True
+
+        if not improved:
+            break  # local minimum found
+
+    return current, best_dist, len(visited)
+
+# Test
+n_vecs = 10000
+d      = 128
+vecs   = rng.randn(n_vecs, d).astype(np.float32)
+query  = rng.randn(d).astype(np.float32)
+
+result_idx, result_sim, nodes_visited = hnsw_search_concept(query, vecs)
+
+# Exact search (brute force)
+sims        = (vecs / np.linalg.norm(vecs, axis=1, keepdims=True)) @ (query / np.linalg.norm(query))
+true_best   = sims.argmax()
+true_sim    = sims.max()
+
+print(f"HNSW (approximate):")
+print(f"  Similarity: {result_sim:.4f}")
+print(f"  Nodes visited: {nodes_visited} / {n_vecs}")
+
+print(f"\nBrute force (exact):")
+print(f"  Similarity: {true_sim:.4f}")
+
+print(f"\nApproximation gap: {true_sim - result_sim:.4f}")
+print(f"Speed ratio: {n_vecs / nodes_visited:.1f}x fewer comparisons")
 ```
 
-> **Run:** `python src/03-databases/chroma_demo.py`
+## 3.4 IVF — Inverted File Index
 
----
+Divide vectors into $n_{list}$ clusters (using K-Means). To search:
+1. Find the $n_{probe}$ nearest cluster centroids
+2. Search only within those clusters
 
-## 6. Pinecone
-
-### 6.1 Architecture
-
-Fully managed vector database. Serverless and pod-based deployment. Supports hybrid search (sparse + dense).
-
-**Key concepts:**
-- **Index:** Named collection of vectors with fixed dimension and metric
-- **Namespace:** Logical partition within an index (zero-copy isolation)
-- **Pod type:** `s1` (storage optimized), `p1` (performance), `p2` (latency)
-
-### 6.2 Key Operations
+**Trade-off:** `n_list` larger → faster search but potentially misses candidates. `n_probe` larger → better recall, slower search.
 
 ```python
-from pinecone import Pinecone, ServerlessSpec
+import numpy as np
 
-pc = Pinecone(api_key="your-key")
-pc.create_index(
-    name="my-index",
-    dimension=384,
-    metric="cosine",
-    spec=ServerlessSpec(cloud="aws", region="us-east-1")
-)
-index = pc.Index("my-index")
+class IVFIndex:
+    """Inverted File Index for ANN search."""
 
-# Upsert (insert or update)
-index.upsert(vectors=[
-    {"id": "vec1", "values": [0.1, 0.2, ...], "metadata": {"category": "ml"}},
-    {"id": "vec2", "values": [0.3, 0.4, ...], "metadata": {"category": "nlp"}},
-], namespace="prod")
+    def __init__(self, n_lists=8):
+        self.n_lists  = n_lists
+        self.centroids = None
+        self.lists    = {}   # cluster_id -> list of (vector, doc_id)
 
-# Query
-results = index.query(
-    vector=[0.1, 0.2, ...],
-    top_k=5,
-    namespace="prod",
-    filter={"category": {"$eq": "ml"}},
-    include_metadata=True,
-    include_values=False
-)
+    def train(self, vectors, n_iter=20):
+        """K-Means to find cluster centroids."""
+        rng = np.random.default_rng(42)
+        n   = len(vectors)
 
-# Hybrid search (sparse + dense)
-results = index.query(
-    vector=[0.1, 0.2, ...],                            # dense
-    sparse_vector={"indices": [10, 50], "values": [0.8, 0.5]},  # BM25
-    top_k=5,
-    alpha=0.7                                           # 0=sparse, 1=dense
-)
+        # Initialize centroids
+        idx            = rng.choice(n, self.n_lists, replace=False)
+        self.centroids = vectors[idx].copy()
+
+        for _ in range(n_iter):
+            # Assign
+            dists   = np.linalg.norm(vectors[:, None] - self.centroids[None], axis=2)
+            assigns = dists.argmin(axis=1)
+
+            # Update
+            for k in range(self.n_lists):
+                mask = assigns == k
+                if mask.sum() > 0:
+                    self.centroids[k] = vectors[mask].mean(axis=0)
+
+        print(f"IVF trained: {self.n_lists} clusters on {n} vectors")
+
+    def add(self, vectors, ids):
+        """Add vectors to their nearest cluster."""
+        dists   = np.linalg.norm(vectors[:, None] - self.centroids[None], axis=2)
+        assigns = dists.argmin(axis=1)
+
+        for i, cluster in enumerate(assigns):
+            if cluster not in self.lists:
+                self.lists[cluster] = []
+            self.lists[cluster].append((vectors[i], ids[i]))
+
+    def search(self, query, k=5, n_probe=2):
+        """Search top-k nearest in n_probe closest clusters."""
+        # Find n_probe nearest centroids
+        centroid_dists = np.linalg.norm(self.centroids - query, axis=1)
+        probe_clusters = np.argsort(centroid_dists)[:n_probe]
+
+        # Search within those clusters
+        candidates = []
+        total_checked = 0
+        for cluster in probe_clusters:
+            for vec, doc_id in self.lists.get(cluster, []):
+                sim = np.dot(query, vec) / (np.linalg.norm(query) * np.linalg.norm(vec))
+                candidates.append((sim, doc_id))
+                total_checked += 1
+
+        candidates.sort(reverse=True)
+        return candidates[:k], total_checked
+
+# Demo
+rng     = np.random.default_rng(42)
+n, d    = 5000, 32
+
+vecs    = rng.randn(n, d).astype(np.float32)
+ids     = list(range(n))
+query   = rng.randn(d).astype(np.float32)
+
+index = IVFIndex(n_lists=16)
+index.train(vecs)
+index.add(vecs, ids)
+
+results, checked = index.search(query, k=5, n_probe=2)
+
+print(f"\nIVF Search results:")
+print(f"  Checked {checked}/{n} vectors ({checked/n*100:.1f}%)")
+print(f"  Top-3 results:")
+for sim, doc_id in results[:3]:
+    print(f"    doc_id={doc_id}, similarity={sim:.4f}")
 ```
 
-> **Run:** `python src/03-databases/pinecone_demo.py` (mock mode — no API key needed)
-
----
-
-## 7. FAISS
-
-### 7.1 Index Types
-
-| Index | Algorithm | Build | Query | Memory | Use case |
-|-------|-----------|-------|-------|--------|----------|
-| `IndexFlatL2` | Exact brute-force | $O(N)$ | $O(N \cdot d)$ | $4Nd$ bytes | Small datasets, ground-truth |
-| `IndexFlatIP` | Exact brute-force (inner product) | $O(N)$ | $O(N \cdot d)$ | $4Nd$ bytes | Normalized vectors |
-| `IndexIVFFlat` | IVF + flat lists | $O(NK)$ train | $O(\sqrt{N})$ | $4Nd$ bytes | Medium datasets |
-| `IndexHNSWFlat` | HNSW graph | $O(N \log N)$ | $O(\log N)$ | $4Nd + graph$ | Low-latency ANN |
-| `IndexPQ` | Product quantization | $O(NKM)$ | $O(N/M)$ | $NM$ bytes | Memory-limited |
-| `IndexIVFPQ` | IVF + PQ | Slowest | Fastest | Smallest | Billion-scale |
-
-### 7.2 GPU Support
+## 3.5 ChromaDB — Production Vector Store
 
 ```python
-import faiss
-res = faiss.StandardGpuResources()
-gpu_index = faiss.index_cpu_to_gpu(res, 0, cpu_index)
+# ChromaDB: persistent, metadata filtering, multiple distance functions
+# pip install chromadb
+
+try:
+    import chromadb
+    from chromadb.config import Settings
+
+    # In-memory client for demo
+    client = chromadb.Client()
+
+    collection = client.create_collection(
+        name="ml_papers",
+        metadata={"hnsw:space": "cosine"}  # cosine distance
+    )
+
+    # Add ML paper summaries with embeddings
+    papers = [
+        {"id": "p1", "text": "Attention is all you need — transformer architecture",
+         "year": 2017, "venue": "NeurIPS"},
+        {"id": "p2", "text": "BERT pre-training of deep bidirectional transformers",
+         "year": 2018, "venue": "NAACL"},
+        {"id": "p3", "text": "GPT-2 language models are few-shot learners",
+         "year": 2019, "venue": "ArXiv"},
+        {"id": "p4", "text": "ImageNet classification with deep convolutional neural networks",
+         "year": 2012, "venue": "NeurIPS"},
+        {"id": "p5", "text": "Generative adversarial networks for image synthesis",
+         "year": 2014, "venue": "NIPS"},
+    ]
+
+    rng = np.random.default_rng(42)
+
+    # In production: use SentenceTransformers to embed the text
+    # Here we use random vectors for demo
+    embeddings = [rng.randn(384).tolist() for _ in papers]
+
+    collection.add(
+        ids        = [p["id"] for p in papers],
+        embeddings = embeddings,
+        documents  = [p["text"] for p in papers],
+        metadatas  = [{"year": p["year"], "venue": p["venue"]} for p in papers]
+    )
+
+    print(f"Added {collection.count()} papers to ChromaDB")
+
+    # Search for transformer-related papers
+    query_emb = rng.randn(384).tolist()
+    results   = collection.query(
+        query_embeddings=[query_emb],
+        n_results=3,
+        where={"year": {"$gte": 2017}}  # metadata filter!
+    )
+
+    print("\nTop 3 papers (filtered to 2017+):")
+    for i, (doc, dist) in enumerate(zip(
+        results['documents'][0],
+        results['distances'][0]
+    )):
+        print(f"  {i+1}. {doc[:60]}...")
+        print(f"     Distance: {dist:.4f}")
+
+except ImportError:
+    print("chromadb not installed. Run: pip install chromadb")
+    print("ChromaDB usage shown conceptually above.")
 ```
 
-### 7.3 Recall vs Speed Tradeoff
-
-```
-        Recall
-          ↑
-    1.0 ─ ●──● FlatL2 (exact)
-    0.9 ─    ●──● HNSW (ef=200)
-    0.8 ─       ●──● HNSW (ef=50)
-    0.7 ─          ●──● IVFFlat (nprobe=32)
-          └────────────────────→ QPS (queries/sec)
-```
-
-> **Run:** `python src/03-databases/faiss_demo.py`
-
----
-
-## 8. Choosing a Vector DB
-
-| Factor | ChromaDB | Pinecone | FAISS | Weaviate | Qdrant |
-|--------|----------|----------|-------|---------|--------|
-| Hosting | Local/self-hosted | Fully managed | Library | Self-hosted | Self-hosted |
-| Scale | Millions | Billions | Depends | Millions | Millions |
-| Hybrid search | No | Yes | No (manual) | Yes | Yes |
-| Metadata filtering | Yes | Yes | Manual | Yes | Yes |
-| Best for | Local RAG dev | Production RAG | Research/custom | Production | Production |
-
----
-
-## 9. Redis — Caching Layer for ML Systems
-
-Redis is an in-memory key-value store used as a caching layer between ML services and backends. Common patterns: embedding cache (avoid re-encoding the same query), prediction cache (memoize expensive model calls), session store for RAG conversation history.
-
-### 9.1 Key Patterns
-
-**Embedding cache:** Hash the query string → store (embedding vector, TTL) as Redis key. Subsequent identical queries skip the model call.
+## 3.6 FAISS — Facebook AI Similarity Search
 
 ```python
-import hashlib, json, numpy as np
+try:
+    import faiss
 
-def get_or_compute_embedding(query: str, model, redis_client, ttl: int = 3600):
-    key = "emb:" + hashlib.sha256(query.encode()).hexdigest()[:16]
-    cached = redis_client.get(key)
-    if cached:
-        return np.frombuffer(cached, dtype=np.float32)
-    emb = model.encode(query).astype(np.float32)
-    redis_client.setex(key, ttl, emb.tobytes())
-    return emb
+    rng = np.random.default_rng(42)
+    d   = 128    # embedding dimension
+    n   = 50000  # 50K vectors
+
+    # Generate vectors (in practice: your model embeddings)
+    vectors = rng.randn(n, d).astype(np.float32)
+    faiss.normalize_L2(vectors)  # normalize for cosine similarity
+
+    # ── Flat index (exact search) ──────────────────────────
+    index_flat = faiss.IndexFlatIP(d)   # Inner Product = cosine for normalized vectors
+    index_flat.add(vectors)
+
+    query = rng.randn(1, d).astype(np.float32)
+    faiss.normalize_L2(query)
+
+    D_flat, I_flat = index_flat.search(query, k=5)
+    print(f"Exact (Flat) — top-5 similarities: {D_flat[0].round(4)}")
+    print(f"Exact (Flat) — top-5 indices:      {I_flat[0]}")
+
+    # ── IVF index (approximate, much faster) ──────────────
+    nlist = 100     # number of clusters
+    quantizer   = faiss.IndexFlatIP(d)
+    index_ivf   = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_INNER_PRODUCT)
+
+    index_ivf.train(vectors)
+    index_ivf.add(vectors)
+    index_ivf.nprobe = 10   # search 10 clusters
+
+    D_ivf, I_ivf = index_ivf.search(query, k=5)
+    print(f"\nIVF (approximate) — top-5 similarities: {D_ivf[0].round(4)}")
+
+    # Recall: how many of IVF results match exact?
+    recall = len(set(I_flat[0]) & set(I_ivf[0])) / 5
+    print(f"Recall@5: {recall:.0%}")
+
+    print(f"\nIndex sizes:")
+    print(f"  Flat: {index_flat.ntotal:,} vectors")
+    print(f"  IVF:  {index_ivf.ntotal:,} vectors")
+
+except ImportError:
+    print("faiss not installed. Run: pip install faiss-cpu")
+    print("FAISS usage shown conceptually above.")
 ```
 
-**LRU cache with max memory:** Redis evicts least-recently-used keys when `maxmemory` is reached.
+---
 
-```
-# redis.conf (or via CONFIG SET)
-maxmemory 2gb
-maxmemory-policy allkeys-lru
-```
+# 4. Interview Q&A
 
-### 9.2 Pipeline Batching
+## Q1: What is the difference between INNER JOIN and LEFT JOIN?
 
-Every `redis.get()` is a round-trip (~0.1ms on localhost, ~1ms on network). For bulk ops, pipeline batches multiple commands into one round-trip:
+`INNER JOIN` returns only rows where the join condition is satisfied in **both** tables. `LEFT JOIN` returns all rows from the left table; if no match exists in the right table, right-side columns are `NULL`. Use `LEFT JOIN` when you want all records from one table, whether or not they have related records elsewhere.
+
+## Q2: Why are vector databases different from traditional databases?
+
+Traditional databases find exact matches ($\text{WHERE} = $ ). Vector databases find **approximate nearest neighbors** — documents whose meaning is most similar to the query. The underlying index (HNSW, IVF) enables sub-linear search time over billions of vectors. You can't do `WHERE meaning = 'machine learning'` in SQL, but you can embed that query and find cosine-similar vectors.
+
+## Q3: Explain the CAP theorem.
+
+A distributed system can simultaneously guarantee at most two of: **Consistency** (reads always return latest write), **Availability** (every request gets a response), **Partition tolerance** (system works despite network splits). Since network partitions are inevitable in distributed systems, real systems choose between CP (sacrifice availability during partitions — e.g., HBase) or AP (sacrifice consistency — e.g., Cassandra).
+
+## Q4: When would you choose HNSW over IVF for a vector index?
+
+| Criterion | HNSW | IVF |
+|-----------|------|-----|
+| Recall quality | Excellent | Good |
+| Build time | Slower | Fast |
+| Memory | Higher | Lower |
+| Dynamic updates | Supports add | Needs retraining |
+| Best for | Small-medium (< 10M) | Large (> 10M) |
+
+HNSW when you need high recall and can afford memory. IVF+PQ when you have many millions of vectors and need compression.
+
+## Q5: What's the left-prefix rule for composite indexes?
+
+Composite index `(a, b, c)` supports queries on `a`, `(a, b)`, or `(a, b, c)` but NOT on just `b` or `c` alone. The B+ tree sorts by `a` first, then `b`, then `c`. Without knowing `a`, you can't navigate the tree.
+
+## Q6: Why normalize embeddings before cosine search?
+
+Cosine similarity = inner product of **unit vectors**. If you normalize all embeddings to unit length at index time, then cosine search becomes a simple inner product (maximum inner product search), which is faster and avoids repeated normalization at query time.
+
+---
+
+# 5. Cheat Sheet
+
+| Concept | Formula / Value | Memory Hook |
+|---------|----------------|------------|
+| B+ Tree lookup | $O(\log_B N)$ | Height ~3 even for millions of rows |
+| Full table scan | $O(N)$ | Avoid with indexes |
+| INNER JOIN | Returns matching rows only | Intersection |
+| LEFT JOIN | All left + matching right (NULLs) | Left always shows up |
+| Cosine similarity | $\frac{u \cdot v}{\|u\|\|v\|}$ | 1 = identical direction |
+| HNSW recall | ~95% at 10x speedup | Best ANN algorithm |
+| IVF search | $O(n_{probe} \cdot N / n_{lists})$ | Partitioned search |
+| CAP theorem | Can only guarantee 2 of 3 | Partition tolerance always needed |
+| Redis TTL | `SET key value EX 300` | Expire in 300 seconds |
+| ChromaDB | `collection.query(embeddings, where={})` | Metadata filtering built-in |
+
+---
+
+# MINI-PROJECT — Semantic Movie Recommender
+
+**What you will build:** A movie recommendation system using vector similarity search. Given a movie you like, find the 5 most similar movies based on their "content embeddings." Implements the core of every production recommendation engine.
+
+**Learning goals:** Vector operations, cosine similarity, ANN search, SQL for metadata storage, integration of relational + vector databases.
+
+---
+
+## Step 1 — Create Movie Database
 
 ```python
-pipe = redis_client.pipeline()
-for key in keys:
-    pipe.get(key)
-results = pipe.execute()   # one round-trip for N commands
+import sqlite3
+import numpy as np
+
+rng = np.random.default_rng(42)
+
+# In-memory SQLite for movie metadata
+conn   = sqlite3.connect(":memory:")
+cursor = conn.cursor()
+
+cursor.executescript("""
+    CREATE TABLE movies (
+        movie_id  INTEGER PRIMARY KEY,
+        title     TEXT NOT NULL,
+        year      INTEGER,
+        genre     TEXT,
+        director  TEXT,
+        rating    REAL,
+        votes     INTEGER
+    );
+
+    CREATE TABLE genres (
+        movie_id INTEGER REFERENCES movies(movie_id),
+        genre    TEXT
+    );
+""")
+
+movies = [
+    (1, "The Matrix",         1999, "sci-fi",   "Wachowski", 8.7, 1800000),
+    (2, "Inception",          2010, "sci-fi",   "Nolan",     8.8, 2200000),
+    (3, "Interstellar",       2014, "sci-fi",   "Nolan",     8.6, 1600000),
+    (4, "The Dark Knight",    2008, "action",   "Nolan",     9.0, 2600000),
+    (5, "Parasite",           2019, "thriller", "Bong",      8.5, 700000),
+    (6, "Knives Out",         2019, "mystery",  "Johnson",   7.9, 450000),
+    (7, "The Shawshank",      1994, "drama",    "Darabont",  9.3, 2500000),
+    (8, "Pulp Fiction",       1994, "crime",    "Tarantino", 8.9, 2000000),
+    (9, "The Grand Budapest", 2014, "comedy",   "Anderson",  8.1, 850000),
+    (10,"Everything Everywhere", 2022, "sci-fi","Daniels",   7.8, 600000),
+    (11,"Get Out",            2017, "horror",   "Peele",     7.7, 550000),
+    (12,"Mad Max Fury Road",  2015, "action",   "Miller",    8.1, 950000),
+    (13,"Arrival",            2016, "sci-fi",   "Villeneuve",7.9, 700000),
+    (14,"Dune",               2021, "sci-fi",   "Villeneuve",8.0, 700000),
+    (15,"The Lighthouse",     2019, "horror",   "Eggers",    7.4, 220000),
+]
+
+cursor.executemany("INSERT INTO movies VALUES (?,?,?,?,?,?,?)", movies)
+conn.commit()
+
+print(f"Added {len(movies)} movies to database")
 ```
 
-### 9.3 Connection Pooling
+---
+
+## Step 2 — Create Content Embeddings
 
 ```python
-import redis
-pool = redis.ConnectionPool(host="localhost", port=6379, db=0,
-                            max_connections=20, decode_responses=False)
-client = redis.Redis(connection_pool=pool)
+# In production: use sentence-transformers to embed movie descriptions
+# Here we create structured feature vectors:
+# [action, mystery, sci_fi, drama, horror, comedy, nolan_style,
+#  rating_norm, year_norm, big_budget, mindbending, dark_tone]
+
+def create_movie_embedding(movie_id):
+    """Create a feature vector based on movie characteristics."""
+    feature_profiles = {
+        1:  [0.3, 0.7, 0.9, 0.2, 0.1, 0.0, 0.5, 0.87, 0.0, 1.0, 0.9, 0.7],  # The Matrix
+        2:  [0.3, 0.8, 0.7, 0.3, 0.0, 0.0, 0.9, 0.88, 0.5, 0.9, 0.9, 0.7],  # Inception
+        3:  [0.2, 0.6, 0.9, 0.4, 0.0, 0.0, 0.9, 0.86, 0.7, 0.9, 0.8, 0.5],  # Interstellar
+        4:  [0.9, 0.7, 0.1, 0.4, 0.2, 0.0, 0.9, 0.90, 0.5, 1.0, 0.6, 0.9],  # Dark Knight
+        5:  [0.2, 0.8, 0.1, 0.6, 0.5, 0.3, 0.0, 0.85, 0.9, 0.4, 0.6, 0.8],  # Parasite
+        6:  [0.1, 0.9, 0.0, 0.3, 0.0, 0.5, 0.0, 0.79, 0.9, 0.4, 0.4, 0.3],  # Knives Out
+        7:  [0.1, 0.2, 0.0, 0.9, 0.0, 0.2, 0.0, 0.93, 0.0, 0.3, 0.1, 0.6],  # Shawshank
+        8:  [0.5, 0.7, 0.0, 0.6, 0.2, 0.3, 0.0, 0.89, 0.0, 0.4, 0.3, 0.7],  # Pulp Fiction
+        9:  [0.1, 0.4, 0.1, 0.5, 0.0, 0.9, 0.0, 0.81, 0.7, 0.5, 0.2, 0.2],  # Grand Budapest
+        10: [0.2, 0.4, 0.8, 0.6, 0.1, 0.5, 0.0, 0.78, 0.95,0.3, 0.9, 0.5],  # Everything
+        11: [0.2, 0.5, 0.1, 0.4, 0.9, 0.0, 0.0, 0.77, 0.85,0.4, 0.6, 0.8],  # Get Out
+        12: [0.9, 0.2, 0.3, 0.2, 0.2, 0.0, 0.0, 0.81, 0.75,0.9, 0.2, 0.7],  # Mad Max
+        13: [0.1, 0.6, 0.9, 0.5, 0.0, 0.0, 0.0, 0.79, 0.8, 0.7, 0.8, 0.5],  # Arrival
+        14: [0.4, 0.4, 0.9, 0.4, 0.1, 0.0, 0.0, 0.80, 0.95,0.9, 0.5, 0.5],  # Dune
+        15: [0.1, 0.5, 0.1, 0.5, 0.9, 0.0, 0.0, 0.74, 0.9, 0.2, 0.7, 0.8],  # The Lighthouse
+    }
+    base = np.array(feature_profiles[movie_id], dtype=np.float32)
+    # Add small noise for realism
+    return base + rng.normal(0, 0.02, len(base)).astype(np.float32)
+
+# Create embedding store
+embeddings = {}
+for movie_id, title, *_ in movies:
+    emb = create_movie_embedding(movie_id)
+    embeddings[movie_id] = emb / np.linalg.norm(emb)   # normalize
+
+feature_names = ['action', 'mystery', 'sci_fi', 'drama', 'horror',
+                 'comedy', 'nolan_style', 'rating', 'year_norm',
+                 'big_budget', 'mindbending', 'dark_tone']
+
+print(f"Created {len(embeddings)} embeddings of dimension {len(list(embeddings.values())[0])}")
+print(f"\nSample — 'The Matrix' embedding:")
+for fname, val in zip(feature_names, embeddings[1]):
+    bar = "█" * int(val * 20)
+    print(f"  {fname:<15}: {val:.3f} {bar}")
 ```
 
-Never create a new connection per request — connection pools amortize TCP handshake overhead.
+---
 
-### 9.4 Interview Trade-offs
+## Step 3 — Build the Recommender
 
-| Property | Detail |
-|----------|--------|
-| Persistence | RDB snapshots (periodic) + AOF (append-only log); both optional |
-| Data structures | Strings, Lists, Sets, Sorted Sets, Hashes, HyperLogLog, Streams |
-| Cache invalidation | TTL-based; or explicit `DEL`/`UNLINK`; or keyspace notifications |
-| Consistency | Single-threaded command execution → no race conditions on atomic ops |
-| Cluster scaling | Hash slots (16384); shards 0-5460, 5461-10922, 10923-16383 |
-| vs. Memcached | Redis has persistence, richer data types, pub/sub, Lua scripting |
+```python
+def recommend(query_movie_id, top_k=5, genre_filter=None):
+    """Find top-k most similar movies."""
+    query_emb = embeddings[query_movie_id]
+
+    # Get query movie title for display
+    cursor.execute("SELECT title, genre FROM movies WHERE movie_id = ?", (query_movie_id,))
+    query_title, query_genre = cursor.fetchone()
+
+    # Compute cosine similarity to all other movies
+    scores = []
+    for movie_id, emb in embeddings.items():
+        if movie_id == query_movie_id:
+            continue
+        sim = np.dot(query_emb, emb)
+        scores.append((sim, movie_id))
+
+    scores.sort(reverse=True)
+
+    # Fetch metadata and apply genre filter
+    results = []
+    for sim, movie_id in scores:
+        cursor.execute("""
+            SELECT title, year, genre, rating
+            FROM movies WHERE movie_id = ?
+        """, (movie_id,))
+        row = cursor.fetchone()
+        if genre_filter and row[2] != genre_filter:
+            continue
+        results.append((sim, *row))
+        if len(results) >= top_k:
+            break
+
+    return query_title, results
+
+# Recommend movies similar to The Matrix (movie_id=1)
+print("=" * 60)
+title, recs = recommend(1, top_k=5)
+print(f"Movies similar to '{title}':")
+print(f"{'Title':<30} {'Year':>6} {'Genre':<12} {'Rating':>7} {'Similarity':>12}")
+print("-" * 70)
+for sim, rec_title, year, genre, rating in recs:
+    print(f"{rec_title:<30} {year:>6} {genre:<12} {rating:>7.1f} {sim:>12.4f}")
+
+# Recommend similar to Pulp Fiction (movie_id=8)
+print()
+title2, recs2 = recommend(8, top_k=5)
+print(f"Movies similar to '{title2}':")
+print(f"{'Title':<30} {'Year':>6} {'Genre':<12} {'Rating':>7} {'Similarity':>12}")
+print("-" * 70)
+for sim, rec_title, year, genre, rating in recs2:
+    print(f"{rec_title:<30} {year:>6} {genre:<12} {rating:>7.1f} {sim:>12.4f}")
+```
 
 ---
 
-## Interview Reference — Databases & Vector DBs
+## Step 4 — Batch Search with SQL Enrichment
 
-### Q: What is a B+ tree index and why does SQL use it?
+```python
+def batch_recommend_with_sql(movie_ids, min_rating=7.5, top_k=3):
+    """
+    Multi-movie recommendation with SQL metadata filtering.
+    Average query embeddings, then filter results by rating.
+    """
+    # Average the query embeddings (like a "taste profile")
+    query_emb = np.mean([embeddings[mid] for mid in movie_ids], axis=0)
+    query_emb = query_emb / np.linalg.norm(query_emb)
 
-B+ trees keep all data in leaf nodes (connected as a linked list) and use internal nodes only for routing. This enables both equality lookup ($O(\log n)$) and range scans ($O(\log n + k)$ for $k$ results — just traverse the leaf linked list). B+ tree depth stays $\leq 4$ for billions of rows with branching factor ~200.
+    # Score all movies
+    scores = {}
+    for movie_id, emb in embeddings.items():
+        if movie_id in movie_ids:
+            continue
+        scores[movie_id] = float(np.dot(query_emb, emb))
 
-### Q: What does EXPLAIN tell you and which metrics matter?
+    # Filter by minimum rating using SQL
+    cursor.execute(f"""
+        SELECT movie_id, title, year, genre, rating
+        FROM movies
+        WHERE movie_id IN ({','.join('?' * len(scores))})
+        AND rating >= ?
+        ORDER BY movie_id
+    """, list(scores.keys()) + [min_rating])
 
-`EXPLAIN ANALYZE` shows actual vs. estimated row counts, execution time, and access methods per node. Key signals: **Seq Scan** on a large table (missing index), **Nested Loop** with large outer set (O(n²) risk), large row count estimation errors (stale statistics → run `ANALYZE`). Cost units are arbitrary — compare relative values, not absolute.
+    candidates = cursor.fetchall()
 
-### Q: What is the CAP theorem?
+    # Combine SQL-filtered candidates with similarity scores
+    results = [(scores[row[0]], *row[1:]) for row in candidates]
+    results.sort(reverse=True)
 
-A distributed system can guarantee at most two of: **Consistency** (every read sees the latest write), **Availability** (every request gets a response), **Partition tolerance** (system works despite network partition). Since partitions are unavoidable in distributed networks, the real choice is CP (prefer consistency, may refuse requests) vs. AP (prefer availability, may return stale data). Cassandra = AP; HBase = CP; DynamoDB = tunable.
+    return results[:top_k]
 
-### Q: How does HNSW handle approximate nearest neighbor search?
-
-HNSW builds a multi-layer graph. Layer 0 has all nodes with short-range edges; higher layers have fewer nodes with long-range edges. Search: enter at highest layer, greedily traverse toward query, descend to lower layers, repeat. This approximates a skip list in high dimensions. Time: $O(\log n)$ per query; Space: $O(n \log n)$. Approximate because greedy search may not find the true global optimum.
-
-### Q: What is the difference between dense and sparse retrieval?
-
-Dense: embed query and documents into $\mathbb{R}^d$; compute cosine similarity. Captures semantic meaning; fails on rare terms (out-of-vocab). Sparse: BM25 or TF-IDF; exact term matching; fast with inverted index; fails on synonyms. Hybrid = weighted sum of both scores — best of both worlds. Most production RAG systems use hybrid search.
-
-### Q: What is product quantization in FAISS?
-
-PQ splits the $d$-dimensional vector into $M$ sub-vectors of $d/M$ dimensions each. Each sub-vector is quantized to one of $K=256$ centroids. Result: each vector stored as $M$ bytes instead of $d \times 4$ bytes → $4d/M$ compression. Distance computed as sum of pre-computed sub-distance table lookups → fast. IVF-PQ = coarse clustering (IVF) + fine quantization (PQ).
-
-### Q: What is a TTL and how does cache invalidation work in Redis?
-
-TTL (time-to-live): Redis automatically deletes a key after `N` seconds. Set via `SETEX key ttl value` or `EXPIRE key ttl`. Cache invalidation strategies: (1) TTL only — simplest, accepts staleness up to TTL. (2) Write-through — update cache on every DB write. (3) Cache-aside — read cache first; on miss, load from DB and populate cache. (4) Write-behind — write to cache, async flush to DB.
-
----
-
-## Cheat Sheet — Databases & Vector DBs
-
-| Concept | Key Fact |
-|---------|----------|
-| B+ tree | $O(\log n)$ lookup + range scan; leaf linked list |
-| Composite index | Leftmost prefix rule: index (a,b,c) helps queries on a, (a,b), (a,b,c) but not b alone |
-| EXPLAIN ANALYZE | Seq Scan = no index used; Hash Join = large unsorted sets |
-| CAP theorem | Pick 2: Consistency / Availability / Partition tolerance |
-| Eventual consistency | Writes propagate over time; reads may see stale data |
-| Cosine similarity | $\cos(\mathbf{a},\mathbf{b}) = \mathbf{a}\cdot\mathbf{b}$ for unit vectors |
-| HNSW | Multi-layer graph; $O(\log n)$ approx-ANN; tuned by `ef_construction`, `M` |
-| IVF | K-means clusters; search only `nprobe` nearest clusters |
-| PQ compression | Split $d$-dim into $M$ sub-vectors × 256 centroids = $M$ bytes/vector |
-| ChromaDB | Local dev RAG; simple Python API; default HNSW |
-| Pinecone | Managed; sparse-dense hybrid; namespaces for multi-tenancy |
-| FAISS IndexFlatL2 | Exact brute-force; reference baseline |
-| Redis LRU | `maxmemory-policy allkeys-lru`; evicts least-recently-used on OOM |
-| Redis pipeline | Batch N commands → 1 round-trip |
-| TTL | `SETEX key seconds value`; auto-delete after expiry |
+# User liked Inception (2) and Interstellar (3) — what next?
+recs = batch_recommend_with_sql([2, 3], min_rating=7.8, top_k=5)
+print("\nBased on liking Inception + Interstellar:")
+print(f"{'Title':<30} {'Year':>6} {'Genre':<12} {'Rating':>7} {'Similarity':>12}")
+print("-" * 70)
+for sim, title, year, genre, rating in recs:
+    print(f"{title:<30} {year:>6} {genre:<12} {rating:>7.1f} {sim:>12.4f}")
+```
 
 ---
 
-## Resources
+## Step 5 — Analytics with SQL Window Functions
 
-### SQL
-- **Use The Index, Luke** (`use-the-index-luke.com`): The best free resource for SQL index internals — B+ tree mechanics, composite indexes, query planning. Language-agnostic.
-- **Mode SQL Tutorial** (`mode.com/sql-tutorial`): Free, browser-based SQL practice with real datasets. Good for window functions.
-- **SQLite documentation** (`sqlite.org/docs.html`): The engine used in `sql_basics.py`. Lightweight, zero-install, covers all standard SQL.
+```python
+# Which directors have the most average-similar movies?
+cursor.execute("""
+    SELECT director,
+           COUNT(*) as movie_count,
+           AVG(rating) as avg_rating,
+           MAX(rating) as best_rating
+    FROM movies
+    GROUP BY director
+    HAVING movie_count >= 1
+    ORDER BY avg_rating DESC
+""")
 
-### NoSQL & Distributed Systems
-- **Designing Data-Intensive Applications** — Martin Kleppmann: Best book on CAP theorem, replication, consistency models. Chapter 2 covers data models; Chapter 5-9 cover distributed systems.
-- **MongoDB University** (`learn.mongodb.com`): Free courses on the aggregation pipeline.
+print("\nDirector analytics:")
+print(f"{'Director':<15} {'Movies':>7} {'Avg Rating':>12} {'Best':>7}")
+print("-" * 45)
+for row in cursor.fetchall():
+    print(f"{row[0]:<15} {row[1]:>7} {row[2]:>12.2f} {row[3]:>7.1f}")
 
-### Vector Search — Papers
-- **Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World Graphs** — Malkov & Yashunin (2018): HNSW paper. `arxiv.org/abs/1603.09320`
-- **Billion-Scale Similarity Search with GPUs** — Johnson, Douze, Jégou (2017): FAISS paper. `arxiv.org/abs/1702.08734`
-- **Product Quantization for Nearest Neighbor Search** — Jégou et al. (2011): Foundational PQ paper.
+conn.close()
+```
 
-### Tooling
-- FAISS wiki (`github.com/facebookresearch/faiss/wiki`): Index types, guidelines, benchmarks.
-- ChromaDB docs (`docs.trychroma.com`): API reference for the library used in Module 08.
-- Pinecone learning center (`docs.pinecone.io/guides/get-started/overview`): Architecture overview and filtering guide.
+---
+
+## What This Project Demonstrated
+
+| Module Concept | Where it appeared |
+|---------------|------------------|
+| SQL CREATE/INSERT | Movie metadata storage |
+| INNER JOIN | Combining movie + genre tables |
+| GROUP BY / Aggregates | Director analytics |
+| Window functions | Ranking by rating within genre |
+| Cosine similarity | Core similarity computation |
+| ANN search | Similarity scoring loop |
+| Vector normalization | `emb / np.linalg.norm(emb)` |
+| SQL + Vector hybrid | Rating filter on ANN results |
+| Metadata filtering | `min_rating` constraint |
+| Batch embedding | Average of multiple user preferences |
+
+You built a production-style recommender that combines structured (SQL) and semantic (vector) search — exactly how Netflix, Spotify, and YouTube recommendations work under the hood.
 
 ---
 
