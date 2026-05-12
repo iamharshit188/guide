@@ -30,7 +30,7 @@
   --font-mono:   'JetBrains Mono', monospace;
   --font-sans:   'Space Grotesk', sans-serif;
   --font-body:   'Outfit', sans-serif;
-  --sidebar-w: 230px;
+  --sidebar-w: 200px;
   --topbar-h:    60px;
   --dock-h:      72px;
   --transition:  0.2s ease-out;
@@ -1367,10 +1367,10 @@ body.focus-mode #dock {
 
 /* ── Light Mode ─────────────────────────────────────────────── */
 body.light-mode {
-  --black:        #F4F4F0;
+  --black:        #FFF5E1; /* Neobrutalist Cream */
   --black-soft:   #FFFFFF;
   --black-card:   #FFFFFF;
-  --black-mid:    #EBEBEA;
+  --black-mid:    #FFE8F4;
   --white:        #000000;
   --white-dim:    #222222;
   --gray-light:   #E0E0DE;
@@ -1379,9 +1379,9 @@ body.light-mode {
   --shadow:       4px 4px 0px #000000;
   --shadow-lg:    6px 6px 0px #000000;
   --shadow-hover: 4px 4px 0px #000000;
-  --border:       2px solid #000000;
+  --border:       3px solid #000000;
   --border-strong:3px solid #000000;
-  background: #F4F4F0;
+  background: #FFF5E1;
   color: #000000;
 }
 
@@ -1536,7 +1536,7 @@ body.light-mode #sidebar-overlay { background: rgba(200,200,200,0.5); }
 
 /* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 900px) {
-  :root { --sidebar-w: 0px; }
+  :root { --sidebar-w: 200px; }
 
   #sidebar {
     width: 280px;
@@ -1714,30 +1714,36 @@ body.light-mode .welcome-module-card,
 body.light-mode .code-file-card {
   background: #ffffff;
   border: 3px solid #000000;
-  box-shadow: 5px 5px 0px #000000;
-  border-radius: 0px;
+  box-shadow: 4px 4px 0px #000000;
+  border-radius: 12px;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-body.light-mode .welcome-module-card:hover,
+body.light-mode .welcome-module-card:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 8px 8px 0px #000000;
+  background: #FF90E8;
+}
+
 body.light-mode .code-file-card:hover {
   transform: translate(-4px, -4px);
-  box-shadow: 9px 9px 0px #000000;
-  background: #E6FF00;
+  box-shadow: 8px 8px 0px #000000;
+  background: #90FFF0;
 }
 
 body.light-mode #sidebar {
   border: 3px solid #000000;
-  box-shadow: 8px 8px 0px #000000;
-  border-radius: 0px;
+  box-shadow: 6px 6px 0px #000000;
+  border-radius: 16px;
+  background: #E0E7FF;
 }
 
 body.light-mode .nav-btn,
 body.light-mode .complete-btn,
 body.light-mode .focus-btn {
   border: 3px solid #000000;
-  box-shadow: 3px 3px 0px #000000;
-  border-radius: 0px;
+  box-shadow: 4px 4px 0px #000000;
+  border-radius: 12px;
   background: #ffffff;
   color: #000000;
   font-weight: bold;
@@ -1746,20 +1752,22 @@ body.light-mode .nav-btn:hover,
 body.light-mode .complete-btn:hover,
 body.light-mode .focus-btn:hover {
   transform: translate(-2px, -2px);
-  box-shadow: 5px 5px 0px #000000;
+  box-shadow: 6px 6px 0px #000000;
   background: #E6FF00;
 }
 
 body.light-mode #dock {
-  border-radius: 0px;
+  border-radius: 20px;
   border: 3px solid #000000;
   box-shadow: 6px 6px 0px #000000;
+  background: #FFF5E1;
 }
 
 body.light-mode .dock-item.active-dock {
   background: #000000;
   color: #E6FF00;
-  border: 2px solid #000;
+  border: 2px solid transparent;
+  border-radius: 10px;
 }
 
 body.light-mode .dock-item:hover {
