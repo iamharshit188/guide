@@ -117,6 +117,7 @@ let state = {
   progress:         loadProgress(),
   projectsProgress: loadProjectsProgress(),
   focusMode:        false,
+  lightMode:        localStorage.getItem("aiml_theme") === "light",
   notes:            localStorage.getItem("aiml_notes") || "",
 };
 
@@ -190,6 +191,52 @@ marked.setOptions({
 
 // ── DOM helper ───────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
+
+// ── Theme Toggle ─────────────────────────────────────────────────
+function applyTheme(light) {
+  document.body.classList.toggle("light-mode", light);
+
+  const hljsLink = document.getElementById("hljs-theme");
+  if (hljsLink) {
+    hljsLink.href = light
+      ? "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css"
+      : "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/onedark.min.css";
+  }
+
+  const iconWrap = document.getElementById("dock-theme-icon");
+  if (iconWrap) {
+    iconWrap.innerHTML = light
+      // sun icon
+      ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+           <circle cx="12" cy="12" r="5"/>
+           <line x1="12" y1="1" x2="12" y2="3"/>
+           <line x1="12" y1="21" x2="12" y2="23"/>
+           <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+           <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+           <line x1="1" y1="12" x2="3" y2="12"/>
+           <line x1="21" y1="12" x2="23" y2="12"/>
+           <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+           <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+         </svg>`
+      // moon icon
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+           <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+         </svg>`;
+  }
+
+  const dockTheme = $("dock-theme");
+  if (dockTheme) {
+    dockTheme.classList.toggle("active-dock", light);
+    const lbl = dockTheme.querySelector(".dock-label");
+    if (lbl) lbl.textContent = light ? "Dark Mode" : "Light Mode";
+  }
+}
+
+function toggleTheme() {
+  state.lightMode = !state.lightMode;
+  localStorage.setItem("aiml_theme", state.lightMode ? "light" : "dark");
+  applyTheme(state.lightMode);
+}
 
 // ── Focus Mode ───────────────────────────────────────────────────
 function toggleFocusMode() {
@@ -806,6 +853,7 @@ document.querySelectorAll(".welcome-tab").forEach(tab => {
 // ── Dock button handlers ─────────────────────────────────────────
 $("dock-home").addEventListener("click",   goHome);
 $("dock-focus").addEventListener("click",  toggleFocusMode);
+$("dock-theme").addEventListener("click",  toggleTheme);
 $("dock-reset").addEventListener("click",  resetProgress);
 
 // ── Notes ────────────────────────────────────────────────────────
@@ -921,6 +969,9 @@ $("dock-reset").addEventListener("click",  resetProgress);
 
 // ── Init ─────────────────────────────────────────────────────────
 function init() {
+  // Apply saved theme before any content renders
+  applyTheme(state.lightMode);
+
   buildNav();
   buildProjectNav();
   buildCodeNav();
