@@ -249,7 +249,7 @@ function toggleFocusMode() {
   if (dockFocus) {
     dockFocus.classList.toggle("active-dock", state.focusMode);
     const lbl = dockFocus.querySelector(".dock-label");
-    if (lbl) lbl.textContent = state.focusMode ? "Pin Sidebar" : "Auto-Hide";
+    if (lbl) lbl.textContent = state.focusMode ? "Pin Sidebar" : "Focus Mode";
   }
   if (topFocus) topFocus.classList.toggle("active", state.focusMode);
 

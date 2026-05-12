@@ -210,8 +210,8 @@ body.focus-mode #sidebar-hover-zone { display: block; }
 /* ── Layout ─────────────────────────────────────────────────── */
 #sidebar {
   position: fixed;
-  left: 16px; top: 16px; bottom: 16px;
-  height: calc(100vh - 32px);
+  left: 16px; top: 20vh;
+  height: 60vh;
   width: var(--sidebar-w);
   /* Sidebar dark-mode brutalist explicit overrides */
   background: rgba(18, 18, 18, 0.95);
