@@ -1,435 +1,1022 @@
-# Module 05 — Deep Learning & MLOps
+# Module 05 — Deep Learning & Neural Networks
 
-> **Run:**
+> **Runnable code:** `src/05-deep-learning/`
 > ```bash
-> cd src/05-deep-learning
-> python nn_numpy.py        # 2-layer NN from scratch — forward + backprop
-> python optimizers.py      # SGD, Momentum, RMSProp, Adam from scratch
-> python mlflow_demo.py     # experiment tracking, model registry
-> python monitoring.py      # data drift detection
+> python src/05-deep-learning/nn_numpy.py
+> python src/05-deep-learning/optimizers.py
+> python src/05-deep-learning/mlflow_demo.py
+> python src/05-deep-learning/monitoring.py
 > ```
-
-```bash
-cd src/05-deep-learning && python nn_numpy.py
-cd src/05-deep-learning && python optimizers.py
-cd src/05-deep-learning && python mlflow_demo.py
-cd src/05-deep-learning && python monitoring.py
-```
 
 ---
 
 ## Prerequisites & Overview
 
-**Prerequisites:** Modules 01–02 (matrix math, partial derivatives, chain rule, gradient descent). NumPy. No PyTorch required — all scripts run in pure NumPy.
-**Estimated time:** 10–15 hours (the backprop derivation alone deserves 2+ hours)
+**Prerequisites:** Modules 01–02 (matrix ops, partial derivatives, chain rule, gradient descent). NumPy only — all scripts run without PyTorch.
+**Estimated time:** 10–15 hours
+
+**Install:**
+```bash
+pip install numpy mlflow  # mlflow is optional
+```
 
 ### Why This Module Matters
-Every modern AI system — LLMs, diffusion models, vision transformers — is a deep neural network trained with backpropagation and an adaptive optimizer. Understanding these from scratch means you can debug training instability, choose the right optimizer, and explain gradient flow in interviews. The MLOps half (MLflow + drift detection) covers what happens after training — equally critical for production roles.
+
+Every modern AI system — LLMs, diffusion models, vision transformers — is a deep neural network trained with backpropagation and adaptive optimizers. Understanding these from scratch means you can:
+- Debug vanishing/exploding gradients
+- Choose the right optimizer for each problem
+- Explain gradient flow to interviewers
+- Understand why certain architectures work
 
 ### Module Map
 
-| Section | Core Concept | Practical Payoff |
-|---------|-------------|-----------------|
-| Neural network math | Forward pass, backprop derivation | Debug NaNs, understand gradient flow |
-| Initialisation | Xavier, He, symmetry breaking | Fix vanishing/exploding gradients |
-| Activations | ReLU, GELU, sigmoid, softmax | Choose the right activation per layer |
-| Optimizers (6) | SGD → Adam → AdamW | Know when Adam fails, when SGD wins |
-| LR Scheduling | Warmup, cosine, plateau | Match scheduler to training dynamics |
-| Regularisation | Dropout, BatchNorm, LayerNorm | Control overfitting without losing capacity |
-| MLflow | Experiment tracking, model registry | Reproduce any experiment from a run ID |
-| Drift Detection | KS, PSI, MMD, JS | Catch distribution shift before accuracy drops |
-
-### Before You Start
-- Implement a dot product in NumPy from scratch (Module 01)
-- Know what a partial derivative is (Module 01)
-- Understand gradient descent update rule: $\theta \leftarrow \theta - \eta \nabla \mathcal{L}$ (Module 01-02)
-- Install MLflow: `pip install mlflow` (optional — demo degrades gracefully without it)
-
-### Intuition First: What Is Backpropagation?
-Backpropagation is **the chain rule applied systematically from the output layer backward to the input layer**. Every layer computes: "by how much does changing my input change the loss?" That number is the gradient. Layer by layer, from loss back to weights, gradients tell the optimizer which direction to step.
+| Section | Core Concept | Why It Matters |
+|---------|-------------|---------------|
+| Neural network math | Forward pass, backprop | Debug NaNs, understand gradient flow |
+| Activation functions | ReLU, GELU, sigmoid | Choose right activation per layer |
+| Initialization | Xavier, He | Fix vanishing/exploding gradients |
+| Optimizers | SGD → Adam → AdamW | Know when Adam fails |
+| Regularization | Dropout, BatchNorm, LayerNorm | Control overfitting |
+| MLflow | Experiment tracking | Reproduce any experiment by ID |
 
 ---
 
-## 1. Neural Networks — Mathematical Foundation
+# 1. Neural Networks from Scratch
 
-A feedforward neural network with $L$ layers maps input $\mathbf{x} \in \mathbb{R}^{n_0}$ to output $\hat{\mathbf{y}} \in \mathbb{R}^{n_L}$ through a composition of affine transformations and nonlinearities:
+## Intuition
 
-$$\mathbf{a}^{(l)} = g^{(l)}\!\left(W^{(l)}\mathbf{a}^{(l-1)} + \mathbf{b}^{(l)}\right), \quad l = 1, \ldots, L$$
+A neural network is a **chain of linear transformations with nonlinearities** between them.
 
-where $\mathbf{a}^{(0)} = \mathbf{x}$, $W^{(l)} \in \mathbb{R}^{n_l \times n_{l-1}}$, $\mathbf{b}^{(l)} \in \mathbb{R}^{n_l}$, and $g^{(l)}$ is the activation function.
+Without nonlinearities, stacking layers would just be one big matrix multiplication — linear. Nonlinear activations (ReLU, sigmoid) let the network learn curved decision boundaries.
 
-**Pre-activation (logit):**
+```
+Input → [Linear → Activation] → [Linear → Activation] → [Linear] → Output
+         Layer 1                  Layer 2                  Output layer
+```
 
-$$\mathbf{z}^{(l)} = W^{(l)}\mathbf{a}^{(l-1)} + \mathbf{b}^{(l)}$$
+## 1.1 The Forward Pass
 
-$$\mathbf{a}^{(l)} = g^{(l)}(\mathbf{z}^{(l)})$$
+For layer $l$ with weight matrix $W^{(l)}$ and bias $\mathbf{b}^{(l)}$:
+
+$$\mathbf{z}^{(l)} = W^{(l)} \mathbf{a}^{(l-1)} + \mathbf{b}^{(l)} \qquad \text{(pre-activation)}$$
+$$\mathbf{a}^{(l)} = g^{(l)}(\mathbf{z}^{(l)}) \qquad \text{(post-activation)}$$
+
+where $\mathbf{a}^{(0)} = \mathbf{x}$ (the input).
+
+```python
+import numpy as np
+
+rng = np.random.default_rng(42)
+
+def sigmoid(z):
+    return 1 / (1 + np.exp(-np.clip(z, -500, 500)))  # clip for numerical stability
+
+def relu(z):
+    return np.maximum(0, z)
+
+def softmax(z):
+    # Subtract max for numerical stability (prevents exp overflow)
+    z_shifted = z - z.max(axis=0, keepdims=True)
+    exp_z     = np.exp(z_shifted)
+    return exp_z / exp_z.sum(axis=0, keepdims=True)
+
+# ── Build a 3-layer network ──────────────────────────────────
+# Architecture: 4 inputs → 8 hidden → 4 hidden → 3 outputs (softmax)
+
+np.random.seed(42)
+W1 = np.random.randn(8, 4) * 0.01   # shape (n1, n0) = (8, 4)
+b1 = np.zeros((8, 1))
+
+W2 = np.random.randn(4, 8) * 0.01   # shape (n2, n1) = (4, 8)
+b2 = np.zeros((4, 1))
+
+W3 = np.random.randn(3, 4) * 0.01   # shape (n3, n2) = (3, 4)
+b3 = np.zeros((3, 1))
+
+def forward_pass(X):
+    """
+    X: shape (4, batch_size) — features as columns
+
+    Returns all intermediate values (needed for backprop).
+    """
+    # Layer 1: Linear → ReLU
+    z1 = W1 @ X + b1        # (8, batch_size)
+    a1 = relu(z1)            # (8, batch_size)
+
+    # Layer 2: Linear → ReLU
+    z2 = W2 @ a1 + b2       # (4, batch_size)
+    a2 = relu(z2)            # (4, batch_size)
+
+    # Layer 3: Linear → Softmax (output)
+    z3 = W3 @ a2 + b3       # (3, batch_size)
+    a3 = softmax(z3)         # (3, batch_size) — probabilities over 3 classes
+
+    return (z1, a1, z2, a2, z3, a3)
+
+# Test with a batch of 5 samples
+X_test = rng.randn(4, 5)   # 4 features, 5 samples
+cache  = forward_pass(X_test)
+a3     = cache[-1]          # output probabilities
+
+print(f"Input shape:  {X_test.shape}")
+print(f"Output shape: {a3.shape}")
+print(f"\nPrediction probabilities (5 samples, 3 classes):")
+print(a3.T.round(4))  # transpose for readability
+print(f"\nEach row sums to: {a3.sum(axis=0).round(6)}")  # should be all 1.0
+```
+
+## 1.2 Activation Functions
+
+```python
+import numpy as np
+
+# All activations + their derivatives
+def sigmoid(z):
+    s = 1 / (1 + np.exp(-np.clip(z, -500, 500)))
+    return s
+
+def sigmoid_deriv(z):
+    s = sigmoid(z)
+    return s * (1 - s)          # max at z=0: 0.25
+
+def relu(z):
+    return np.maximum(0, z)
+
+def relu_deriv(z):
+    return (z > 0).astype(float)  # 1 if z>0, else 0
+
+def leaky_relu(z, alpha=0.01):
+    return np.where(z > 0, z, alpha * z)
+
+def leaky_relu_deriv(z, alpha=0.01):
+    return np.where(z > 0, 1.0, alpha)
+
+def tanh(z):
+    return np.tanh(z)
+
+def tanh_deriv(z):
+    return 1 - np.tanh(z)**2
+
+def gelu(z):
+    """Gaussian Error Linear Unit — used in BERT, GPT."""
+    return z * sigmoid(1.702 * z)   # approximate GELU
+
+# Compare activation behaviors
+z_vals = np.array([-3.0, -1.0, -0.1, 0.0, 0.1, 1.0, 3.0])
+
+print(f"{'z':>6} {'sigmoid':>10} {'ReLU':>8} {'tanh':>8} {'GELU':>8}")
+print("-" * 44)
+for z in z_vals:
+    print(f"{z:>6.1f} {sigmoid(z):>10.4f} {relu(z):>8.4f} {tanh(z):>8.4f} {gelu(z):>8.4f}")
+
+# Key insight: why ReLU > sigmoid for hidden layers
+print("\nGradient at z=5 (far from boundary):")
+print(f"  sigmoid'(5)  = {sigmoid_deriv(5):.6f}  ← nearly zero (vanishing gradient!)")
+print(f"  relu'(5)     = {relu_deriv(5):.6f}  ← still 1 (gradient flows!)")
+```
+
+| Activation | Formula | Derivative | Dead neurons? | Use case |
+|-----------|---------|-----------|--------------|---------|
+| Sigmoid | $\frac{1}{1+e^{-z}}$ | $\sigma(1-\sigma)$ | No | Output (binary) |
+| Tanh | $\tanh(z)$ | $1-\tanh^2(z)$ | No | RNN hidden |
+| ReLU | $\max(0,z)$ | $\mathbf{1}[z>0]$ | Yes ($z<0$) | Default hidden |
+| Leaky ReLU | $\max(0.01z, z)$ | $\in\{0.01, 1\}$ | Rarely | Sparse features |
+| GELU | $z\Phi(z)$ | complex | No | Transformers |
+| Softmax | $\frac{e^{z_k}}{\sum e^{z_j}}$ | Jacobian | N/A | Output (multiclass) |
 
 ---
 
-## 2. Activation Functions
+# 2. Backpropagation — The Full Derivation
 
-| Function | Formula | Derivative | Dead neurons? | Use case |
-|----------|---------|-----------|---------------|----------|
-| Sigmoid | $\sigma(z) = \frac{1}{1+e^{-z}}$ | $\sigma(z)(1-\sigma(z))$ | No | Output (binary) |
-| Tanh | $\tanh(z)$ | $1 - \tanh^2(z)$ | No | RNN hidden |
-| ReLU | $\max(0, z)$ | $\mathbf{1}[z>0]$ | Yes (z<0) | Default hidden |
-| Leaky ReLU | $\max(\alpha z, z)$, $\alpha\approx0.01$ | $\mathbf{1}[z>0] + \alpha\mathbf{1}[z\leq0]$ | Rarely | Sparse features |
-| ELU | $z$ if $z>0$, else $\alpha(e^z-1)$ | $\mathbf{1}[z>0] + g(z)+\alpha$ if $z\leq0$ | No | Negative saturation |
-| Softmax | $\frac{e^{z_k}}{\sum_j e^{z_j}}$ | $\text{diag}(\mathbf{p}) - \mathbf{p}\mathbf{p}^T$ | N/A | Output (multiclass) |
+## Intuition
 
-**ReLU dead neuron problem:** If $z^{(l)} < 0$ for all training examples, the gradient is 0 and the neuron never updates. Mitigated by small initialization, proper LR, or Leaky ReLU.
+Backprop = **chain rule applied layer-by-layer from the output back to the input**. Each layer asks: "by how much does changing my input change the final loss?" That number is the gradient.
 
-**Numerical stability of softmax:** Compute $z_k - \max_j z_j$ before exponentiating to prevent overflow.
+## 2.1 Define the Error Signals
 
----
+For each layer $l$, define the upstream gradient:
+$$\boldsymbol{\delta}^{(l)} = \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l)}}$$
 
-## 3. Backpropagation — Full Derivation
+**Output layer** (softmax + categorical cross-entropy — "the miracle"):
+$$\boldsymbol{\delta}^{(L)} = \hat{\mathbf{y}} - \mathbf{y}$$
 
-### Loss function
+The Jacobian of softmax exactly cancels the derivative of cross-entropy, leaving prediction minus label.
 
-Binary cross-entropy (BCE) for output $\hat{y} = \sigma(z^{(L)})$:
-
-$$\mathcal{L} = -\frac{1}{m}\sum_{i=1}^{m}\left[y_i\log\hat{y}_i + (1-y_i)\log(1-\hat{y}_i)\right]$$
-
-Categorical cross-entropy for softmax output:
-
-$$\mathcal{L} = -\frac{1}{m}\sum_{i=1}^{m}\sum_{k=1}^{K} y_{ik}\log\hat{y}_{ik}$$
-
-### Chain rule — layer-by-layer
-
-Define the upstream gradient at layer $l$:
-
-$$\delta^{(l)} = \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l)}}$$
-
-**Output layer** (sigmoid + BCE):
-
-$$\delta^{(L)} = \hat{\mathbf{y}} - \mathbf{y} \quad \in \mathbb{R}^{n_L \times m}$$
-
-This is the "miracle" of cross-entropy + sigmoid/softmax: the Jacobian of the activation cancels with the derivative of the loss, leaving a clean residual.
-
-**Hidden layer** (chain rule backward through $g$):
-
-$$\delta^{(l)} = \left(W^{(l+1)T}\delta^{(l+1)}\right) \odot g'^{(l)}(\mathbf{z}^{(l)})$$
-
-where $\odot$ is elementwise multiplication and $g'^{(l)}$ is the elementwise derivative of the activation.
+**Hidden layer** (chain rule backwards through activation $g$):
+$$\boldsymbol{\delta}^{(l)} = \left(W^{(l+1)T} \boldsymbol{\delta}^{(l+1)}\right) \odot g'^{(l)}(\mathbf{z}^{(l)})$$
 
 **Parameter gradients:**
+$$\frac{\partial \mathcal{L}}{\partial W^{(l)}} = \frac{1}{m} \boldsymbol{\delta}^{(l)} \mathbf{a}^{(l-1)T} \qquad \frac{\partial \mathcal{L}}{\partial \mathbf{b}^{(l)}} = \frac{1}{m} \boldsymbol{\delta}^{(l)} \mathbf{1}$$
 
-$$\frac{\partial \mathcal{L}}{\partial W^{(l)}} = \frac{1}{m}\delta^{(l)}\mathbf{a}^{(l-1)T}$$
-
-$$\frac{\partial \mathcal{L}}{\partial \mathbf{b}^{(l)}} = \frac{1}{m}\sum_{i=1}^{m}\delta^{(l)}_i = \frac{1}{m}\delta^{(l)}\mathbf{1}$$
-
-**Update rule** (gradient descent):
-
-$$W^{(l)} \leftarrow W^{(l)} - \eta \frac{\partial \mathcal{L}}{\partial W^{(l)}}$$
-
-### Computational complexity
-
-Forward pass: $O\!\left(\sum_{l=1}^{L} n_l \cdot n_{l-1} \cdot m\right)$
-
-Backward pass: same asymptotic cost as forward (two matrix multiplies per layer). Total: $\approx 2\times$ forward cost.
-
----
-
-## 4. Weight Initialization
-
-Bad initialization → vanishing or exploding gradients during backprop.
-
-**Zero initialization:** All neurons in each layer compute the same gradient → symmetry breaking fails → equivalent to a single neuron per layer.
-
-**Random initialization (too large):** Activations saturate (sigmoid/tanh) → gradients → 0 (vanishing gradient).
-
-| Scheme | Formula | Use with |
-|--------|---------|----------|
-| Xavier / Glorot | $\mathcal{N}\!\left(0, \frac{2}{n_{in}+n_{out}}\right)$ | Sigmoid, Tanh |
-| He (Kaiming) | $\mathcal{N}\!\left(0, \frac{2}{n_{in}}\right)$ | ReLU, Leaky ReLU |
-| Lecun | $\mathcal{N}\!\left(0, \frac{1}{n_{in}}\right)$ | SELU |
-
-**Derivation sketch (Xavier):** To keep variance stable across layers, we want $\text{Var}[\mathbf{a}^{(l)}] = \text{Var}[\mathbf{a}^{(l-1)}]$. For a linear layer with $n_{in}$ inputs:
-
-$$\text{Var}[z] = n_{in} \cdot \text{Var}[w] \cdot \text{Var}[a]$$
-
-Setting $\text{Var}[z] = \text{Var}[a]$ gives $\text{Var}[w] = 1/n_{in}$. Averaging the forward and backward constraints gives $1/(n_{in}+n_{out})/2 \cdot 2 = 2/(n_{in}+n_{out})$.
-
-**He initialization adds factor of 2** because ReLU zeros out half the neurons, halving the effective variance:
-
-$$\text{Var}[w] = \frac{2}{n_{in}}$$
-
----
-
-## 5. Optimization Algorithms
-
-All algorithms maintain a parameter vector $\theta$ and minimize $\mathcal{L}(\theta)$ using gradient information $g_t = \nabla_\theta \mathcal{L}$.
-
-### SGD (Stochastic Gradient Descent)
-
-$$\theta_{t+1} = \theta_t - \eta g_t$$
-
-Batch SGD uses all data; mini-batch SGD uses a random subset $B \ll m$. Mini-batch is the default — balances gradient noise (good for escaping local minima) with computation efficiency.
-
-### SGD + Momentum (Heavy Ball)
-
-Accumulates an exponentially decaying moving average of past gradients:
-
-$$\mathbf{v}_{t+1} = \mu \mathbf{v}_t - \eta g_t$$
-$$\theta_{t+1} = \theta_t + \mathbf{v}_{t+1}$$
-
-$\mu \in [0.9, 0.99]$ typically. Effective learning rate for a constant gradient: $\eta / (1-\mu)$.
-
-**Nesterov momentum** computes gradient at the "lookahead" position:
-
-$$\mathbf{v}_{t+1} = \mu \mathbf{v}_t - \eta \nabla_\theta \mathcal{L}(\theta_t + \mu\mathbf{v}_t)$$
-
-### RMSProp
-
-Divides per-parameter LR by a running estimate of the root-mean-square gradient:
-
-$$s_{t+1} = \beta s_t + (1-\beta) g_t^2$$
-$$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{s_{t+1} + \epsilon}} g_t$$
-
-$\beta = 0.99$, $\epsilon = 10^{-8}$. Adapts LR per parameter — large gradient parameters get smaller LR; small gradient parameters get larger LR. Designed for non-stationary objectives (RNNs).
-
-### Adam (Adaptive Moment Estimation)
-
-Combines momentum (1st moment) with RMSProp (2nd moment):
-
-$$m_{t+1} = \beta_1 m_t + (1-\beta_1)g_t \quad \text{(1st moment)}$$
-$$v_{t+1} = \beta_2 v_t + (1-\beta_2)g_t^2 \quad \text{(2nd moment)}$$
-
-**Bias correction** (critical — $m_0 = v_0 = 0$ biases estimates toward 0 early in training):
-
-$$\hat{m}_{t+1} = \frac{m_{t+1}}{1-\beta_1^{t+1}}, \quad \hat{v}_{t+1} = \frac{v_{t+1}}{1-\beta_2^{t+1}}$$
-
-**Update:**
-
-$$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{\hat{v}_{t+1}} + \epsilon} \hat{m}_{t+1}$$
-
-Defaults: $\beta_1=0.9$, $\beta_2=0.999$, $\epsilon=10^{-8}$, $\eta=10^{-3}$.
-
-**Effective step size** bounded by $\approx \eta \cdot \frac{1-\beta_2^{t+1}}{1-\beta_1^{t+1}}$ early in training; converges to $\eta$ later.
-
-### AdamW (Adam + Weight Decay)
-
-Standard L2 regularization adds $\lambda\theta$ to the gradient before Adam — but Adam's adaptive scaling makes the effective weight decay vary per parameter. AdamW decouples weight decay from the gradient update:
-
-$$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{\hat{v}_{t+1}} + \epsilon}\hat{m}_{t+1} - \eta\lambda\theta_t$$
-
-Weight decay applied directly to parameters, not through gradient. Standard choice for transformers.
-
-### Optimizer Comparison
-
-| Optimizer | Adaptive LR | Momentum | Memory | Default LR |
-|-----------|------------|---------|--------|-----------|
-| SGD | No | No | $O(1)$ | 0.01–0.1 |
-| SGD+Momentum | No | Yes | $O(d)$ | 0.01 |
-| RMSProp | Yes (2nd moment) | No | $O(d)$ | 1e-3 |
-| Adam | Yes (1st + 2nd) | Yes | $O(2d)$ | 1e-3 |
-| AdamW | Yes + decoupled WD | Yes | $O(2d)$ | 1e-4 |
-
----
-
-## 6. Learning Rate Scheduling
-
-### Warmup + Cosine Decay
-
-Used in transformer training (BERT, GPT). Avoids large gradients early when parameters are random:
-
-$$\eta_t = \begin{cases} \eta_{max} \cdot \frac{t}{T_{warm}} & t \leq T_{warm} \\ \eta_{min} + \frac{1}{2}(\eta_{max}-\eta_{min})\left(1+\cos\!\left(\pi\frac{t-T_{warm}}{T-T_{warm}}\right)\right) & t > T_{warm} \end{cases}$$
-
-### Step Decay
-
-$$\eta_t = \eta_0 \cdot \gamma^{\lfloor t / s \rfloor}$$
-
-$\gamma = 0.1$, $s = 30$ epochs (ImageNet ResNet schedule).
-
-### Reduce on Plateau
-
-Monitor validation loss; if no improvement after `patience` epochs, multiply LR by `factor` (e.g., 0.5). Implemented in PyTorch as `ReduceLROnPlateau`.
-
----
-
-## 7. Regularization Techniques
-
-### Dropout
-
-During training, independently zero each neuron's output with probability $p$:
-
-$$\tilde{\mathbf{a}}^{(l)} = \mathbf{m}^{(l)} \odot \mathbf{a}^{(l)}, \quad m_j^{(l)} \sim \text{Bernoulli}(1-p)$$
-
-Scale by $\frac{1}{1-p}$ (inverted dropout) so expected value is unchanged. **At inference:** disable dropout (no masking, no scaling).
-
-**Why it works:** prevents co-adaptation of neurons — each neuron must learn features useful without relying on specific other neurons being active. Equivalent to averaging exponentially many thinned networks.
-
-### Batch Normalization
-
-For a mini-batch $\mathcal{B} = \{z_1, \ldots, z_m\}$:
-
-$$\mu_\mathcal{B} = \frac{1}{m}\sum_{i=1}^m z_i, \quad \sigma^2_\mathcal{B} = \frac{1}{m}\sum_{i=1}^m (z_i - \mu_\mathcal{B})^2$$
-
-$$\hat{z}_i = \frac{z_i - \mu_\mathcal{B}}{\sqrt{\sigma^2_\mathcal{B}+\epsilon}}, \quad y_i = \gamma\hat{z}_i + \beta$$
-
-$\gamma, \beta$ are learnable per-feature parameters. At inference, use exponential moving averages of $\mu$ and $\sigma^2$ accumulated during training.
-
-**Benefits:** reduces internal covariate shift, allows higher LR, reduces sensitivity to initialization, mild regularization effect.
-
-**Placement:** original paper applies BN before activation; later practice (ResNets) often applies after or uses Pre-LN (before attention in transformers).
-
-### Layer Normalization
-
-Normalizes across features for a single example (not across the batch):
-
-$$\hat{z}_i = \frac{z_i - \mu}{\sqrt{\sigma^2 + \epsilon}}, \quad \mu = \frac{1}{H}\sum_{j=1}^H z_j, \quad \sigma^2 = \frac{1}{H}\sum_{j=1}^H (z_j - \mu)^2$$
-
-Independent of batch size → works for batch size 1, RNNs, transformers (standard in attention architectures).
-
----
-
-## 8. MLOps — Experiment Tracking with MLflow
-
-### Core Concepts
-
-| Concept | Description |
-|---------|-------------|
-| **Experiment** | Named group of runs (e.g., "iris_classification") |
-| **Run** | Single execution — logs params, metrics, artifacts |
-| **Parameters** | Hyperparameters (LR, epochs, hidden_dim) — logged once |
-| **Metrics** | Scalar values per step (train_loss, val_acc) — logged per epoch |
-| **Artifacts** | Files (model.pkl, confusion_matrix.png, requirements.txt) |
-| **Model** | Logged model in MLflow flavor (sklearn, pytorch, pyfunc) |
-| **Registry** | Versioned model store with Staging/Production lifecycle |
-
-### Run Lifecycle
-
-```
-mlflow.start_run()
-  → mlflow.log_param("lr", 1e-3)
-  → mlflow.log_metric("train_loss", loss, step=epoch)
-  → mlflow.log_artifact("model.pkl")
-  → mlflow.sklearn.log_model(model, "model")
-mlflow.end_run()
-```
-
-### Model Registry Stages
-
-```
-None → Staging → Production → Archived
-```
-
-A model version in `Production` can be loaded anywhere:
+## 2.2 Full Neural Network from Scratch
 
 ```python
-model = mlflow.sklearn.load_model("models:/iris_rf/Production")
+import numpy as np
+
+class NeuralNetwork:
+    """2-layer NN trained by backprop. Pure NumPy, no frameworks."""
+
+    def __init__(self, layer_sizes, lr=0.01):
+        """
+        layer_sizes: e.g. [input, hidden, output] = [4, 8, 3]
+        """
+        self.lr     = lr
+        self.params = {}
+        self.L      = len(layer_sizes) - 1  # number of weight layers
+
+        rng = np.random.default_rng(42)
+
+        # Xavier initialization: scale by sqrt(2 / (n_in + n_out))
+        for l in range(1, len(layer_sizes)):
+            n_in  = layer_sizes[l-1]
+            n_out = layer_sizes[l]
+            scale = np.sqrt(2.0 / (n_in + n_out))
+
+            self.params[f'W{l}'] = rng.normal(0, scale, (n_out, n_in))
+            self.params[f'b{l}'] = np.zeros((n_out, 1))
+
+    def forward(self, X):
+        """
+        X: shape (n_features, batch_size)
+        Returns predictions and cache of intermediates for backprop.
+        """
+        cache = {'a0': X}
+        a     = X
+
+        for l in range(1, self.L + 1):
+            W = self.params[f'W{l}']
+            b = self.params[f'b{l}']
+
+            z = W @ a + b           # pre-activation
+            cache[f'z{l}'] = z
+
+            # Hidden layers: ReLU. Output layer: softmax.
+            if l < self.L:
+                a = np.maximum(0, z)   # ReLU
+            else:
+                # Stable softmax
+                z_shifted = z - z.max(axis=0, keepdims=True)
+                exp_z     = np.exp(z_shifted)
+                a         = exp_z / exp_z.sum(axis=0, keepdims=True)
+
+            cache[f'a{l}'] = a
+
+        return a, cache   # a = final predictions
+
+    def compute_loss(self, y_hat, y_true):
+        """
+        y_hat: predictions, shape (n_classes, batch_size)
+        y_true: one-hot labels, shape (n_classes, batch_size)
+        """
+        m   = y_true.shape[1]
+        eps = 1e-9
+        ce  = -np.sum(y_true * np.log(y_hat + eps)) / m
+        return ce
+
+    def backward(self, y_true, cache):
+        """Returns gradients for all parameters."""
+        grads = {}
+        m     = y_true.shape[1]
+
+        # Output layer: δ = ŷ - y  (softmax + cross-entropy miracle)
+        delta = cache[f'a{self.L}'] - y_true   # shape (n_out, m)
+
+        for l in range(self.L, 0, -1):
+            a_prev = cache[f'a{l-1}']
+
+            # Gradients for W and b at layer l
+            grads[f'W{l}'] = (1/m) * delta @ a_prev.T
+            grads[f'b{l}'] = (1/m) * delta.sum(axis=1, keepdims=True)
+
+            if l > 1:
+                # Propagate error backwards: δ_{l-1} = W_l^T δ_l ⊙ ReLU'(z_{l-1})
+                W      = self.params[f'W{l}']
+                z_prev = cache[f'z{l-1}']
+                delta  = (W.T @ delta) * (z_prev > 0)  # ReLU derivative
+
+        return grads
+
+    def update_params(self, grads):
+        """Standard gradient descent update."""
+        for l in range(1, self.L + 1):
+            self.params[f'W{l}'] -= self.lr * grads[f'W{l}']
+            self.params[f'b{l}'] -= self.lr * grads[f'b{l}']
+
+    def fit(self, X, y_one_hot, epochs=500, batch_size=32, verbose=True):
+        """
+        X: shape (n_features, n_samples)
+        y_one_hot: shape (n_classes, n_samples)
+        """
+        n       = X.shape[1]
+        history = []
+
+        for epoch in range(epochs):
+            # Shuffle
+            idx    = np.random.permutation(n)
+            X_s    = X[:, idx]
+            y_s    = y_one_hot[:, idx]
+
+            epoch_loss = 0
+            for start in range(0, n, batch_size):
+                X_b  = X_s[:, start:start+batch_size]
+                y_b  = y_s[:, start:start+batch_size]
+
+                y_hat, cache = self.forward(X_b)
+                loss         = self.compute_loss(y_hat, y_b)
+                grads        = self.backward(y_b, cache)
+                self.update_params(grads)
+
+                epoch_loss += loss
+
+            avg_loss = epoch_loss / (n // batch_size)
+            history.append(avg_loss)
+
+            if verbose and epoch % 100 == 0:
+                y_pred = self.predict(X)
+                acc    = (y_pred == y_one_hot.argmax(axis=0)).mean()
+                print(f"Epoch {epoch:4d}: loss={avg_loss:.4f}, acc={acc:.3f}")
+
+        return history
+
+    def predict(self, X):
+        """Returns class indices."""
+        y_hat, _ = self.forward(X)
+        return y_hat.argmax(axis=0)
+
+# ── Train on Iris ──────────────────────────────────────────────
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+iris = load_iris()
+X    = iris.data.T           # shape (4, 150) — features as rows
+y    = iris.target           # shape (150,)
+
+# One-hot encode labels
+def one_hot(y, n_classes):
+    oh = np.zeros((n_classes, len(y)))
+    oh[y, np.arange(len(y))] = 1
+    return oh
+
+y_oh = one_hot(y, 3)        # shape (3, 150)
+
+# Normalize
+scaler = StandardScaler()
+X_norm = scaler.fit_transform(X.T).T  # normalize features, keep shape
+
+# Train
+net     = NeuralNetwork([4, 16, 8, 3], lr=0.05)
+history = net.fit(X_norm, y_oh, epochs=300, batch_size=32)
+
+# Evaluate
+y_pred = net.predict(X_norm)
+acc    = (y_pred == y).mean()
+print(f"\nFinal accuracy: {acc:.3f}")
 ```
 
-### Autolog
+---
+
+# 3. Weight Initialization
+
+## Why It Matters
+
+**Zero initialization:** All neurons compute identical gradients → equivalent to a single neuron per layer. Symmetry never breaks.
+
+**Random too small:** Activations shrink layer by layer → **vanishing gradients** (no learning in early layers).
+
+**Random too large:** Activations explode layer by layer → **exploding gradients** (NaNs).
 
 ```python
-mlflow.sklearn.autolog()   # automatically logs params, metrics, model
-mlflow.pytorch.autolog()   # logs training loop metrics, model checkpoints
+import numpy as np
+
+rng = np.random.default_rng(42)
+
+def simulate_forward(W_init_fn, n_layers=10, n=100):
+    """Show how activations grow/shrink through layers."""
+    a = rng.randn(n, 1)  # input
+    stds = [a.std()]
+
+    for _ in range(n_layers):
+        W = W_init_fn(n, n)
+        a = np.tanh(W @ a)  # tanh hidden layers
+        stds.append(a.std())
+
+    return stds
+
+# Zero init
+zero_stds = simulate_forward(lambda n, m: np.zeros((n, m)))
+
+# Too small
+small_stds = simulate_forward(lambda n, m: rng.randn(n, m) * 0.01)
+
+# Too large
+large_stds = simulate_forward(lambda n, m: rng.randn(n, m) * 1.0)
+
+# Xavier: sqrt(1/n_in) for tanh
+xavier_stds = simulate_forward(lambda n, m: rng.randn(n, m) * np.sqrt(1.0/m))
+
+print("Activation std across 10 layers:")
+print(f"{'Layer':<8} {'Zero':>8} {'Small':>8} {'Large':>12} {'Xavier':>10}")
+print("-" * 50)
+for l, (z, s, lg, x) in enumerate(zip(zero_stds, small_stds, large_stds, xavier_stds)):
+    print(f"{l:<8} {z:>8.4f} {s:>8.4f} {lg:>12.4f} {x:>10.4f}")
 ```
 
-Autolog hooks into the library's fitting code — no manual `log_param` calls needed.
+| Init | Formula | Good for |
+|------|---------|---------|
+| Xavier/Glorot | $\mathcal{N}(0, \sqrt{2/(n_{in}+n_{out})})$ | Sigmoid/Tanh |
+| He/Kaiming | $\mathcal{N}(0, \sqrt{2/n_{in}})$ | ReLU, Leaky ReLU |
+| Lecun | $\mathcal{N}(0, \sqrt{1/n_{in}})$ | SELU |
 
----
+```python
+def xavier_init(n_in, n_out):
+    scale = np.sqrt(2.0 / (n_in + n_out))
+    return rng.normal(0, scale, (n_out, n_in))
 
-## 9. Data Drift & Model Monitoring
+def he_init(n_in, n_out):
+    scale = np.sqrt(2.0 / n_in)   # 2 because ReLU kills half the neurons
+    return rng.normal(0, scale, (n_out, n_in))
 
-### Why models degrade in production
-
-1. **Data drift (covariate shift):** $P(\mathbf{x})$ changes — input distribution shifts from training.
-2. **Concept drift:** $P(y|\mathbf{x})$ changes — relationship between features and label changes.
-3. **Label drift (prior probability shift):** $P(y)$ changes without $P(\mathbf{x}|y)$ changing.
-
-### Statistical Drift Tests
-
-| Test | Data Type | Null Hypothesis | Interpretation |
-|------|----------|-----------------|----------------|
-| Kolmogorov-Smirnov | Continuous univariate | Distributions identical | p < 0.05 → drift |
-| Chi-Squared | Categorical | Same proportions | p < 0.05 → drift |
-| Population Stability Index (PSI) | Continuous/categorical | Same distribution | PSI > 0.2 → major drift |
-| Maximum Mean Discrepancy (MMD) | Multivariate | Same distribution | MMD > threshold → drift |
-| Jensen-Shannon Divergence | Any | Same distribution | JS > 0.1 → notable |
-
-### Population Stability Index (PSI)
-
-$$\text{PSI} = \sum_{j=1}^{J} (A_j - E_j) \ln\!\left(\frac{A_j}{E_j}\right)$$
-
-where $A_j$ is the actual (production) fraction in bin $j$, $E_j$ is the expected (reference) fraction. Rule of thumb: PSI < 0.1 no change, 0.1–0.2 slight change, > 0.2 major change.
-
-### Kolmogorov-Smirnov Statistic
-
-$$D = \sup_x |F_{ref}(x) - F_{prod}(x)|$$
-
-Maximum absolute difference between empirical CDFs. $p$-value derived from $D$ and sample sizes via the KS distribution.
-
-### Monitoring Pipeline
-
-```
-Production predictions
-  → Feature store snapshot (hourly/daily)
-    → Drift detector (KS, PSI, MMD)
-      → Alert if threshold exceeded
-        → Retrain trigger or manual review
+# Verify: std of pre-activations should be ~1 across layers with He init
+W = he_init(128, 256)
+x = rng.randn(128, 1)
+z = W @ x
+print(f"\nHe init: z.std() = {z.std():.4f} (target ~1.0)")
 ```
 
 ---
 
-## 10. Interview Reference — Deep Learning
+# 4. Optimizers
 
-### Q: What is the vanishing gradient problem?
+## Intuition
 
-In deep networks with sigmoid/tanh activations, $|g'(z)| < 1$ everywhere ($\sigma' \leq 0.25$, $\tanh' \leq 1$). Repeated multiplication across $L$ layers: $\prod_{l=1}^{L} g'^{(l)} \approx c^L$ for $c < 1$ → exponentially small gradients in early layers → slow or no learning. Solutions: ReLU activations, residual connections (gradient highway), careful initialization (He/Xavier), gradient clipping.
+Gradient descent with fixed learning rate is slow and sensitive. Adaptive optimizers:
+- Use **momentum** to accelerate in consistent directions
+- Adapt **per-parameter learning rates** based on gradient history
+- Handle sparse gradients better (useful for embeddings)
 
-### Q: What is the exploding gradient problem?
+## 4.1 Optimizer Implementations from Scratch
 
-Opposite: large weight matrices cause gradients to grow exponentially across layers. Common in RNNs with long sequences. Solution: gradient clipping (clip gradient norm to max value):
+```python
+import numpy as np
 
-$$g \leftarrow g \cdot \frac{\text{clip\_norm}}{\max(\|g\|_2, \text{clip\_norm})}$$
+class SGD:
+    """Vanilla stochastic gradient descent."""
+    def __init__(self, lr=0.01):
+        self.lr = lr
 
-### Q: Why does Adam use bias correction?
+    def update(self, params, grads):
+        for key in params:
+            params[key] -= self.lr * grads[key]
+        return params
 
-$m_0 = v_0 = \mathbf{0}$. At step 1: $m_1 = (1-\beta_1)g_1 \approx 0.1 g_1$ (if $\beta_1=0.9$) — severely underestimates the true gradient. Dividing by $(1-\beta_1^t)$ corrects this; as $t \to \infty$, the correction factor $\to 1$.
+class SGDMomentum:
+    """SGD with momentum — accumulates velocity in gradient direction."""
+    def __init__(self, lr=0.01, momentum=0.9):
+        self.lr       = lr
+        self.momentum = momentum
+        self.velocity = {}
 
-### Q: What is gradient clipping and when do you use it?
+    def update(self, params, grads):
+        for key in params:
+            if key not in self.velocity:
+                self.velocity[key] = np.zeros_like(params[key])
 
-Rescales gradient vector when its L2 norm exceeds a threshold. Used in: RNN/LSTM training (long sequences amplify gradients), early transformer training, any time loss spikes are observed. Does not change direction, only magnitude.
+            # v = β*v + (1-β)*g  (or sometimes β*v + g — both work)
+            self.velocity[key] = self.momentum * self.velocity[key] + grads[key]
+            params[key] -= self.lr * self.velocity[key]
 
-### Q: BatchNorm vs LayerNorm?
+        return params
 
-BatchNorm normalizes across the batch dimension — requires batch size > 1, accumulates running stats, computationally cheap. LayerNorm normalizes across feature dimension for each sample independently — works with batch size 1, no running stats needed, used in transformers.
+class Adam:
+    """
+    Adam: Adaptive Moment Estimation.
+    Tracks first moment (mean of gradient) and second moment (mean of gradient²).
+    Bias correction handles the fact that m and v start at zero.
+    """
+    def __init__(self, lr=0.001, beta1=0.9, beta2=0.999, eps=1e-8):
+        self.lr    = lr
+        self.beta1 = beta1    # first moment decay (momentum)
+        self.beta2 = beta2    # second moment decay (RMSProp)
+        self.eps   = eps      # prevents division by zero
+        self.m     = {}       # first moment estimate
+        self.v     = {}       # second moment estimate
+        self.t     = 0        # timestep
 
-### Q: What does MLflow track vs what does a feature store track?
+    def update(self, params, grads):
+        self.t += 1
 
-MLflow tracks **model artifacts, training metrics, hyperparameters, and model versions**. A feature store (Feast, Tecton) tracks **feature definitions, feature values, and serves consistent features** between training and serving (prevents training-serving skew).
+        for key in params:
+            if key not in self.m:
+                self.m[key] = np.zeros_like(params[key])
+                self.v[key] = np.zeros_like(params[key])
 
-### Q: What is the difference between data drift and concept drift?
+            g = grads[key]
 
-Data drift: input feature distribution $P(\mathbf{x})$ changes (e.g., user demographics shift). Concept drift: the mapping $P(y|\mathbf{x})$ changes (e.g., fraud patterns evolve). Data drift is detectable from features alone; concept drift requires labeled production data to detect.
+            # Update biased moment estimates
+            self.m[key] = self.beta1 * self.m[key] + (1 - self.beta1) * g
+            self.v[key] = self.beta2 * self.v[key] + (1 - self.beta2) * g**2
+
+            # Bias correction (compensate for zero initialization)
+            m_hat = self.m[key] / (1 - self.beta1**self.t)
+            v_hat = self.v[key] / (1 - self.beta2**self.t)
+
+            # Parameter update
+            params[key] -= self.lr * m_hat / (np.sqrt(v_hat) + self.eps)
+
+        return params
+
+class AdamW:
+    """Adam with decoupled weight decay — standard in Transformers."""
+    def __init__(self, lr=0.001, beta1=0.9, beta2=0.999, eps=1e-8, weight_decay=0.01):
+        self.lr           = lr
+        self.beta1        = beta1
+        self.beta2        = beta2
+        self.eps          = eps
+        self.weight_decay = weight_decay
+        self.m, self.v    = {}, {}
+        self.t            = 0
+
+    def update(self, params, grads):
+        self.t += 1
+        for key in params:
+            if key not in self.m:
+                self.m[key] = np.zeros_like(params[key])
+                self.v[key] = np.zeros_like(params[key])
+
+            g = grads[key]
+            self.m[key] = self.beta1 * self.m[key] + (1 - self.beta1) * g
+            self.v[key] = self.beta2 * self.v[key] + (1 - self.beta2) * g**2
+
+            m_hat = self.m[key] / (1 - self.beta1**self.t)
+            v_hat = self.v[key] / (1 - self.beta2**self.t)
+
+            # AdamW: weight decay applied BEFORE gradient, not inside it
+            params[key] -= self.lr * (m_hat / (np.sqrt(v_hat) + self.eps)
+                                      + self.weight_decay * params[key])
+
+        return params
+
+# ── Compare optimizers on a simple loss landscape ─────────────
+def rosenbrock(x, y):
+    """Rosenbrock function — notoriously hard to optimize. Minimum at (1, 1)."""
+    return (1 - x)**2 + 100*(y - x**2)**2
+
+def rosenbrock_grad(x, y):
+    dx = -2*(1-x) - 400*x*(y - x**2)
+    dy = 200*(y - x**2)
+    return np.array([dx, dy])
+
+def optimize_rosenbrock(optimizer_class, **kwargs):
+    params = {'xy': np.array([-1.0, 2.0])}   # starting point
+    opt    = optimizer_class(**kwargs)
+    losses = []
+
+    for step in range(5000):
+        x, y = params['xy']
+        loss = rosenbrock(x, y)
+        losses.append(loss)
+
+        grad = rosenbrock_grad(x, y)
+        params = opt.update(params, {'xy': grad})
+
+    final_x, final_y = params['xy']
+    return losses, final_x, final_y
+
+print("Optimizer comparison on Rosenbrock function (min at (1,1)):")
+print(f"{'Optimizer':<15} {'Final Loss':>12} {'x':>8} {'y':>8}")
+print("-" * 45)
+
+configs = [
+    (SGD,          "SGD",         {'lr': 0.001}),
+    (SGDMomentum,  "Momentum",    {'lr': 0.001, 'momentum': 0.9}),
+    (Adam,         "Adam",        {'lr': 0.01}),
+    (AdamW,        "AdamW",       {'lr': 0.01, 'weight_decay': 0.001}),
+]
+
+for OptimizerClass, name, kwargs in configs:
+    losses, fx, fy = optimize_rosenbrock(OptimizerClass, **kwargs)
+    print(f"{name:<15} {losses[-1]:>12.6f} {fx:>8.4f} {fy:>8.4f}")
+```
+
+## 4.2 Learning Rate Schedules
+
+```python
+import numpy as np
+
+def warmup_cosine_schedule(step, warmup_steps, total_steps, max_lr=1e-3, min_lr=1e-6):
+    """Warmup + cosine decay — standard in Transformer training."""
+    if step < warmup_steps:
+        # Linear warmup
+        return max_lr * step / warmup_steps
+    else:
+        # Cosine decay
+        progress = (step - warmup_steps) / (total_steps - warmup_steps)
+        return min_lr + 0.5 * (max_lr - min_lr) * (1 + np.cos(np.pi * progress))
+
+def step_schedule(step, milestones, gamma=0.1, initial_lr=0.01):
+    """Reduce LR by gamma at each milestone."""
+    lr = initial_lr
+    for m in milestones:
+        if step >= m:
+            lr *= gamma
+    return lr
+
+# Visualize schedules
+steps = np.arange(0, 1000)
+warmup_lr = [warmup_cosine_schedule(s, warmup_steps=100, total_steps=1000) for s in steps]
+step_lr   = [step_schedule(s, milestones=[400, 700]) for s in steps]
+
+print("Learning rate schedule values:")
+print(f"{'Step':>8} {'Warmup+Cosine':>15} {'Step Decay':>12}")
+for s in [0, 50, 100, 200, 400, 600, 700, 900, 999]:
+    print(f"{s:>8} {warmup_lr[s]:>15.6f} {step_lr[s]:>12.6f}")
+```
 
 ---
 
-## Resources
+# 5. Regularization
 
-### Books
-- **Deep Learning** — Goodfellow, Bengio, Courville. Free online at `deeplearningbook.org`. Chapters 6 (feedforward networks), 7 (regularization), 8 (optimization) map directly to this module.
-- **Dive into Deep Learning** (`d2l.ai`): Interactive Jupyter book with PyTorch and NumPy implementations. Covers backprop, optimizers, and normalization in depth.
+## 5.1 Dropout
 
-### Video & Courses
-- **Andrej Karpathy — Neural Networks: Zero to Hero** (YouTube): Six videos building everything from scratch in Python. The micrograd video directly matches `nn_numpy.py` in this module.
-- **Stanford CS231n — Convolutional Neural Networks for Visual Recognition**: Full lecture slides and notes free at `cs231n.stanford.edu`. Backprop notes in Assignment 2 are excellent.
-- **fast.ai Practical Deep Learning for Coders**: Top-down, code-first. Complements this module's bottom-up approach.
+```python
+import numpy as np
 
-### Papers
-- **Adam: A Method for Stochastic Optimization** — Kingma & Ba (2015): `arxiv.org/abs/1412.6980`
-- **Batch Normalization: Accelerating Deep Network Training** — Ioffe & Szegedy (2015): `arxiv.org/abs/1502.03167`
-- **Dropout: A Simple Way to Prevent Neural Networks from Overfitting** — Srivastava et al. (2014): JMLR.
-- **Decoupled Weight Decay Regularization (AdamW)** — Loshchilov & Hutter (2019): `arxiv.org/abs/1711.05101`
+def dropout(a, keep_prob=0.8, training=True):
+    """
+    Randomly zero out neurons during training.
+    At inference: multiply by keep_prob (or use inverted dropout).
+    """
+    if not training:
+        return a  # no dropout at inference
 
-### MLOps Tooling
-- MLflow documentation (`mlflow.org/docs`): Tracking, models, registry APIs.
-- Weights & Biases (`wandb.ai/site`): Alternative experiment tracker with richer visualization. Same concepts as MLflow.
-- Evidently AI (`evidentlyai.com`): Production drift detection library — same metrics as `monitoring.py` but with a dashboard.
+    # Inverted dropout: scale up during training → no need to scale at test
+    mask = (np.random.rand(*a.shape) < keep_prob) / keep_prob
+    return a * mask
+
+# Demo
+rng = np.random.default_rng(42)
+activations = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+
+print("Dropout demo (keep_prob=0.6):")
+for trial in range(5):
+    dropped = dropout(activations, keep_prob=0.6)
+    print(f"  Trial {trial+1}: {dropped.round(3)}")
+
+print(f"\nInference (no dropout): {dropout(activations, training=False)}")
+```
+
+## 5.2 Batch Normalization
+
+**Intuition:** Normalize activations within a mini-batch so each layer sees stable, zero-mean, unit-variance inputs. Reduces sensitivity to initialization and learning rate.
+
+$$\hat{z}_i = \frac{z_i - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}} \qquad y_i = \gamma \hat{z}_i + \beta$$
+
+```python
+import numpy as np
+
+class BatchNorm:
+    """Batch normalization layer."""
+
+    def __init__(self, n_features, eps=1e-8, momentum=0.1):
+        self.eps      = eps
+        self.momentum = momentum
+        self.gamma    = np.ones(n_features)    # scale
+        self.beta     = np.zeros(n_features)   # shift
+
+        # Running stats for inference
+        self.running_mean = np.zeros(n_features)
+        self.running_var  = np.ones(n_features)
+
+        self._cache = None
+
+    def forward(self, X, training=True):
+        """
+        X: shape (batch_size, n_features)
+        """
+        if training:
+            mu    = X.mean(axis=0)
+            var   = X.var(axis=0)
+
+            # Update running stats for inference
+            self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * mu
+            self.running_var  = (1 - self.momentum) * self.running_var  + self.momentum * var
+        else:
+            mu  = self.running_mean
+            var = self.running_var
+
+        # Normalize
+        X_norm = (X - mu) / np.sqrt(var + self.eps)
+
+        # Scale and shift (learnable)
+        out = self.gamma * X_norm + self.beta
+
+        self._cache = (X, X_norm, mu, var)
+        return out
+
+# Demo
+rng  = np.random.default_rng(42)
+bn   = BatchNorm(4)
+
+# Before BN: wildly different scales
+X = np.array([
+    [100, 0.01, 5000, 0.1],
+    [120, 0.02, 4800, 0.2],
+    [80,  0.01, 5200, 0.15],
+    [110, 0.03, 4900, 0.05],
+])
+
+X_out = bn.forward(X)
+print("Before BatchNorm:")
+print(f"  Mean per feature:  {X.mean(axis=0).round(2)}")
+print(f"  Std per feature:   {X.std(axis=0).round(2)}")
+print(f"\nAfter BatchNorm:")
+print(f"  Mean per feature:  {X_out.mean(axis=0).round(6)}")  # ~0
+print(f"  Std per feature:   {X_out.std(axis=0).round(6)}")   # ~1
+```
+
+**BatchNorm vs LayerNorm:**
+
+| | BatchNorm | LayerNorm |
+|-|-----------|-----------|
+| Normalize over | Mini-batch (across samples) | Features (within one sample) |
+| Best for | CNNs, fully-connected | Transformers, RNNs |
+| Issues | Needs batch size > 1; doesn't work with online learning | None |
+| Inference | Uses running mean/var | Same as training |
 
 ---
 
-> **Next module:** [Module 06 — GenAI Core](06-genai-core.md)
+# 6. MLflow — Experiment Tracking
+
+## Intuition
+
+ML experiments multiply fast. Without tracking, you don't know which hyperparameters produced your best model. MLflow logs every experiment so you can:
+- Compare runs
+- Reproduce any result
+- Register the best model
+
+```python
+try:
+    import mlflow
+    import mlflow.sklearn
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.datasets import load_iris
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import accuracy_score, f1_score
+    import numpy as np
+
+    iris = load_iris()
+    X, y = iris.data, iris.target
+    X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    scaler = StandardScaler()
+    X_tr_s = scaler.fit_transform(X_tr)
+    X_te_s = scaler.transform(X_te)
+
+    # MLflow experiment
+    mlflow.set_experiment("iris-classification")
+
+    experiments = [
+        {"C": 0.1,  "solver": "lbfgs"},
+        {"C": 1.0,  "solver": "lbfgs"},
+        {"C": 10.0, "solver": "lbfgs"},
+    ]
+
+    for params in experiments:
+        with mlflow.start_run():
+            # Log hyperparameters
+            mlflow.log_params(params)
+            mlflow.log_param("dataset", "iris")
+
+            # Train
+            model = LogisticRegression(**params, max_iter=1000)
+            model.fit(X_tr_s, y_tr)
+
+            # Evaluate
+            y_pred = model.predict(X_te_s)
+            acc    = accuracy_score(y_te, y_pred)
+            f1     = f1_score(y_te, y_pred, average='macro')
+
+            # Log metrics
+            mlflow.log_metric("accuracy", acc)
+            mlflow.log_metric("f1_macro", f1)
+
+            # Log model
+            mlflow.sklearn.log_model(model, "model")
+
+            print(f"C={params['C']}: accuracy={acc:.4f}, f1={f1:.4f}")
+
+    print("\nAll runs logged! View at: mlflow ui (then open localhost:5000)")
+
+except ImportError:
+    print("MLflow not installed. Run: pip install mlflow")
+    print("MLflow usage shown conceptually above.")
+```
+
+---
+
+# 7. Interview Q&A
+
+## Q1: Explain vanishing gradients and how to fix them.
+
+In deep networks with sigmoid/tanh, the derivative is at most 0.25. Multiplied across 10 layers via chain rule: $0.25^{10} \approx 10^{-6}$ — early layers receive almost no gradient signal. Fixes: (1) ReLU activations (gradient is 1 for positive inputs), (2) Residual connections (gradient bypasses nonlinearities), (3) Proper initialization (Xavier/He), (4) BatchNorm (stabilizes activation distributions).
+
+## Q2: Why does Adam converge faster than SGD?
+
+Adam maintains per-parameter adaptive learning rates. Parameters with consistently large gradients get small effective LR; sparse parameters get large LR. The momentum term smooths oscillations. In practice, Adam requires less LR tuning and converges in far fewer steps. However, Adam can generalize worse than SGD on vision tasks — hence the common pattern: Adam for fast convergence early, SGD for final fine-tuning.
+
+## Q3: What is the difference between BatchNorm and LayerNorm?
+
+BatchNorm normalizes across the **batch dimension** (statistics computed over all samples for each feature). LayerNorm normalizes across the **feature dimension** (statistics computed over all features for each sample). BatchNorm is effective for CNNs but breaks with batch size 1 and doesn't work well for variable-length sequences. LayerNorm is batch-size independent, making it the standard for Transformers and RNNs.
+
+## Q4: Why is the output layer gradient for softmax + cross-entropy so simple?
+
+The cross-entropy gradient through softmax simplifies to $\hat{y}_k - y_k$. This happens because the Jacobian of softmax has a specific structure that cancels with the derivative of the log in cross-entropy. The "miracle" result makes backprop implementation clean and numerically stable.
+
+## Q5: When should you use dropout vs L2 regularization?
+
+**L2:** Smooth penalty, always active, doesn't change network architecture. Best for simple models.
+**Dropout:** Forces redundant representations, acts as ensemble of $2^n$ sub-networks. Best for large overparameterized models. Not effective on small datasets. Never use dropout on BatchNorm layers.
+
+---
+
+# 8. Cheat Sheet
+
+| Concept | Formula | ML Role |
+|---------|---------|---------|
+| Forward pass | $\mathbf{a}^{(l)} = g(W^{(l)}\mathbf{a}^{(l-1)} + \mathbf{b}^{(l)})$ | Compute predictions |
+| Output gradient | $\boldsymbol{\delta}^{(L)} = \hat{\mathbf{y}} - \mathbf{y}$ | Start backprop |
+| Hidden gradient | $\boldsymbol{\delta}^{(l)} = W^{(l+1)T}\boldsymbol{\delta}^{(l+1)} \odot g'(\mathbf{z}^{(l)})$ | Chain rule |
+| Weight gradient | $\frac{1}{m}\boldsymbol{\delta}^{(l)}\mathbf{a}^{(l-1)T}$ | Update weights |
+| Xavier init | $\sigma = \sqrt{2/(n_{in}+n_{out})}$ | Sigmoid/Tanh layers |
+| He init | $\sigma = \sqrt{2/n_{in}}$ | ReLU layers |
+| Adam update | $w \mathrel{-}= \alpha \hat{m}/(\sqrt{\hat{v}} + \epsilon)$ | Adaptive learning |
+| BatchNorm | $\hat{z} = (z - \mu_B)/\sqrt{\sigma_B^2 + \epsilon}$ | Stable training |
+| Dropout | Zero each neuron with prob $1-p$, scale by $1/p$ | Regularization |
+
+---
+
+# MINI-PROJECT — MNIST Digit Classifier from Scratch
+
+**What you will build:** A 3-layer neural network that classifies handwritten digits (0–9) trained entirely with backpropagation on NumPy. No PyTorch, no Keras.
+
+---
+
+## Step 1 — Generate Synthetic MNIST-Like Data
+
+```python
+import numpy as np
+from sklearn.datasets import load_digits  # 8x8 version of MNIST, built into sklearn
+
+digits   = load_digits()
+X_raw    = digits.data          # shape (1797, 64) — 8x8 images flattened
+y_raw    = digits.target        # shape (1797,)  — labels 0-9
+
+# Normalize pixel values to [0, 1]
+X = X_raw / 16.0               # max pixel value is 16 in sklearn digits
+
+print(f"Dataset: {X.shape[0]} images, {X.shape[1]} features ({int(X.shape[1]**0.5)}x{int(X.shape[1]**0.5)} pixels)")
+print(f"Classes: {np.unique(y_raw)} ({len(np.unique(y_raw))} digits)")
+
+# One-hot encode
+def one_hot(y, n_classes=10):
+    oh = np.zeros((n_classes, len(y)))
+    oh[y, np.arange(len(y))] = 1
+    return oh
+
+# Train/test split (80/20)
+rng = np.random.default_rng(42)
+idx = rng.permutation(len(X))
+split    = int(0.8 * len(X))
+
+X_train  = X[idx[:split]].T      # shape (64, n_train) — transpose for our NN
+y_train  = y_raw[idx[:split]]
+y_tr_oh  = one_hot(y_train)      # shape (10, n_train)
+
+X_test   = X[idx[split:]].T      # shape (64, n_test)
+y_test   = y_raw[idx[split:]]
+
+print(f"\nTrain: {X_train.shape[1]} samples")
+print(f"Test:  {X_test.shape[1]} samples")
+```
+
+---
+
+## Step 2 — Initialize and Train
+
+```python
+# Use the NeuralNetwork class from Section 2
+
+net = NeuralNetwork(
+    layer_sizes=[64, 128, 64, 10],   # 64 inputs, 2 hidden layers, 10 outputs
+    lr=0.05
+)
+
+print("Training digit classifier...")
+history = net.fit(X_train, y_tr_oh, epochs=500, batch_size=64, verbose=True)
+```
+
+---
+
+## Step 3 — Evaluate
+
+```python
+# Test set accuracy
+y_pred_test = net.predict(X_test)
+test_acc    = (y_pred_test == y_test).mean()
+print(f"\nTest accuracy: {test_acc:.4f}")
+
+# Confusion-matrix style: per-class accuracy
+print("\nPer-digit accuracy:")
+for digit in range(10):
+    mask      = y_test == digit
+    digit_acc = (y_pred_test[mask] == digit).mean()
+    bar       = "█" * int(digit_acc * 20)
+    print(f"  Digit {digit}: {digit_acc:.2f}  {bar}")
+
+# Loss curve summary
+print(f"\nLoss: {history[0]:.4f} → {history[-1]:.4f}")
+print(f"Improvement: {(1 - history[-1]/history[0])*100:.1f}%")
+```
+
+---
+
+## Step 4 — Visualize Some Predictions
+
+```python
+import numpy as np
+
+# Print digit images as ASCII art
+def show_digit(pixel_row, label, predicted):
+    pixels = pixel_row * 16  # scale back
+    print(f"  True: {label}, Predicted: {predicted} {'✓' if label == predicted else '✗'}")
+    for row in range(8):
+        line = ""
+        for col in range(8):
+            val = pixels[row*8 + col]
+            line += "█" if val > 8 else "░" if val > 2 else " "
+        print(f"  {line}")
+    print()
+
+# Show 5 test samples
+print("Sample predictions:")
+sample_idx = rng.choice(X_test.shape[1], 5, replace=False)
+
+y_hat_probs = net.forward(X_test)[0]  # probabilities
+for i in sample_idx:
+    pixel_row = X_test[:, i]
+    true_lbl  = y_test[i]
+    pred_lbl  = y_pred_test[i]
+    confidence = y_hat_probs[pred_lbl, i]
+
+    show_digit(pixel_row, true_lbl, pred_lbl)
+    print(f"  Confidence: {confidence:.3f}")
+```
+
+---
+
+## Step 5 — Experiment with Hyperparameters
+
+```python
+configs = [
+    {"layer_sizes": [64, 32, 10],         "lr": 0.05, "name": "Tiny"},
+    {"layer_sizes": [64, 128, 64, 10],    "lr": 0.05, "name": "Medium"},
+    {"layer_sizes": [64, 256, 128, 10],   "lr": 0.01, "name": "Large"},
+    {"layer_sizes": [64, 128, 64, 10],    "lr": 0.1,  "name": "Med+HighLR"},
+]
+
+print("\nHyperparameter experiment:")
+print(f"{'Config':<15} {'Test Acc':>10} {'Final Loss':>12}")
+print("-" * 40)
+
+for cfg in configs:
+    name  = cfg.pop("name")
+    model = NeuralNetwork(**cfg)
+    hist  = model.fit(X_train, y_tr_oh, epochs=200, batch_size=64, verbose=False)
+    acc   = (model.predict(X_test) == y_test).mean()
+    print(f"{name:<15} {acc:>10.4f} {hist[-1]:>12.4f}")
+    cfg["name"] = name  # restore
+```
+
+---
+
+## What This Project Demonstrated
+
+| Concept | Where it appeared |
+|---------|------------------|
+| Forward pass | `net.forward(X_train)` — layers × activations |
+| Backpropagation | `net.backward(y_oh, cache)` — chain rule all the way |
+| Xavier init | `NeuralNetwork.__init__` — `scale = sqrt(2/(n_in+n_out))` |
+| Softmax output | Final layer of forward pass |
+| Categorical cross-entropy | `compute_loss` |
+| Output gradient shortcut | `delta_L = y_hat - y_true` |
+| Mini-batch gradient descent | 64-sample batches per update |
+| Hyperparameter search | Tested 4 configurations |
+| One-hot encoding | `one_hot(y, 10)` |
+
+You built a digit classifier from mathematical primitives — the same operations (with more engineering) power every neural network in production.
+
+---
+
+*Next: [Module 06 — GenAI Core](06-genai-core.md)*
