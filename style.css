@@ -40,10 +40,24 @@
 html, body {
   height: 100%;
   overflow: hidden;
-  background: var(--black);
+  background: #020206;
   font-family: var(--font-body);
   color: var(--white);
   line-height: 1.6;
+}
+
+/* Ambient color blobs — glass blurs these, creating the tinted refraction effect */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 90vw 70vh at 10% 20%, rgba(80,0,160,0.13) 0%, transparent 60%),
+    radial-gradient(ellipse 70vw 80vh at 90% 80%, rgba(0,50,180,0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 60vw 50vh at 50% 50%, rgba(0,120,100,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 40vw 40vh at 75% 15%, rgba(180,50,0,0.06) 0%, transparent 60%);
 }
 
 /* ── Skip Link ───────────────────────────────────────────────── */
@@ -213,15 +227,19 @@ body.focus-mode #sidebar-hover-zone { display: block; }
   position: fixed;
   left: 0; top: 0; bottom: 0;
   width: var(--sidebar-w);
-  background: var(--black-soft);
+  /* Sidebar glass: translucent, blurs the ambient blobs behind it */
+  background: rgba(8, 8, 14, 0.72);
+  backdrop-filter: blur(24px) saturate(2.5) brightness(0.95);
+  -webkit-backdrop-filter: blur(24px) saturate(2.5) brightness(0.95);
   color: var(--white);
   display: flex;
   flex-direction: column;
-  border-right: var(--border);
+  border-right: 1px solid rgba(255,255,255,0.07);
   overflow: hidden;
   z-index: 160;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
               box-shadow 0.3s ease;
+  box-shadow: 4px 0 32px rgba(0,0,0,0.5);
 }
 
 /* Focus mode — sidebar hides, reveals on hover */
@@ -247,14 +265,28 @@ body.focus-mode #main {
   flex-direction: column;
   overflow: hidden;
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent;
+  position: relative;
+  z-index: 1;
 }
 
 /* ── Sidebar Header ─────────────────────────────────────────── */
 #sidebar-header {
   padding: 20px 18px 16px;
-  border-bottom: var(--border);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
   flex-shrink: 0;
-  background: var(--black);
+  background: rgba(255,255,255,0.02);
+  position: relative;
+}
+
+#sidebar-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(150,100,255,0.3) 40%, rgba(80,200,255,0.3) 70%, transparent 100%);
+  pointer-events: none;
 }
 
 .logo-block {
@@ -435,8 +467,8 @@ body.focus-mode #main {
 /* ── Sidebar Footer ─────────────────────────────────────────── */
 #sidebar-footer {
   padding: 12px 16px;
-  border-top: var(--border);
-  background: var(--black);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.015);
   flex-shrink: 0;
 }
 
@@ -512,11 +544,13 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
 #content-area {
   flex: 1;
   overflow-y: auto;
-  background: var(--black);
+  background: transparent;
   transition: opacity 0.18s ease;
   scrollbar-width: thin;
-  scrollbar-color: var(--gray-mid) transparent;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
   padding-bottom: calc(var(--dock-h) + 20px);
+  position: relative;
+  z-index: 1;
 }
 
 #content-area::-webkit-scrollbar       { width: 6px; }
@@ -531,8 +565,29 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
 
 #welcome-hero {
   padding: 0 48px 0;
-  background: var(--black);
-  border-bottom: var(--border);
+  background: rgba(255,255,255,0.02);
+  backdrop-filter: blur(16px) saturate(2);
+  -webkit-backdrop-filter: blur(16px) saturate(2);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  position: relative;
+}
+
+#welcome-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(150,100,255,0.35) 20%,
+    rgba(80,200,255,0.40) 50%,
+    rgba(255,100,200,0.30) 80%,
+    transparent 100%
+  );
+  pointer-events: none;
 }
 
 #greeting-bar {
@@ -662,8 +717,10 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
   align-items: center;
   gap: 0;
   padding: 0 48px;
-  border-bottom: var(--border);
-  background: var(--black);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.018);
+  backdrop-filter: blur(20px) saturate(2.2);
+  -webkit-backdrop-filter: blur(20px) saturate(2.2);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -718,16 +775,23 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
 }
 
 .welcome-module-card {
-  border: var(--border);
+  border: 1px solid rgba(255,255,255,0.08);
   padding: 16px 18px 20px;
   cursor: pointer;
-  background: var(--black-card);
+  /* Glass card */
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(12px) saturate(2);
+  -webkit-backdrop-filter: blur(12px) saturate(2);
   transition: border-color var(--transition-smooth),
               transform var(--transition),
-              background var(--transition-smooth);
+              background var(--transition-smooth),
+              box-shadow var(--transition-smooth);
   position: relative;
   opacity: 0;
   animation: wmc-enter 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.09),
+    0 4px 20px rgba(0,0,0,0.3);
 }
 
 @keyframes wmc-enter {
@@ -736,9 +800,12 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
 }
 
 .welcome-module-card:hover {
-  border-color: rgba(255,255,255,0.3);
-  background: var(--black-mid);
-  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.055);
+  transform: translateY(-3px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.15),
+    0 8px 32px rgba(0,0,0,0.4);
 }
 
 .wmc-num {
@@ -876,21 +943,26 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
 }
 
 .code-file-card {
-  border: var(--border);
+  border: 1px solid rgba(255,255,255,0.08);
   padding: 12px 14px;
   cursor: pointer;
-  background: var(--black-card);
+  background: rgba(255,255,255,0.025);
+  backdrop-filter: blur(10px) saturate(1.8);
+  -webkit-backdrop-filter: blur(10px) saturate(1.8);
   transition: border-color var(--transition-smooth),
               background var(--transition-smooth),
-              transform var(--transition);
+              transform var(--transition),
+              box-shadow var(--transition-smooth);
   opacity: 0;
   animation: wmc-enter 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 2px 12px rgba(0,0,0,0.25);
 }
 
 .code-file-card:hover {
-  border-color: var(--cyan);
-  background: var(--black-mid);
-  transform: translateY(-1px);
+  border-color: rgba(0,229,255,0.4);
+  background: rgba(0,229,255,0.04);
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 6px 24px rgba(0,0,0,0.35);
 }
 
 .code-file-ext {
@@ -926,7 +998,41 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
   font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.85;
-  color: #E0E0E0;
+  color: #E8E8E8;
+
+  /* Glass reading panel */
+  background: rgba(255,255,255,0.025);
+  backdrop-filter: blur(20px) saturate(1.8) brightness(1.05);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8) brightness(1.05);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 4px;
+  padding: 48px 56px;
+  position: relative;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    0 20px 60px rgba(0,0,0,0.4);
+}
+
+/* Prismatic top edge on the reading panel */
+#doc-rendered::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(120,80,255,0.5) 20%,
+    rgba(80,200,255,0.6) 40%,
+    rgba(255,255,180,0.4) 60%,
+    rgba(255,80,160,0.5) 80%,
+    transparent 100%
+  );
+  border-radius: 4px 4px 0 0;
+  pointer-events: none;
 }
 
 /* Focus mode — cleaner doc view */
@@ -1119,37 +1225,76 @@ body.focus-mode #doc-rendered {
   flex-shrink: 0;
   position: relative;
   z-index: 20;
+  isolation: isolate;
 
+  /* Ultra-transparent — content below bleeds through and gets blurred */
   background: linear-gradient(
     180deg,
-    rgba(255,255,255,0.07) 0%,
-    rgba(255,255,255,0.03) 100%
+    rgba(255,255,255,0.055) 0%,
+    rgba(255,255,255,0.02) 100%
   );
-  backdrop-filter: blur(32px) saturate(2.2) brightness(1.08);
-  -webkit-backdrop-filter: blur(32px) saturate(2.2) brightness(1.08);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(48px) saturate(3.5) brightness(1.18) contrast(0.88);
+  -webkit-backdrop-filter: blur(48px) saturate(3.5) brightness(1.18) contrast(0.88);
+
+  border-bottom: 1px solid transparent;
   box-shadow:
-    0 1px 0 rgba(255,255,255,0.06),
-    inset 0 1px 0 rgba(255,255,255,0.1),
-    0 4px 24px rgba(0,0,0,0.25);
+    /* outer depth */
+    0 4px 28px rgba(0,0,0,0.35),
+    0 1px 6px rgba(0,0,0,0.2),
+    /* inner top shine */
+    inset 0 1.5px 0 rgba(255,255,255,0.20),
+    /* inner bottom shadow */
+    inset 0 -1px 0 rgba(0,0,0,0.12);
 }
 
+/* Prismatic bottom border on topbar */
+#topbar::before {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(120,80,255,0.4) 15%,
+    rgba(80,200,255,0.5) 35%,
+    rgba(200,255,200,0.3) 50%,
+    rgba(255,180,80,0.4) 65%,
+    rgba(255,80,160,0.4) 85%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Top specular highlight on topbar */
 #topbar::after {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 50%;
+  height: 45%;
   background: linear-gradient(
     180deg,
-    rgba(255,255,255,0.06) 0%,
+    rgba(255,255,255,0.14) 0%,
+    rgba(255,255,255,0.05) 50%,
     transparent 100%
   );
   pointer-events: none;
+  z-index: 1;
 }
 
-/* ── macOS-style Liquid Glass Dock ──────────────────────────── */
+/* ── Prismatic border shimmer animation ──────────────────────── */
+@keyframes glass-prism {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── macOS Liquid Glass Dock ─────────────────────────────────── */
 #dock {
   position: fixed;
   bottom: 14px;
@@ -1159,53 +1304,52 @@ body.focus-mode #doc-rendered {
   align-items: center;
   gap: 2px;
   padding: 8px 12px;
-  border-radius: 22px;
+  border-radius: 26px;
   z-index: 500;
   white-space: nowrap;
   isolation: isolate;
 
-  /* Multi-layer glass background */
-  background: linear-gradient(
-    145deg,
-    rgba(255,255,255,0.14) 0%,
-    rgba(255,255,255,0.06) 45%,
-    rgba(20,20,30,0.30) 100%
-  );
-  backdrop-filter: blur(56px) saturate(3) brightness(1.12) contrast(0.92);
-  -webkit-backdrop-filter: blur(56px) saturate(3) brightness(1.12) contrast(0.92);
+  /* Ultra-transparent — show what's behind, blur it heavily */
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(72px) saturate(5) brightness(1.35) contrast(0.85) hue-rotate(3deg);
+  -webkit-backdrop-filter: blur(72px) saturate(5) brightness(1.35) contrast(0.85) hue-rotate(3deg);
 
-  /* Layered shadows for depth */
+  /* Layered physical depth */
   box-shadow:
-    0 24px 64px rgba(0,0,0,0.6),
-    0 8px 20px rgba(0,0,0,0.4),
-    0 2px 6px rgba(0,0,0,0.3),
-    /* inner top highlight */
-    inset 0 1.5px 0 rgba(255,255,255,0.28),
-    /* inner bottom shadow */
-    inset 0 -1px 0 rgba(0,0,0,0.20),
-    /* inner side highlights */
-    inset 1px 0 0 rgba(255,255,255,0.07),
-    inset -1px 0 0 rgba(255,255,255,0.07);
+    /* far outer glow */
+    0 32px 80px rgba(0,0,0,0.65),
+    0 12px 28px rgba(0,0,0,0.45),
+    0 4px 10px rgba(0,0,0,0.30),
+    /* inner top specular (glass catches light) */
+    inset 0 2px 0 rgba(255,255,255,0.32),
+    /* inner bottom edge shadow */
+    inset 0 -1.5px 0 rgba(0,0,0,0.25),
+    /* subtle inner glow from ambient color blobs */
+    inset 0 0 40px rgba(100,60,200,0.04);
 
-  /* Hidden behind ::before which draws gradient border */
-  border: 1px solid transparent;
+  /* Transparent border — the ::before draws the real iridescent one */
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
-/* Iridescent gradient border */
+/* Animated prismatic/iridescent border */
 #dock::before {
   content: '';
   position: absolute;
   inset: -1px;
-  border-radius: 23px;
+  border-radius: 27px;
   padding: 1px;
   background: linear-gradient(
-    140deg,
-    rgba(255,255,255,0.40) 0%,
-    rgba(180,210,255,0.18) 25%,
-    rgba(255,230,255,0.08) 50%,
-    rgba(180,200,255,0.12) 75%,
-    rgba(255,255,255,0.25) 100%
+    130deg,
+    rgba(255,160,160,0.50) 0%,
+    rgba(160,200,255,0.40) 18%,
+    rgba(160,255,200,0.30) 36%,
+    rgba(255,230,100,0.40) 54%,
+    rgba(200,140,255,0.45) 72%,
+    rgba(100,200,255,0.35) 90%,
+    rgba(255,160,160,0.50) 100%
   );
+  background-size: 300% 100%;
+  animation: glass-prism 10s linear infinite;
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
@@ -1215,19 +1359,20 @@ body.focus-mode #doc-rendered {
   z-index: -1;
 }
 
-/* Top specular shine — light hitting the curved glass surface */
+/* Top specular shine — the curved bright arc you see on real glass */
 #dock::after {
   content: '';
   position: absolute;
   top: 2px;
-  left: 18px;
-  right: 18px;
-  height: 44%;
-  border-radius: 18px 18px 50% 50% / 16px 16px 80% 80%;
+  left: 20px;
+  right: 20px;
+  height: 46%;
+  border-radius: 20px 20px 60% 60% / 16px 16px 100% 100%;
   background: linear-gradient(
     180deg,
-    rgba(255,255,255,0.24) 0%,
-    rgba(255,255,255,0.10) 45%,
+    rgba(255,255,255,0.38) 0%,
+    rgba(255,255,255,0.18) 30%,
+    rgba(255,255,255,0.06) 65%,
     transparent 100%
   );
   pointer-events: none;
@@ -1351,14 +1496,11 @@ body.focus-mode #doc-rendered {
   filter: drop-shadow(0 0 3px rgba(255,48,96,0.5));
 }
 
-/* Focus mode — dock keeps glass but dims slightly */
+/* Focus mode — dock even more transparent in clean reading mode */
 body.focus-mode #dock {
-  background: linear-gradient(
-    145deg,
-    rgba(255,255,255,0.09) 0%,
-    rgba(255,255,255,0.03) 45%,
-    rgba(0,0,0,0.35) 100%
-  );
+  background: rgba(255,255,255,0.025);
+  backdrop-filter: blur(80px) saturate(6) brightness(1.4) contrast(0.82);
+  -webkit-backdrop-filter: blur(80px) saturate(6) brightness(1.4) contrast(0.82);
 }
 
 /* ── Light Mode ─────────────────────────────────────────────── */
@@ -1374,8 +1516,17 @@ body.light-mode {
   --gray-border:  rgba(0,0,0,0.08);
   --border:       2px solid rgba(0,0,0,0.10);
   --border-strong:2px solid rgba(0,0,0,0.18);
-  background: #F5F5F3;
+  background: #F0EFF8;
   color: #111111;
+}
+
+/* Light mode ambient blobs */
+body.light-mode::before {
+  background:
+    radial-gradient(ellipse 90vw 70vh at 10% 20%, rgba(120,80,200,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 70vw 80vh at 90% 80%, rgba(0,80,200,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60vw 50vh at 50% 50%, rgba(0,160,120,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 40vw 40vh at 75% 15%, rgba(200,80,0,0.04) 0%, transparent 60%);
 }
 
 /* Topbar glass in light mode */
