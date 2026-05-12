@@ -53,11 +53,13 @@ body::before {
   inset: 0;
   pointer-events: none;
   z-index: 0;
+  will-change: transform;
+  transform: translateZ(0); /* Hardware acceleration */
   background:
-    radial-gradient(ellipse 90vw 70vh at 10% 20%, rgba(80,0,160,0.13) 0%, transparent 60%),
-    radial-gradient(ellipse 70vw 80vh at 90% 80%, rgba(0,50,180,0.10) 0%, transparent 60%),
-    radial-gradient(ellipse 60vw 50vh at 50% 50%, rgba(0,120,100,0.07) 0%, transparent 60%),
-    radial-gradient(ellipse 40vw 40vh at 75% 15%, rgba(180,50,0,0.06) 0%, transparent 60%);
+    /* Neo-brutalist yellow/white subtle blobs instead of purple/blue to remove the purplish tone */
+    radial-gradient(ellipse 80vw 60vh at 20% 20%, rgba(230, 255, 0, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 60vw 70vh at 80% 80%, rgba(255, 255, 255, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 50vw 50vh at 50% 50%, rgba(150, 150, 150, 0.03) 0%, transparent 50%);
 }
 
 /* ── Skip Link ───────────────────────────────────────────────── */
@@ -1226,15 +1228,13 @@ body.focus-mode #doc-rendered {
   position: relative;
   z-index: 20;
   isolation: isolate;
+  will-change: transform, backdrop-filter;
+  transform: translateZ(0); /* Hardware acceleration */
 
-  /* Ultra-transparent — content below bleeds through and gets blurred */
-  background: linear-gradient(
-    180deg,
-    rgba(255,255,255,0.055) 0%,
-    rgba(255,255,255,0.02) 100%
-  );
-  backdrop-filter: blur(48px) saturate(3.5) brightness(1.18) contrast(0.88);
-  -webkit-backdrop-filter: blur(48px) saturate(3.5) brightness(1.18) contrast(0.88);
+  /* macOS styled liquid glass */
+  background: rgba(30, 30, 30, 0.45);
+  backdrop-filter: blur(28px) saturate(2) brightness(1.1);
+  -webkit-backdrop-filter: blur(28px) saturate(2) brightness(1.1);
 
   border-bottom: 1px solid transparent;
   box-shadow:
@@ -1299,7 +1299,8 @@ body.focus-mode #doc-rendered {
   position: fixed;
   bottom: 14px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateZ(0); /* Hardware acceleration */
+  will-change: transform, backdrop-filter;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -1309,10 +1310,10 @@ body.focus-mode #doc-rendered {
   white-space: nowrap;
   isolation: isolate;
 
-  /* Ultra-transparent — show what's behind, blur it heavily */
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(72px) saturate(5) brightness(1.35) contrast(0.85) hue-rotate(3deg);
-  -webkit-backdrop-filter: blur(72px) saturate(5) brightness(1.35) contrast(0.85) hue-rotate(3deg);
+  /* macOS styled liquid glass (lower blur radius for performance) */
+  background: rgba(40, 40, 40, 0.45);
+  backdrop-filter: blur(28px) saturate(2) brightness(1.15);
+  -webkit-backdrop-filter: blur(28px) saturate(2) brightness(1.15);
 
   /* Layered physical depth */
   box-shadow:
@@ -1505,41 +1506,40 @@ body.focus-mode #dock {
 
 /* ── Light Mode ─────────────────────────────────────────────── */
 body.light-mode {
-  --black:        #F5F5F3;
-  --black-soft:   #EBEBEA;
-  --black-card:   #E4E4E2;
-  --black-mid:    #D5D5D3;
-  --white:        #111111;
-  --white-dim:    #444444;
+  --black:        #F4F4F0;
+  --black-soft:   #EBEBE8;
+  --black-card:   #E6E6E2;
+  --black-mid:    #DCDCD8;
+  --white:        #050505;
+  --white-dim:    #333333;
   --gray-light:   #E0E0DE;
   --gray-mid:     #BBBBBA;
-  --gray-border:  rgba(0,0,0,0.08);
-  --border:       2px solid rgba(0,0,0,0.10);
-  --border-strong:2px solid rgba(0,0,0,0.18);
-  background: #F0EFF8;
-  color: #111111;
+  --gray-border:  #111111;
+  --shadow:       4px 4px 0px #111111;
+  --shadow-lg:    8px 8px 0px var(--yellow);
+  --shadow-hover: 6px 6px 0px #111111;
+  --border:       2px solid #111111;
+  --border-strong:3px solid #000000;
+  background: #F4F4F0;
+  color: #050505;
 }
 
 /* Light mode ambient blobs */
 body.light-mode::before {
   background:
-    radial-gradient(ellipse 90vw 70vh at 10% 20%, rgba(120,80,200,0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 70vw 80vh at 90% 80%, rgba(0,80,200,0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 60vw 50vh at 50% 50%, rgba(0,160,120,0.04) 0%, transparent 60%),
-    radial-gradient(ellipse 40vw 40vh at 75% 15%, rgba(200,80,0,0.04) 0%, transparent 60%);
+    /* Muted gray/yellow for proper neobrutalism in light mode */
+    radial-gradient(ellipse 80vw 60vh at 20% 20%, rgba(0, 0, 0, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60vw 70vh at 80% 80%, rgba(230, 255, 0, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 50vw 50vh at 50% 50%, rgba(0, 0, 0, 0.02) 0%, transparent 50%);
 }
 
 /* Topbar glass in light mode */
 body.light-mode #topbar {
-  background: linear-gradient(
-    180deg,
-    rgba(255,255,255,0.72) 0%,
-    rgba(255,255,255,0.50) 100%
-  );
-  backdrop-filter: blur(28px) saturate(1.8) brightness(1.04);
-  -webkit-backdrop-filter: blur(28px) saturate(1.8) brightness(1.04);
+  background: rgba(245, 245, 245, 0.55);
+  backdrop-filter: blur(28px) saturate(1.8) brightness(1.05);
+  -webkit-backdrop-filter: blur(28px) saturate(1.8) brightness(1.05);
   border-bottom-color: rgba(0,0,0,0.08);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.8), 0 4px 16px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
 }
 
 body.light-mode #topbar::after {
@@ -1624,14 +1624,9 @@ body.light-mode #doc-rendered tr:hover td { background: rgba(0,0,0,0.03); color:
 
 /* Dock in light mode */
 body.light-mode #dock {
-  background: linear-gradient(
-    145deg,
-    rgba(255,255,255,0.80) 0%,
-    rgba(255,255,255,0.58) 50%,
-    rgba(220,220,220,0.50) 100%
-  );
-  backdrop-filter: blur(40px) saturate(2) brightness(1.06) contrast(0.96);
-  -webkit-backdrop-filter: blur(40px) saturate(2) brightness(1.06) contrast(0.96);
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(28px) saturate(1.8) brightness(1.05);
+  -webkit-backdrop-filter: blur(28px) saturate(1.8) brightness(1.05);
   box-shadow:
     0 12px 40px rgba(0,0,0,0.10),
     0 4px 12px rgba(0,0,0,0.08),
