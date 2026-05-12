@@ -304,11 +304,11 @@ document.addEventListener("fullscreenchange", () => {
   if (!hoverZone || !sidebar) return;
 
   hoverZone.addEventListener("mouseenter", () => {
-    if (state.focusMode) sidebar.classList.add("focus-revealed");
+    if (state.focusMode || state.floatingMode) sidebar.classList.add("focus-revealed");
   });
 
   sidebar.addEventListener("mouseleave", () => {
-    if (state.focusMode) sidebar.classList.remove("focus-revealed");
+    if (state.focusMode || state.floatingMode) sidebar.classList.remove("focus-revealed");
   });
 })();
 
