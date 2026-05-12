@@ -3,1766 +3,1595 @@
 > **Runnable code:** `src/01-math/`
 >
 > ```bash
-> cd src/01-math
-> python vectors.py
-> python matrix_ops.py
-> python calculus_demo.py
-> python probability.py
+> python src/01-math/vectors.py
+> python src/01-math/matrix_ops.py
+> python src/01-math/calculus_demo.py
+> python src/01-math/probability.py
 > ```
 
 ---
 
-# Prerequisites & Overview
+## Prerequisites & Overview
 
-**Prerequisites:** High school algebra, basic Python/NumPy. No prior ML knowledge needed.
+**Prerequisites:** High school algebra, basic Python, knowing what a `for` loop is. No prior ML knowledge needed.
+**Estimated time:** 8–12 hours (reading + running all scripts + mini-project at the end)
 
-**Estimated time:** 6–10 hours (reading + running all four scripts)
+**Install dependencies first:**
+```bash
+pip install numpy
+```
 
 ---
 
-# Why This Module Matters
+## Why This Module Matters
 
-Machine Learning is fundamentally applied mathematics.
+Every modern AI system is built on three mathematical pillars:
 
-Every modern ML system — from recommendation engines and chatbots to image classifiers and large language models — relies heavily on:
+| Pillar | What it does in ML | Example |
+|--------|-------------------|---------|
+| **Linear Algebra** | Represents and transforms data | Neural network layers are matrix multiplications |
+| **Calculus** | Tells the model how to improve | Gradient descent minimizes error using derivatives |
+| **Probability** | Handles uncertainty and noise | Classifier outputs a probability, not a hard label |
 
-1. **Linear Algebra** → representing and transforming data
-2. **Calculus** → optimizing models during training
-3. **Probability & Statistics** → reasoning under uncertainty
+Without this foundation, ML becomes memorizing APIs. With it, you can debug broken training, understand why attention works, derive new architectures, and answer senior-level interview questions.
 
-When training a neural network:
-
-* Inputs become vectors and matrices
-* Predictions are computed using matrix multiplication
-* Errors are minimized using gradients and derivatives
-* Outputs are interpreted probabilistically
-
-Without mathematical intuition, ML becomes memorizing APIs.
-With mathematical understanding, you can:
-
-* Debug models properly
-* Understand why architectures work
-* Read research papers
-* Optimize systems efficiently
-* Build models from scratch
-
----
-
-# Core Concepts at a Glance
-
-| Pillar         | Key Ideas                                               | Where It Appears in ML                            |
-| -------------- | ------------------------------------------------------- | ------------------------------------------------- |
-| Linear Algebra | Vectors, matrix multiplication, eigendecomposition, SVD | Neural network layers, embeddings, attention, PCA |
-| Calculus       | Derivatives, gradients, Jacobians, chain rule           | Backpropagation, optimization                     |
-| Probability    | Distributions, Bayes theorem, entropy, KL divergence    | Loss functions, generative models, uncertainty    |
-
----
-
-# How to Read Any Formula (Quick Beginner Decoder)
-
-When you see a formula, decode it in this order:
-
-1. **What are the inputs?** (vectors, matrices, probabilities, parameters)
-2. **What operation is being done?** (add, multiply, sum, gradient, log)
-3. **What does the output represent?** (similarity, error, probability, update)
-4. **How is this used in ML?** (forward pass, loss, optimization, uncertainty)
-
-Use this template:
-
-> **Formula** → **What it does** → **Tiny numeric example** → **Where it appears in ML**
-
----
-
-# Before You Start
-
-You should ideally know:
-
-* Basic algebra
-* Python functions and loops
-* What a derivative means conceptually
-* Difference between scalar, vector, and matrix
-
-If not, do not worry. This module explains concepts from intuition first.
-
----
-
-# Beginner Foundations — Building Intuition
-
-## 1. Vectors — The Coordinates of ML
-
-Imagine a student profile:
-
-| Feature       | Value |
-| ------------- | ----- |
-| Math score    | 92    |
-| Physics score | 88    |
-| Attendance    | 95    |
-
-This can be represented as:
-
-$$
-\mathbf{v} = [92, 88, 95]
-$$
-
-This list of numbers is called a **vector**.
-
-In ML:
-
-* Images become vectors
-* Sentences become vectors
-* Audio becomes vectors
-* User behavior becomes vectors
-
-A vector is simply a numerical representation of something.
-
----
-
-## 2. Matrices — Collections of Data
-
-One student:
-
-$$
-[92, 88, 95]
-$$
-
-Entire classroom:
-
-$$
-\begin{bmatrix}
-92 & 88 & 95 \
-75 & 81 & 90 \
-84 & 79 & 91
-\end{bmatrix}
-$$
-
-This is a **matrix**.
-
-Matrices allow computers to process many inputs simultaneously.
-
-This is why GPUs are excellent for AI:
-
-* GPUs are optimized for massive matrix operations
-* Neural networks mostly perform repeated matrix multiplication
-
----
-
-## 3. Calculus — Learning Through Error Reduction
-
-Suppose a model predicts house prices.
-
-If predictions are wrong, we need to know:
-
-* How wrong?
-* In which direction should parameters change?
-* By how much?
-
-Derivatives answer these questions.
-
-Think of optimization like walking downhill in fog:
-
-* Gradient = slope direction
-* Gradient descent = repeatedly stepping downhill
-* Lowest valley = minimum error
-
----
-
-## 4. Probability — Handling Uncertainty
-
-Real-world data is noisy.
-
-A spam classifier cannot be 100% certain.
-Instead it predicts:
-
-$$
-P(\text{spam}) = 0.97
-$$
-
-Probability allows ML systems to:
-
-* Estimate confidence
-* Handle uncertainty
-* Learn patterns statistically
-* Make robust predictions
-
----
-
-# 1. Linear Algebra
-
-Linear algebra is the language of machine learning.
-
-Almost every ML operation can be represented using vectors and matrices.
-
----
-
-# 1.1 Scalars, Vectors, Matrices, Tensors
-
-| Object | Notation                        | Shape            | Example         |
-| ------ | ------------------------------- | ---------------- | --------------- |
-| Scalar | $x \in \mathbb{R}$              | `()`             | `3.14`          |
-| Vector | $\mathbf{v} \in \mathbb{R}^n$   | `(n,)`           | `[1,2,3]`       |
-| Matrix | $A \in \mathbb{R}^{m \times n}$ | `(m,n)`          | `[[1,2],[3,4]]` |
-| Tensor | $\mathcal{T}$                   | `(d1,d2,...,dk)` | batch of images |
-
 ---
 
-## Understanding Tensors Intuitively
+## How to Read This Guide
 
-* Scalar → single number
-* Vector → list of numbers
-* Matrix → grid of numbers
-* Tensor → higher-dimensional extension
+Every concept follows this pattern:
 
-Example:
+1. **Real-world analogy** — anchor to something you already know
+2. **Math formula** — see the precise definition
+3. **Tiny numeric example** — trace through with small numbers by hand
+4. **Python code** — run it, read the output, modify it
+5. **ML connection** — where exactly this appears in real systems
 
-RGB image:
-
-$$
-(Height, Width, Channels)
-$$
-
-Batch of images:
-
-$$
-(Batch, Height, Width, Channels)
-$$
-
-Deep learning frameworks like PyTorch and TensorFlow primarily work with tensors.
-
----
-
-# 1.2 Vector Operations
-
-## Vector Addition
-
-$$
-\mathbf{u} + \mathbf{v} = [u_1 + v_1, u_2 + v_2, ..., u_n + v_n]
-$$
-
-Example:
-
-$$
-[1,2,3] + [4,5,6] = [5,7,9]
-$$
-
----
-
-## Scalar Multiplication
-
-$$
-c\mathbf{v} = [cv_1, cv_2, ..., cv_n]
-$$
-
-Example:
-
-$$
-2[1,2,3] = [2,4,6]
-$$
-
----
-
-## Dot Product (Inner Product)
-
-$$
-\mathbf{u} \cdot \mathbf{v} = \sum_{i=1}^{n} u_i v_i = \mathbf{u}^T\mathbf{v}
-$$
-
-Example:
-
-$$
-[1,2,3] \cdot [4,5,6]
-$$
-
-$$
-= 1(4) + 2(5) + 3(6)
-$$
-
-$$
-= 32
-$$
-
-What it does:
-
-* Multiplies matching elements and adds them.
-* Returns **one number** measuring alignment/similarity.
-
-ML example:
-
-* In a recommender system, user embedding `u` and movie embedding `m` are dotted.
-* Larger dot product → stronger predicted preference.
-
----
-
-## Geometric Meaning of Dot Product
-
-$$
-\mathbf{u} \cdot \mathbf{v} = ||\mathbf{u}|| ||\mathbf{v}|| \cos\theta
-$$
-
-Interpretation:
-
-| Angle       | Meaning             |
-| ----------- | ------------------- |
-| $0^\circ$   | Maximum similarity  |
-| $90^\circ$  | Independent         |
-| $180^\circ$ | Opposite directions |
-
----
-
-## Why Dot Products Matter in AI
-
-Dot products are everywhere:
-
-* Attention scores in Transformers
-* Similarity search
-* Recommendation systems
-* Neural network weighted sums
-* Embedding retrieval
-
-ChatGPT itself heavily relies on dot products between embeddings.
-
----
-
-# 1.3 Norms
-
-Norms measure vector magnitude.
-
-## p-Norm
-
-$$
-\|\mathbf{v}\|_p = \left(\sum_{i=1}^{n}|v_i|^p\right)^{1/p}
-$$
-
-What it does:
-
-* Measures vector size/magnitude in different ways depending on `p`.
-
----
-
-## Common Norms
-
-| Norm | Formula | What it means | ML use case |
-| ---- | ------- | ------------- | ----------- |
-| L1   | $\|v\|_1=\sum_i |v_i|$ | Total absolute size | Lasso, sparse features |
-| L2   | $\|v\|_2=\sqrt{\sum_i v_i^2}$ | Euclidean length | Ridge, weight decay |
-| L$\infty$   | $\|v\|_\infty=\max_i |v_i|$ | Largest component only | Robust constraints |
-
 ---
-
-## L1 vs L2 Intuition
-
-### L1 Norm
-
-Encourages many weights to become exactly zero.
 
-Useful in:
+# PART 1 — Linear Algebra
 
-* Feature selection
-* Sparse models
-* Lasso regression
+Linear algebra is the language of ML. Almost every computation — from a single neuron to a billion-parameter LLM — is linear algebra under the hood.
 
-### L2 Norm
-
-Penalizes large weights smoothly.
-
-Useful in:
-
-* Ridge regression
-* Preventing overfitting
-* Stable optimization
-
 ---
 
-## Cosine Similarity
+## 1.1 Scalars, Vectors, Matrices, Tensors
 
-$$
-\text{cos_sim}(\mathbf{u},\mathbf{v}) = \frac{\mathbf{u}\cdot\mathbf{v}}{||\mathbf{u}||_2||\mathbf{v}||_2}
-$$
+### Intuition
 
-Range:
+Think of organizing information about students:
+- **Scalar**: one number — "Alice scored 92 on the math test"
+- **Vector**: one student's full profile — `[math=92, physics=88, attendance=95]`
+- **Matrix**: entire classroom — stack each student's vector as a row
+- **Tensor**: batch of classrooms across multiple schools — another dimension on top
 
-$$
-[-1,1]
-$$
+### Formal Definitions
 
-Used in:
+| Object | Notation | Shape | Example |
+|--------|----------|-------|---------|
+| Scalar | $x \in \mathbb{R}$ | `()` | `3.14` |
+| Vector | $\mathbf{v} \in \mathbb{R}^n$ | `(n,)` | `[1, 2, 3]` |
+| Matrix | $A \in \mathbb{R}^{m \times n}$ | `(m, n)` | `[[1,2],[3,4]]` |
+| Tensor | $\mathcal{T}$ | `(d1, d2, ..., dk)` | batch of images |
 
-* Semantic search
-* Vector databases
-* RAG systems
-* Embedding similarity
+### Python Code — Creating Each Object
 
-Quick numeric example:
+```python
+import numpy as np
 
-* $u=[1,1],\ v=[2,2]$ → cosine similarity = 1 (same direction)
-* $u=[1,0],\ v=[0,1]$ → cosine similarity = 0 (orthogonal)
+# ── SCALAR ──────────────────────────────────────────────────
+score = 92.0
+print(f"Scalar: {score}")           # 92.0
+print(f"Shape:  {np.shape(score)}") # ()  ← zero-dimensional
 
-ML example:
+# ── VECTOR ──────────────────────────────────────────────────
+# Alice's profile: [math_score, physics_score, attendance%]
+alice = np.array([92, 88, 95])
+print(f"\nVector: {alice}")         # [92 88 95]
+print(f"Shape:  {alice.shape}")     # (3,)  ← 3 elements
 
-* Semantic search compares query embedding with document embeddings via cosine similarity.
-* Highest score → most relevant document.
+# ── MATRIX ──────────────────────────────────────────────────
+# Entire classroom — each row is one student
+classroom = np.array([
+    [92, 88, 95],   # Alice
+    [75, 81, 90],   # Bob
+    [84, 79, 91],   # Charlie
+])
+print(f"\nMatrix:\n{classroom}")
+print(f"Shape: {classroom.shape}")  # (3, 3) ← 3 students, 3 features
 
----
+# ── TENSOR ──────────────────────────────────────────────────
+# 4 schools, each with 3 students, each with 3 features
+schools = np.random.randint(60, 100, size=(4, 3, 3))
+print(f"\nTensor shape: {schools.shape}")  # (4, 3, 3)
 
-## Vector Projection
+# Accessing elements:
+print(f"\nAlice's physics score: {classroom[0, 1]}")  # 88
+print(f"All physics scores:     {classroom[:, 1]}")   # [88 81 79]
+```
 
-$$
-\text{proj}_{\mathbf{v}}\mathbf{u} = \frac{\mathbf{u}\cdot\mathbf{v}}{\mathbf{v}\cdot\mathbf{v}}\mathbf{v}
-$$
+**What each line does:**
+- `np.array([...])` — wraps a Python list into a NumPy array that can do math
+- `alice.shape` — tells you the dimensions; `(3,)` means 1D with 3 elements
+- `classroom[:, 1]` — `:` means "all rows", `1` means "column index 1" (physics)
 
-Projection tells how much of one vector lies along another vector.
+**ML connection:** When you pass a batch of 32 images through a CNN, each image is a `(3, 224, 224)` tensor (RGB channels × height × width). The batch becomes `(32, 3, 224, 224)`. Every layer transforms this 4D tensor.
 
 ---
-
-# 1.4 Matrix Operations
-
-## Matrix Multiplication
-
-If:
-
-$$
-A \in \mathbb{R}^{m \times k}
-$$
-
-and
-
-$$
-B \in \mathbb{R}^{k \times n}
-$$
-
-then:
-
-$$
-C = AB
-$$
-
-where:
 
-$$
-C_{ij} = \sum_{l=1}^{k}A_{il}B_{lj}
-$$
+## 1.2 Vector Operations
 
-What it does:
+### Intuition
 
-* Combines rows of `A` with columns of `B` using dot products.
-* This is the core computation in neural network layers.
+Vectors are arrows in space. Operations on vectors are geometric operations — adding arrows, stretching them, measuring angles between them.
 
-Tiny example:
+### Vector Addition
 
-$$
-\begin{bmatrix}1 & 2\end{bmatrix}
-\begin{bmatrix}3\\4\end{bmatrix}=11
-$$
+$$\mathbf{u} + \mathbf{v} = [u_1 + v_1,\ u_2 + v_2,\ \ldots,\ u_n + v_n]$$
 
-ML example:
+**Real-world:** Alice's week 1 scores `[80, 70]` + improvement `[12, 18]` = final scores `[92, 88]`.
 
-* Dense layer: `y = XW + b`
-* `X` = batch of inputs, `W` = learned weights.
+```python
+import numpy as np
 
----
-
-## Dimension Rule
+week1  = np.array([80, 70])
+gains  = np.array([12, 18])
+final  = week1 + gains
 
-$$
-(m \times k)(k \times n) \rightarrow (m \times n)
-$$
+print(f"Week 1:      {week1}")   # [80 70]
+print(f"Improvement: {gains}")   # [12 18]
+print(f"Final:       {final}")   # [92 88]
+```
 
-Inner dimensions must match.
-
----
+### Scalar Multiplication
 
-## Important Properties
+$$c \cdot \mathbf{v} = [c v_1,\ c v_2,\ \ldots,\ c v_n]$$
 
-### Associative
+**Real-world:** Double all scores for extra credit.
 
-$$
-(AB)C = A(BC)
-$$
+```python
+scores  = np.array([40, 35, 48])
+doubled = 2 * scores
+print(f"Original: {scores}")   # [40 35 48]
+print(f"Doubled:  {doubled}")  # [80 70 96]
+```
 
-### Distributive
+### Dot Product (Inner Product)
 
-$$
-A(B+C)=AB+AC
-$$
+$$\mathbf{u} \cdot \mathbf{v} = \sum_{i=1}^{n} u_i v_i = \mathbf{u}^T \mathbf{v}$$
 
-### Non-Commutative
+**Step-by-step numeric example:**
+$$[1, 2, 3] \cdot [4, 5, 6] = 1(4) + 2(5) + 3(6) = 4 + 10 + 18 = 32$$
 
-$$
-AB \neq BA
-$$
+```python
+u = np.array([1, 2, 3])
+v = np.array([4, 5, 6])
 
-This is extremely important in ML.
-Order matters.
+# Method 1: manual
+manual = u[0]*v[0] + u[1]*v[1] + u[2]*v[2]
 
----
+# Method 2: NumPy
+dot = np.dot(u, v)
 
-## Transpose
+# Method 3: @ operator (same as dot for 1D)
+dot2 = u @ v
 
-$$
-(AB)^T = B^TA^T
-$$
+print(f"Manual:  {manual}")  # 32
+print(f"np.dot:  {dot}")     # 32
+print(f"@ op:    {dot2}")    # 32
+```
 
-Transpose swaps rows and columns.
+**Geometric meaning:**
+$$\mathbf{u} \cdot \mathbf{v} = \|\mathbf{u}\| \|\mathbf{v}\| \cos\theta$$
 
----
+| Angle | $\cos\theta$ | Dot product | Meaning |
+|-------|-------------|-------------|---------|
+| $0°$ | 1 | Maximum positive | Vectors point the same way |
+| $90°$ | 0 | Zero | Vectors are perpendicular (independent) |
+| $180°$ | -1 | Maximum negative | Vectors point opposite ways |
 
-## Trace
+```python
+# Dot product and angle
+import numpy as np
 
-$$
-\text{tr}(A)=\sum_i A_{ii}
-$$
+a = np.array([1, 0])  # points right
+b = np.array([0, 1])  # points up
 
-Trace is the sum of diagonal elements.
+dot_ab = np.dot(a, b)
+cos_theta = dot_ab / (np.linalg.norm(a) * np.linalg.norm(b))
+angle_deg = np.degrees(np.arccos(cos_theta))
 
-ML example:
+print(f"Dot product: {dot_ab}")       # 0
+print(f"Angle:       {angle_deg}°")   # 90.0° — perpendicular
+```
 
-* In matrix calculus and covariance-based objectives, trace simplifies sums of quadratic terms.
+**ML connection:** In a recommender system, the user embedding `u` and movie embedding `m` are dotted. Higher dot product → stronger predicted preference. In Transformers, attention scores are dot products between query and key vectors.
 
 ---
-
-## Determinant
-
-For:
 
-$$
-\begin{pmatrix}
-a & b \
-c & d
-\end{pmatrix}
-$$
+## 1.3 Norms — Measuring Vector Size
 
-$$
-\det(A)=ad-bc
-$$
+### Intuition
 
-Interpretation:
+A norm is a ruler for vectors. Different norms measure "size" differently, like measuring a city block by direct distance vs. walking along streets.
 
-* Measures volume scaling
-* Determines invertibility
-* Detects collapse of dimensions
+### p-Norm
 
-If:
+$$\|\mathbf{v}\|_p = \left(\sum_{i=1}^{n} |v_i|^p\right)^{1/p}$$
 
-$$
-\det(A)=0
-$$
+### The Three Norms You Must Know
 
-then matrix is singular and non-invertible.
+| Norm | Formula | Intuition | ML use |
+|------|---------|-----------|--------|
+| L1 | $\|\mathbf{v}\|_1 = \sum_i |v_i|$ | Manhattan distance (taxi cab) | Lasso, sparse models |
+| L2 | $\|\mathbf{v}\|_2 = \sqrt{\sum_i v_i^2}$ | Euclidean distance (straight line) | Ridge, weight decay, cosine sim |
+| L∞ | $\|\mathbf{v}\|_\infty = \max_i |v_i|$ | Largest component | Adversarial robustness |
 
-ML intuition:
+```python
+import numpy as np
 
-* Determinant near 0 means transformation squashes space; information may be lost.
-
----
-
-# 1.5 Matrix Inverse
-
-For square matrix:
-
-$$
-AA^{-1}=I
-$$
-
-where:
-
-$$
-I = \text{Identity matrix}
-$$
-
----
+v = np.array([3.0, -4.0, 0.0])
 
-## Why Inverses Matter
+# L1 norm: sum of absolute values
+l1 = np.linalg.norm(v, ord=1)
+print(f"L1: |3| + |-4| + |0| = {l1}")  # 7.0
 
-Suppose:
+# L2 norm: Euclidean length
+l2 = np.linalg.norm(v, ord=2)  # or just np.linalg.norm(v)
+print(f"L2: sqrt(9 + 16 + 0) = {l2}")  # 5.0
 
-$$
-Ax=b
-$$
+# L-inf norm: largest absolute value
+linf = np.linalg.norm(v, ord=np.inf)
+print(f"L∞: max(3, 4, 0) = {linf}")    # 4.0
 
-Then:
+# Why L1 promotes sparsity:
+# When you penalize ||w||_1, the optimizer prefers weights at exactly zero
+# because reducing a non-zero weight to zero gives a fixed decrease in the penalty
+# no matter how small the weight was.
+```
 
-$$
-x=A^{-1}b
-$$
+**L1 vs L2 — the key difference:**
+- **L1** penalizes weights equally regardless of size → pushes small weights to exactly zero → sparsity
+- **L2** penalizes large weights more → shrinks all weights smoothly → no zeros
 
-This solves systems of equations.
+### Cosine Similarity
 
----
+$$\text{cosine\_sim}(\mathbf{u}, \mathbf{v}) = \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\|_2 \|\mathbf{v}\|_2} \in [-1, 1]$$
 
-## Moore-Penrose Pseudoinverse
+Cosine similarity measures **direction** only, ignoring magnitude. Two vectors pointing the same direction have similarity 1 even if one is 10× longer.
 
-Used when matrix is:
+```python
+import numpy as np
 
-* Non-square
-* Singular
-* Overdetermined
+def cosine_similarity(u, v):
+    # Step 1: compute the dot product
+    dot = np.dot(u, v)
 
-Formula:
+    # Step 2: compute the L2 norm of each vector
+    norm_u = np.linalg.norm(u)
+    norm_v = np.linalg.norm(v)
 
-$$
-A^+=(A^TA)^{-1}A^T
-$$
+    # Step 3: divide dot by product of norms
+    return dot / (norm_u * norm_v)
 
-What it does:
+# Example: two students with similar profiles (same direction)
+alice   = np.array([92, 88, 95])
+charlie = np.array([46, 44, 47.5])  # exactly half of Alice's scores
 
-* Gives a best-fit inverse when true inverse does not exist.
+sim1 = cosine_similarity(alice, charlie)
+print(f"Alice vs Charlie (same direction): {sim1:.4f}")  # 1.0
 
-ML example:
+# Example: two students with very different profiles
+bob  = np.array([75, 81, 90])
+dave = np.array([20, 95, 50])
 
-* Linear regression closed-form solution uses this idea for least squares.
+sim2 = cosine_similarity(bob, dave)
+print(f"Bob vs Dave (different profiles): {sim2:.4f}")  # ~0.91
 
-Used heavily in:
+# Normalizing first (unit vectors)
+alice_unit = alice / np.linalg.norm(alice)
+print(f"Alice unit vector: {alice_unit.round(4)}")
+# After normalization, dot product = cosine similarity
+```
 
-* Least squares
-* Linear regression
-* Numerical optimization
+**ML connection:** Semantic search — when you query "what is backpropagation?", the system embeds your query into a vector and finds document embeddings with the highest cosine similarity. ChromaDB, Pinecone, and FAISS all do this under the hood.
 
 ---
-
-# 1.6 Eigenvalues & Eigenvectors
 
-Definition:
+## 1.4 Matrix Operations
 
-$$
-A\mathbf{v}=\lambda\mathbf{v}
-$$
+### Matrix Multiplication
 
-where:
+If $A \in \mathbb{R}^{m \times k}$ and $B \in \mathbb{R}^{k \times n}$, then $C = AB \in \mathbb{R}^{m \times n}$ where:
 
-* $\mathbf{v}$ = eigenvector
-* $\lambda$ = eigenvalue
+$$C_{ij} = \sum_{l=1}^{k} A_{il} B_{lj}$$
 
----
+**Dimension rule:** Inner dimensions must match. `(m × k) × (k × n) → (m × n)`.
 
-## Intuition
+**Step-by-step example:**
+$$\begin{bmatrix}1&2\\3&4\end{bmatrix} \times \begin{bmatrix}5&6\\7&8\end{bmatrix}$$
 
-Normally matrices rotate and stretch vectors.
+Row 0 × Col 0: $1(5) + 2(7) = 19$
+Row 0 × Col 1: $1(6) + 2(8) = 22$
+Row 1 × Col 0: $3(5) + 4(7) = 43$
+Row 1 × Col 1: $3(6) + 4(8) = 50$
 
-Eigenvectors are special vectors whose direction remains unchanged after transformation.
-Only scaling changes.
+Result: $\begin{bmatrix}19&22\\43&50\end{bmatrix}$
 
----
+```python
+import numpy as np
 
-## Characteristic Equation
+A = np.array([[1, 2],
+              [3, 4]])
 
-$$
-\det(A-\lambda I)=0
-$$
+B = np.array([[5, 6],
+              [7, 8]])
 
-Solving gives eigenvalues.
+# Method 1: np.dot
+C = np.dot(A, B)
 
----
+# Method 2: @ operator (preferred for matrices)
+C2 = A @ B
 
-## Eigendecomposition
+print(f"A @ B =\n{C}")
+# [[19 22]
+#  [43 50]]
 
-$$
-A=V\Lambda V^{-1}
-$$
+# Verify manually
+c00 = A[0, 0] * B[0, 0] + A[0, 1] * B[1, 0]  # = 1*5 + 2*7 = 19
+print(f"C[0,0] manually: {c00}")
 
-where:
+# Shape check
+print(f"A: {A.shape}, B: {B.shape}, C: {C.shape}")  # (2,2) × (2,2) = (2,2)
 
-* $V$ = eigenvectors
-* $\Lambda$ = diagonal matrix of eigenvalues
+# Batched matrix multiply (crucial for ML)
+# Input batch: 32 samples, each with 10 features
+X = np.random.randn(32, 10)
+# Weight matrix: 10 input features → 5 output features
+W = np.random.randn(10, 5)
+# Output: 32 samples, each with 5 activations
+out = X @ W
+print(f"\nNeural layer: {X.shape} @ {W.shape} = {out.shape}")
+# (32, 10) @ (10, 5) = (32, 5)
+```
 
-ML example:
+**Key properties:**
 
-* PCA finds directions (eigenvectors) with largest variance (largest eigenvalues).
+```python
+# Associative: (AB)C = A(BC)
+A = np.random.randn(2, 3)
+B = np.random.randn(3, 4)
+C = np.random.randn(4, 2)
 
----
+left  = (A @ B) @ C
+right = A @ (B @ C)
+print(f"Associative holds: {np.allclose(left, right)}")  # True
 
-## Symmetric Matrices
+# NOT commutative: AB ≠ BA in general
+M = np.array([[1,2],[3,4]])
+N = np.array([[0,1],[1,0]])
+print(f"\nM@N =\n{M@N}")   # [[2,1],[4,3]]
+print(f"N@M =\n{N@M}")    # [[3,4],[1,2]]  ← different!
+```
 
-For:
+**ML connection:** Every dense layer in a neural network is `out = X @ W + b`. A batch of 64 inputs through a hidden layer of 512 units is literally a `(64, input_dim) @ (input_dim, 512)` matrix multiplication.
 
-$$
-A=A^T
-$$
+### Transpose
 
-we get:
+$$A^T_{ij} = A_{ji}$$
 
-$$
-A=Q\Lambda Q^T
-$$
+```python
+A = np.array([[1, 2, 3],
+              [4, 5, 6]])
 
-where:
+print(f"A shape: {A.shape}")      # (2, 3)
+print(f"A.T shape: {A.T.shape}")  # (3, 2)
+print(f"A.T:\n{A.T}")
+# [[1 4]
+#  [2 5]
+#  [3 6]]
 
-$$
-Q^TQ=I
-$$
+# Key identity: (AB)^T = B^T A^T
+B = np.random.randn(3, 4)
+AB_T   = (A @ B).T
+BT_AT  = B.T @ A.T
+print(f"\n(AB)^T = B^T A^T: {np.allclose(AB_T, BT_AT)}")  # True
+```
 
-These matrices are extremely important in ML.
+### Trace and Determinant
 
-Covariance matrices are symmetric.
+```python
+M = np.array([[4, 2],
+              [1, 3]])
 
----
+# Trace: sum of diagonal elements
+trace = np.trace(M)
+print(f"Trace: {trace}")          # 7  (4 + 3)
 
-## ML Applications of Eigenvalues
+# Determinant: measures volume scaling / invertibility
+det = np.linalg.det(M)
+print(f"Det: {det}")              # 10.0  (4*3 - 2*1)
 
-| Application         | Usage                 |
-| ------------------- | --------------------- |
-| PCA                 | Principal components  |
-| Spectral clustering | Graph structure       |
-| Stability analysis  | Optimization behavior |
-| Google PageRank     | Dominant eigenvector  |
+# If det = 0, matrix is singular (non-invertible)
+singular = np.array([[1, 2], [2, 4]])
+print(f"Singular det: {np.linalg.det(singular):.6f}")  # 0.000000
+```
 
 ---
-
-# 1.7 Singular Value Decomposition (SVD)
-
-Any matrix:
 
-$$
-A \in \mathbb{R}^{m\times n}
-$$
+## 1.5 Matrix Inverse
 
-can be decomposed as:
+For a square matrix $A$:
+$$A A^{-1} = I$$
 
-$$
-A=U\Sigma V^T
-$$
+where $I$ is the identity matrix.
 
----
+**Why inverses matter:** Solving $A\mathbf{x} = \mathbf{b}$ gives $\mathbf{x} = A^{-1}\mathbf{b}$.
 
-## Components of SVD
+```python
+import numpy as np
 
-| Matrix   | Meaning                |
-| -------- | ---------------------- |
-| $U$      | Left singular vectors  |
-| $\Sigma$ | Singular values        |
-| $V^T$    | Right singular vectors |
+A = np.array([[4.0, 2.0],
+              [1.0, 3.0]])
 
----
+A_inv = np.linalg.inv(A)
+print(f"A inverse:\n{A_inv}")
+# [[ 0.3  -0.2]
+#  [-0.1   0.4]]
 
-## Why SVD is Important
+# Verify: A @ A_inv should be identity
+I_approx = A @ A_inv
+print(f"\nA @ A_inv:\n{I_approx.round(10)}")
+# [[1. 0.]
+#  [0. 1.]]
 
-SVD works for ANY matrix.
+# Solving Ax = b using inverse
+b = np.array([8.0, 5.0])
+x = A_inv @ b
+print(f"\nSolution x: {x}")         # [1.4 1.8]
+print(f"Verify Ax=b: {A @ x}")     # [8. 5.] ✓
 
-Unlike eigendecomposition, matrix does not need to be square.
+# Moore-Penrose pseudoinverse (works for non-square / singular matrices)
+# Used in linear regression closed-form: w = (X^T X)^-1 X^T y
+A_rect = np.random.randn(5, 3)     # 5 equations, 3 unknowns
+A_pinv = np.linalg.pinv(A_rect)   # shape (3, 5)
+print(f"\nPseudoinverse shape: {A_pinv.shape}")
+```
 
 ---
-
-## Truncated SVD
-
-$$
-A \approx U_k\Sigma_kV_k^T
-$$
 
-What it does:
+## 1.6 Eigenvalues & Eigenvectors
 
-* Keeps only top `k` singular values/vectors.
-* Compresses data while preserving most important structure.
+### Intuition
 
-ML example:
+Every matrix is a transformation — it rotates and stretches vectors. Eigenvectors are the special vectors that **only get stretched, never rotated**. The eigenvalue says by how much.
 
-* In recommendation systems, user-item matrix factorization uses low-rank structure.
+$$A\mathbf{v} = \lambda\mathbf{v}$$
 
-This reduces dimensionality while preserving maximum information.
+- $\mathbf{v}$ = eigenvector (direction preserved)
+- $\lambda$ = eigenvalue (how much it scales)
 
----
-
-## Applications of SVD
+### Why This Matters for ML
 
-* PCA
-* Recommendation systems
-* Compression
-* Latent semantic analysis
-* Noise reduction
-* Matrix factorization
+PCA finds the directions (eigenvectors) of maximum variance in the data. The eigenvalue of each direction tells you how much variance lies along it. The top eigenvectors become your compressed representation.
 
----
+```python
+import numpy as np
 
-> **Run:** `python src/01-math/matrix_ops.py`
+# Example: 2x2 matrix
+A = np.array([[3.0, 1.0],
+              [1.0, 3.0]])
 
-This demonstrates:
+# Compute eigenvalues and eigenvectors
+eigenvalues, eigenvectors = np.linalg.eig(A)
 
-* Eigendecomposition
-* SVD
-* Pseudoinverse
-
----
+print(f"Eigenvalues:  {eigenvalues}")     # [4. 2.]
+print(f"Eigenvectors:\n{eigenvectors}")
+# Each COLUMN is one eigenvector
 
-# 2. Calculus for ML
+# Verify: A @ v = λ @ v
+for i in range(len(eigenvalues)):
+    lam = eigenvalues[i]
+    v   = eigenvectors[:, i]  # i-th column
 
-Calculus allows models to learn.
+    Av     = A @ v
+    lam_v  = lam * v
 
-Without derivatives, neural networks cannot optimize themselves.
+    print(f"\nEigenvector {i}: {v.round(4)}")
+    print(f"  A @ v    = {Av.round(4)}")
+    print(f"  λ × v    = {lam_v.round(4)}")
+    print(f"  Match:     {np.allclose(Av, lam_v)}")
 
----
+# Eigendecomposition: A = V Λ V^-1
+V      = eigenvectors
+Lambda = np.diag(eigenvalues)
+A_reconstructed = V @ Lambda @ np.linalg.inv(V)
+print(f"\nReconstructed A matches original: {np.allclose(A, A_reconstructed)}")
+```
 
-# 2.1 Partial Derivatives
+**Step-by-step hand calculation:**
 
-For:
+Characteristic equation: $\det(A - \lambda I) = 0$
 
-$$
-f(x,y)=x^2y+3xy^2
-$$
+$$\det\begin{bmatrix}3-\lambda & 1 \\ 1 & 3-\lambda\end{bmatrix} = (3-\lambda)^2 - 1 = 0$$
+$$\lambda^2 - 6\lambda + 8 = 0 \Rightarrow (\lambda-4)(\lambda-2) = 0$$
+$$\lambda_1 = 4,\quad \lambda_2 = 2$$
 
-Partial derivative with respect to $x$:
+### PCA Preview with Eigendecomposition
 
-$$
-\frac{\partial f}{\partial x}=2xy+3y^2
-$$
+```python
+import numpy as np
 
-Partial derivative with respect to $y$:
+rng = np.random.default_rng(42)
 
-$$
-\frac{\partial f}{\partial y}=x^2+6xy
-$$
+# Simulate correlated student data
+n = 100
+math_score = rng.normal(75, 10, n)
+physics_score = math_score * 0.8 + rng.normal(0, 5, n)  # correlated
 
-ML example:
+X = np.column_stack([math_score, physics_score])
+X -= X.mean(axis=0)  # center the data
 
-* If loss depends on multiple weights, partial derivative tells effect of changing **one weight** while others stay fixed.
+# Covariance matrix — captures spread and correlation
+cov = X.T @ X / n
+print(f"Covariance matrix:\n{cov.round(2)}")
 
----
+# Find principal components
+eigenvalues, eigenvectors = np.linalg.eig(cov)
 
-## Intuition
+# Sort by largest eigenvalue (most variance first)
+idx = np.argsort(eigenvalues)[::-1]
+eigenvalues  = eigenvalues[idx]
+eigenvectors = eigenvectors[:, idx]
 
-When taking partial derivative with respect to one variable:
+# Explained variance ratio
+total_var = eigenvalues.sum()
+print(f"\nVariance explained by PC1: {eigenvalues[0]/total_var*100:.1f}%")
+print(f"Variance explained by PC2: {eigenvalues[1]/total_var*100:.1f}%")
 
-* Treat other variables as constants
+# Project onto first principal component (dimensionality reduction)
+X_compressed = X @ eigenvectors[:, 0:1]
+print(f"\nOriginal shape: {X.shape}")          # (100, 2)
+print(f"Compressed shape: {X_compressed.shape}")  # (100, 1)
+```
 
 ---
 
-# 2.2 Gradient
+## 1.7 Singular Value Decomposition (SVD)
 
-Gradient is vector of all partial derivatives.
+Any matrix $A \in \mathbb{R}^{m \times n}$ (square or not) decomposes as:
 
-$$
-\nabla_xf=
-\begin{bmatrix}
-\frac{\partial f}{\partial x_1} \
-\frac{\partial f}{\partial x_2} \
-\vdots \
-\frac{\partial f}{\partial x_n}
-\end{bmatrix}
-$$
+$$A = U \Sigma V^T$$
 
----
+| Matrix | Shape | Meaning |
+|--------|-------|---------|
+| $U$ | $(m, m)$ | Left singular vectors — row space basis |
+| $\Sigma$ | $(m, n)$ diagonal | Singular values — importance of each dimension |
+| $V^T$ | $(n, n)$ | Right singular vectors — column space basis |
 
-## Important Property
+```python
+import numpy as np
 
-$$
-\nabla f
-$$
+# User-movie rating matrix (4 users, 5 movies)
+A = np.array([
+    [5, 4, 1, 1, 2],
+    [4, 5, 1, 2, 1],
+    [1, 2, 5, 4, 4],
+    [2, 1, 4, 5, 4],
+], dtype=float)
 
-points toward steepest ascent.
+# Full SVD
+U, sigma, Vt = np.linalg.svd(A, full_matrices=True)
+print(f"U shape:     {U.shape}")      # (4, 4)
+print(f"Sigma:       {sigma.round(2)}")  # singular values, largest first
+print(f"Vt shape:    {Vt.shape}")     # (5, 5)
 
-Therefore:
+# Reconstruct original matrix from all singular values
+Sigma_full = np.zeros_like(A)
+np.fill_diagonal(Sigma_full, sigma)
+A_reconstructed = U @ Sigma_full @ Vt
+print(f"\nReconstruction error: {np.linalg.norm(A - A_reconstructed):.2e}")
 
-$$
--\nabla f
-$$
+# ── Truncated SVD (the useful part) ────────────────────────
+k = 2  # keep only top 2 singular values
 
-points toward steepest descent.
+U_k     = U[:, :k]           # (4, 2)
+sigma_k = np.diag(sigma[:k]) # (2, 2)
+Vt_k    = Vt[:k, :]          # (2, 5)
 
-This is the basis of optimization.
+A_approx = U_k @ sigma_k @ Vt_k
+print(f"\nWith k={k} components:")
+print(f"Approximation error: {np.linalg.norm(A - A_approx):.4f}")
+print(f"Variance captured: {(sigma[:k]**2).sum() / (sigma**2).sum() * 100:.1f}%")
 
-ML example:
+# User "latent features" for recommendation
+user_embeddings = U_k @ sigma_k
+print(f"\nUser latent embeddings (4 users in 2D):\n{user_embeddings.round(2)}")
+```
 
-* During training, gradient gives direction to update all model parameters to reduce loss.
+**ML connection:** SVD powers recommendation systems (collaborative filtering), NLP (Latent Semantic Analysis), image compression, and is the foundation of PCA. Modern large model training uses low-rank SVD decompositions (LoRA is essentially truncated SVD applied to weight updates).
 
 ---
-
-# 2.3 Chain Rule
 
-For composite function:
+# PART 2 — Calculus for ML
 
-$$
-f(g(x))
-$$
+Calculus is how models learn. Without derivatives, there is no backpropagation, and without backpropagation, neural networks cannot update their weights.
 
-$$
-\frac{d}{dx}f(g(x))=f'(g(x))g'(x)
-$$
-
 ---
-
-## Why Chain Rule Matters
-
-Neural networks are nested functions.
-
-Example:
-
-$$
-\text{Input} \rightarrow \text{Layer 1} \rightarrow \text{Layer 2} \rightarrow \text{Loss}
-$$
 
-Backpropagation repeatedly applies chain rule through all layers.
+## 2.1 Derivatives — The Core Idea
 
-Tiny ML example:
+### Intuition
 
-* If $L$ depends on prediction $\hat{y}$ and $\hat{y}$ depends on weight $w$,
-  $$\frac{dL}{dw}=\frac{dL}{d\hat{y}}\cdot\frac{d\hat{y}}{dw}$$
-* This is exactly how backprop computes gradients.
+A derivative tells you the **slope at a point**: if you change the input by a tiny amount, how much does the output change?
 
----
-
-# 2.4 Jacobian and Hessian
+$$f'(x) = \frac{df}{dx} = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h}$$
 
-## Jacobian
+**Analogy:** You're driving uphill. The derivative of elevation with respect to position tells you how steep the current section is.
 
-For:
+### Common Derivatives You Must Know
 
-$$
-\mathbf{f}:\mathbb{R}^n\rightarrow\mathbb{R}^m
-$$
+| Function | Derivative |
+|----------|-----------|
+| $f(x) = c$ (constant) | $f'(x) = 0$ |
+| $f(x) = x^n$ | $f'(x) = nx^{n-1}$ |
+| $f(x) = e^x$ | $f'(x) = e^x$ |
+| $f(x) = \ln(x)$ | $f'(x) = 1/x$ |
+| $f(x) = \sigma(x)$ (sigmoid) | $f'(x) = \sigma(x)(1 - \sigma(x))$ |
 
-$$
-J_{ij}=\frac{\partial f_i}{\partial x_j}
-$$
+```python
+import numpy as np
 
-Jacobian stores first-order derivatives.
-
----
+# Numerical derivative — approximate using tiny step h
+def numerical_derivative(f, x, h=1e-5):
+    return (f(x + h) - f(x - h)) / (2 * h)  # central difference
 
-## Hessian
+# Test with f(x) = x^3
+f    = lambda x: x**3
+f_dx = lambda x: 3*x**2  # analytical derivative
 
-$$
-H_{ij}=\frac{\partial^2f}{\partial x_i\partial x_j}
-$$
+x = 2.0
+numerical = numerical_derivative(f, x)
+analytical = f_dx(x)
 
-Hessian stores second-order derivatives.
+print(f"x = {x}")
+print(f"Numerical derivative:  {numerical:.6f}")   # ~12.000000
+print(f"Analytical derivative: {analytical:.6f}")  # 12.000000
 
----
+# Sigmoid and its derivative
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
 
-## Hessian Interpretation
+def sigmoid_deriv(x):
+    s = sigmoid(x)
+    return s * (1 - s)  # this is the elegant sigmoid derivative
 
-| Eigenvalues | Meaning       |
-| ----------- | ------------- |
-| Positive    | Local minimum |
-| Negative    | Local maximum |
-| Mixed       | Saddle point  |
+x_vals = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
+print(f"\nx:          {x_vals}")
+print(f"σ(x):       {sigmoid(x_vals).round(4)}")
+print(f"σ'(x):      {sigmoid_deriv(x_vals).round(4)}")
+# Peak at x=0, where σ(0)=0.5, σ'(0)=0.25
+```
 
 ---
-
-# 2.5 Gradient Descent
-
-Goal:
-
-$$
-\min \mathcal{L}(w)
-$$
-
-Update rule:
 
-$$
-w_{t+1}=w_t-\eta\nabla_w\mathcal{L}(w_t)
-$$
+## 2.2 Partial Derivatives
 
-where:
+When a function has multiple inputs, the partial derivative with respect to one variable treats all others as constants.
 
-* $\eta$ = learning rate
+$$\frac{\partial f}{\partial x_i}\ \text{— how much does}\ f\ \text{change if we nudge only}\ x_i?$$
 
-What it does:
+**Example:** $f(x, y) = x^2 y + 3xy^2$
 
-* Moves parameters a small step opposite gradient to reduce loss.
+$$\frac{\partial f}{\partial x} = 2xy + 3y^2 \qquad \frac{\partial f}{\partial y} = x^2 + 6xy$$
 
-Tiny numeric example:
+```python
+import numpy as np
 
-* If current weight $w=2$, gradient $=0.5$, learning rate $\eta=0.1$:
-	$$w_{new}=2-0.1(0.5)=1.95$$
+def f(x, y):
+    return x**2 * y + 3 * x * y**2
 
----
+# Analytical partial derivatives
+def df_dx(x, y): return 2*x*y + 3*y**2
+def df_dy(x, y): return x**2 + 6*x*y
 
-## Gradient Descent Intuition
+# Numerical verification
+def partial_x(f, x, y, h=1e-5):
+    return (f(x+h, y) - f(x-h, y)) / (2*h)
 
-1. Compute error
-2. Compute gradient
-3. Move opposite gradient
-4. Repeat
+def partial_y(f, x, y, h=1e-5):
+    return (f(x, y+h) - f(x, y-h)) / (2*h)
 
-Eventually model reaches lower loss.
+x, y = 2.0, 3.0
 
----
+print(f"f({x},{y}) = {f(x,y)}")    # 4*3 + 3*2*9 = 12 + 54 = 66
 
-## Types of Gradient Descent
+print(f"\n∂f/∂x analytical: {df_dx(x,y)}")        # 2*2*3 + 3*9 = 12+27=39
+print(f"∂f/∂x numerical:  {partial_x(f,x,y):.6f}")  # ~39.0
 
-| Type           | Uses           |
-| -------------- | -------------- |
-| Batch GD       | Entire dataset |
-| SGD            | One sample     |
-| Mini-batch SGD | Small subsets  |
+print(f"\n∂f/∂y analytical: {df_dy(x,y)}")        # 4 + 6*2*3 = 4+36=40
+print(f"∂f/∂y numerical:  {partial_y(f,x,y):.6f}")  # ~40.0
+```
 
-Mini-batch SGD is most common in deep learning.
+**ML connection:** In a neural network loss $\mathcal{L}(w_1, w_2, \ldots, w_n)$, we compute partial derivatives with respect to every weight. Each $\frac{\partial \mathcal{L}}{\partial w_i}$ tells us how much that specific weight is hurting performance.
 
 ---
 
-## Numerical Gradient Checking
+## 2.3 Gradient — The Direction of Steepest Ascent
 
-$$
-\frac{\partial f}{\partial x_i}
-\approx
-\frac{f(x+\epsilon)-f(x-\epsilon)}{2\epsilon}
-$$
+The gradient packages all partial derivatives into one vector:
 
-Used to verify correctness of backpropagation implementations.
-
----
+$$\nabla_\mathbf{x} f = \begin{bmatrix} \frac{\partial f}{\partial x_1} \\ \frac{\partial f}{\partial x_2} \\ \vdots \\ \frac{\partial f}{\partial x_n} \end{bmatrix}$$
 
-> **Run:** `python src/01-math/calculus_demo.py`
+The gradient **points toward steepest ascent**. Therefore $-\nabla f$ points toward steepest descent — the direction to move to reduce the loss.
 
-Demonstrates:
+```python
+import numpy as np
 
-* Numerical gradients
-* Analytical gradients
-* Gradient descent
+# Bowl-shaped loss function: L(w1, w2) = w1^2 + w2^2
+def loss(w):
+    return w[0]**2 + w[1]**2
 
----
+def gradient(w):
+    # ∂L/∂w1 = 2*w1,  ∂L/∂w2 = 2*w2
+    return np.array([2*w[0], 2*w[1]])
 
-# 3. Probability & Statistics
+w = np.array([3.0, 4.0])
+g = gradient(w)
 
-Probability is the mathematical framework for uncertainty.
+print(f"Current weights: {w}")           # [3. 4.]
+print(f"Loss:            {loss(w)}")     # 25.0
+print(f"Gradient:        {g}")           # [6. 8.] — points AWAY from minimum
+print(f"Gradient direction: uphill → moving -gradient takes us toward minimum")
 
-Modern AI systems are probabilistic systems.
+# Gradient magnitude tells steepness
+print(f"Gradient norm:   {np.linalg.norm(g):.2f}")  # 10.0 — steep!
+```
 
 ---
-
-# 3.1 Foundations
-
-## Sample Space
-
-$$
-\Omega
-$$
-
-Set of all possible outcomes.
 
----
+## 2.4 Chain Rule
 
-## Event
+For composite function $f(g(x))$:
+$$\frac{d}{dx} f(g(x)) = f'(g(x)) \cdot g'(x)$$
 
-$$
-A \subseteq \Omega
-$$
+For multi-variable composites (neural networks):
+$$\frac{\partial \mathcal{L}}{\partial w} = \frac{\partial \mathcal{L}}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial z} \cdot \frac{\partial z}{\partial w}$$
 
-Subset of outcomes.
+### Why This is the Core of Deep Learning
 
----
+A neural network is a nested function:
+$$\mathcal{L}(\mathbf{w}) = \text{loss}(\underbrace{\sigma(\underbrace{W^{(2)} \cdot \sigma(\underbrace{W^{(1)} \mathbf{x}}_{z^{(1)}}) + b^{(2)}}_{z^{(2)}})}_{output})$$
 
-## Conditional Probability
+Backpropagation just applies the chain rule systematically, layer by layer, from the loss back to the first layer.
 
-$$
-P(A|B)=\frac{P(A,B)}{P(B)}
-$$
+```python
+import numpy as np
 
-Interpretation:
+# Manual backprop through 2-layer network (single sample)
+# y_hat = sigmoid(w2 * sigmoid(w1 * x + b1) + b2)
 
-Probability of A given B already happened.
+def sigmoid(z):
+    return 1 / (1 + np.exp(-z))
 
-ML example:
+# Forward pass
+x  = 2.0
+w1 = 0.5;  b1 = -1.0
+w2 = 1.5;  b2 = 0.0
+y  = 1.0    # true label
 
-* Spam filtering estimates probability of spam given words in email.
+z1    = w1 * x + b1          # pre-activation layer 1
+a1    = sigmoid(z1)           # activation layer 1
+z2    = w2 * a1 + b2          # pre-activation layer 2
+y_hat = sigmoid(z2)           # final prediction
 
----
+loss = -( y * np.log(y_hat) + (1-y) * np.log(1 - y_hat) )  # binary cross-entropy
+print(f"z1={z1:.4f}, a1={a1:.4f}, z2={z2:.4f}, y_hat={y_hat:.4f}")
+print(f"Loss: {loss:.4f}")
 
-## Independence
+# Backward pass — chain rule
+# dL/dy_hat
+dL_dyhat = -(y / y_hat) + (1-y) / (1 - y_hat)
 
-$$
-A \perp B
-$$
+# dL/dz2 = dL/dy_hat * sigmoid'(z2)
+dyhat_dz2 = y_hat * (1 - y_hat)
+dL_dz2    = dL_dyhat * dyhat_dz2
 
-means:
+# dL/dw2 = dL/dz2 * dz2/dw2 = dL/dz2 * a1
+dL_dw2 = dL_dz2 * a1
+print(f"\nGradient for w2: {dL_dw2:.6f}")
 
-$$
-P(A,B)=P(A)P(B)
-$$
+# dL/da1 = dL/dz2 * dz2/da1 = dL/dz2 * w2
+dL_da1 = dL_dz2 * w2
 
----
+# dL/dz1 = dL/da1 * sigmoid'(z1)
+da1_dz1 = a1 * (1 - a1)
+dL_dz1  = dL_da1 * da1_dz1
 
-# 3.2 Bayes' Theorem
+# dL/dw1 = dL/dz1 * dz1/dw1 = dL/dz1 * x
+dL_dw1 = dL_dz1 * x
+print(f"Gradient for w1: {dL_dw1:.6f}")
 
-$$
-P(A|B)=\frac{P(B|A)P(A)}{P(B)}
-$$
+# Weight update (one gradient descent step)
+lr = 0.1
+w1 -= lr * dL_dw1
+w2 -= lr * dL_dw2
+print(f"\nUpdated w1: {w1:.4f}, w2: {w2:.4f}")
+```
 
 ---
 
-## ML Interpretation
+## 2.5 Gradient Descent
 
-$$
-P(\theta|D)=\frac{P(D|\theta)P(\theta)}{P(D)}
-$$
+The fundamental optimization algorithm in all of ML:
 
-| Term       | Meaning                |
-| ---------- | ---------------------- |
-| Posterior  | Updated belief         |
-| Likelihood | Data probability       |
-| Prior      | Initial belief         |
-| Evidence   | Normalization constant |
+$$\mathbf{w}_{t+1} = \mathbf{w}_t - \eta \nabla_\mathbf{w} \mathcal{L}(\mathbf{w}_t)$$
 
-Plain meaning:
+where $\eta$ (eta) is the **learning rate** — how big a step to take.
 
-* **Posterior = Prior updated by observed data**.
+### Types of Gradient Descent
 
----
-
-## Why Bayes Theorem Matters
+| Type | Batch size | Update frequency | When to use |
+|------|-----------|-----------------|-------------|
+| Batch GD | Full dataset | Once per epoch | Small datasets, exact gradients |
+| SGD | 1 sample | Every sample | Online learning |
+| Mini-batch SGD | 32–512 | Every mini-batch | Deep learning (default) |
 
-Used in:
-
-* Bayesian ML
-* Naive Bayes classifiers
-* Uncertainty estimation
-* Probabilistic reasoning
-
----
+```python
+import numpy as np
 
-# 3.3 Random Variables & Distributions
+rng = np.random.default_rng(42)
 
-## Expectation
+# Generate synthetic data: y = 2x + 1 + noise
+n = 100
+X = rng.uniform(0, 10, n)
+y = 2 * X + 1 + rng.normal(0, 1, n)  # true slope=2, intercept=1
 
-Discrete:
+# ── Gradient Descent from Scratch ────────────────────────────
+w = 0.0   # slope (weight)
+b = 0.0   # intercept (bias)
+lr = 0.001  # learning rate
+epochs = 500
 
-$$
-\mathbb{E}[X]=\sum_xxP(X=x)
-$$
+loss_history = []
 
-Continuous:
+for epoch in range(epochs):
+    # Forward pass: compute predictions
+    y_pred = w * X + b
 
-$$
-\mathbb{E}[X]=\int x p(x)dx
-$$
+    # Compute MSE loss
+    errors = y_pred - y
+    loss   = (errors**2).mean()
+    loss_history.append(loss)
 
-Expectation represents average value.
+    # Compute gradients
+    # dL/dw = (2/n) * sum((y_pred - y) * x)
+    # dL/db = (2/n) * sum(y_pred - y)
+    dL_dw = (2/n) * (errors * X).sum()
+    dL_db = (2/n) * errors.sum()
 
-ML example:
+    # Update weights (move against gradient)
+    w -= lr * dL_dw
+    b -= lr * dL_db
 
-* Expected loss is the average loss over data distribution; training tries to minimize it.
+    if epoch % 100 == 0:
+        print(f"Epoch {epoch:4d}: loss={loss:.4f}, w={w:.4f}, b={b:.4f}")
 
----
+print(f"\nFinal: w={w:.4f} (true=2), b={b:.4f} (true=1)")
+print(f"Loss reduced from {loss_history[0]:.2f} to {loss_history[-1]:.4f}")
+```
 
-## Variance
+**Output walkthrough:**
+- `errors = y_pred - y` — how wrong each prediction is
+- `dL_dw = (2/n) * (errors * X).sum()` — gradient: each error, weighted by its x value (because w multiplies x)
+- `w -= lr * dL_dw` — move slope in the direction that reduces loss
+- After 500 steps, w ≈ 2.0 and b ≈ 1.0 — discovered the true relationship!
 
-$$
-\text{Var}(X)=\mathbb{E}[X^2]-(\mathbb{E}[X])^2
-$$
+### Learning Rate Effects
 
-Variance measures spread.
+```python
+# Too small LR: converges slowly
+# Too large LR: diverges
+# Right LR: fast convergence
 
-ML example:
+def train_linear(lr, epochs=200):
+    w, b = 0.0, 0.0
+    for _ in range(epochs):
+        y_pred = w * X + b
+        errors = y_pred - y
+        w -= lr * (2/n) * (errors * X).sum()
+        b -= lr * (2/n) * errors.sum()
+    return w, b, ((w * X + b - y)**2).mean()
 
-* High variance in model performance can indicate overfitting/instability.
+for lr in [0.0001, 0.001, 0.01, 0.1]:
+    w, b, loss = train_linear(lr)
+    print(f"lr={lr:.4f}: w={w:.3f}, b={b:.3f}, loss={loss:.4f}")
+```
 
 ---
-
-## Covariance
 
-$$
-\text{Cov}(X,Y)=\mathbb{E}[(X-\mu_X)(Y-\mu_Y)]
-$$
+# PART 3 — Probability & Statistics
 
-Covariance measures relationship between variables.
+Probability is the mathematical framework for uncertainty. Every prediction a neural network makes is fundamentally a probability distribution.
 
 ---
-
-# 3.4 Key Distributions
-
-## Bernoulli Distribution
 
-Binary outcome:
+## 3.1 Foundations
 
-$$
-P(X=1)=p
-$$
+### Sample Space and Events
 
-$$
-P(X=0)=1-p
-$$
+- **Sample space** $\Omega$: all possible outcomes
+- **Event** $A \subseteq \Omega$: a subset of outcomes
+- **Probability axioms:** $P(A) \geq 0$, $P(\Omega) = 1$, $P(A \cup B) = P(A) + P(B)$ for disjoint $A, B$
 
-Used in:
+```python
+import numpy as np
 
-* Binary classification
-* Logistic regression
+rng = np.random.default_rng(42)
 
----
-
-## Gaussian Distribution
+# Simulating probabilities empirically
+n_trials = 100_000
 
-$$
-p(x)=\frac{1}{\sigma\sqrt{2\pi}}e^{-\frac{(x-\mu)^2}{2\sigma^2}}
-$$
+# Coin flip: P(heads) = 0.5
+flips   = rng.integers(0, 2, n_trials)
+p_heads = flips.mean()
+print(f"Empirical P(heads): {p_heads:.4f}")  # ~0.5000
 
-Parameters:
+# Biased die: faces 1-6, face 6 appears with P=0.5, others share P=0.1
+faces = rng.choice([1,2,3,4,5,6], p=[0.1,0.1,0.1,0.1,0.1,0.5], size=n_trials)
+for face in range(1, 7):
+    p_face = (faces == face).mean()
+    print(f"  P(die={face}): {p_face:.4f}")
+```
 
-* $\mu$ = mean
-* $\sigma^2$ = variance
+### Conditional Probability
 
----
+$$P(A | B) = \frac{P(A \cap B)}{P(B)}$$
 
-## 68–95–99.7 Rule
+**Reading:** "Probability of A, given we already know B happened."
 
-For normal distribution:
+```python
+# Example: students who study > 4 hours AND pass
+rng = np.random.default_rng(42)
+n   = 10_000
 
-| Range     | Data Covered |
-| --------- | ------------ |
-| $1\sigma$ | 68%          |
-| $2\sigma$ | 95%          |
-| $3\sigma$ | 99.7%        |
+# Simulate: study_hours uniform [0, 8], pass if study > 3 + noise
+study_hours = rng.uniform(0, 8, n)
+passed      = (study_hours + rng.normal(0, 1, n)) > 3.5
 
----
+# P(pass)
+p_pass = passed.mean()
 
-## Multivariate Gaussian
+# P(study > 4)
+studies_a_lot = study_hours > 4
+p_studies     = studies_a_lot.mean()
 
-$$
-p(x)=\frac{1}{(2\pi)^{n/2}|\Sigma|^{1/2}}e^{-\frac{1}{2}(x-\mu)^T\Sigma^{-1}(x-\mu)}
-$$
+# P(pass AND study > 4)
+p_both = (passed & studies_a_lot).mean()
 
-Widely used in:
+# P(pass | study > 4)
+p_pass_given_study = p_both / p_studies
 
-* Gaussian mixture models
-* Variational autoencoders
-* Kalman filters
+print(f"P(pass):                    {p_pass:.4f}")
+print(f"P(study > 4):               {p_studies:.4f}")
+print(f"P(pass | study > 4):        {p_pass_given_study:.4f}")
+# Much higher — studying helps!
+```
 
 ---
 
-# 3.5 Maximum Likelihood Estimation (MLE)
+## 3.2 Bayes' Theorem
 
-Suppose data:
+$$P(A|B) = \frac{P(B|A) \cdot P(A)}{P(B)}$$
 
-$$
-D={x^{(1)},...,x^{(N)}}
-$$
+In ML terms (updating belief about model parameters $\theta$ after seeing data $D$):
 
-Likelihood:
+$$\underbrace{P(\theta|D)}_{\text{posterior}} = \frac{\underbrace{P(D|\theta)}_{\text{likelihood}} \cdot \underbrace{P(\theta)}_{\text{prior}}}{\underbrace{P(D)}_{\text{evidence}}}$$
 
-$$
-L(\theta)=\prod_{i=1}^{N}p(x^{(i)};\theta)
-$$
+| Term | Meaning | Example |
+|------|---------|---------|
+| Prior $P(\theta)$ | Belief before data | "Weights are probably near zero" |
+| Likelihood $P(D|\theta)$ | How well $\theta$ explains data | Loss function |
+| Posterior $P(\theta|D)$ | Updated belief after data | Trained model weights |
+| Evidence $P(D)$ | Normalization constant | Often intractable |
 
----
-
-## Log-Likelihood
+```python
+# Naive Bayes spam classifier
+# P(spam | words) ∝ P(words | spam) * P(spam)
 
-$$
-\ell(\theta)=\sum_{i=1}^{N}\log p(x^{(i)};\theta)
-$$
+spam_examples = [
+    "buy cheap meds now",
+    "free prize claim immediately",
+    "win lottery money fast",
+]
+ham_examples = [
+    "meeting tomorrow at 3pm",
+    "please review the report",
+    "see you at the conference",
+]
 
-Logarithms make optimization numerically stable.
+all_words_spam = " ".join(spam_examples).split()
+all_words_ham  = " ".join(ham_examples).split()
 
----
+# Vocabulary
+vocab = set(all_words_spam + all_words_ham)
 
-## MLE Objective
+# Prior: P(spam) = 0.3 (30% of emails are spam)
+p_spam = 0.3
+p_ham  = 0.7
 
-$$
-\hat{\theta}_{\text{MLE}}=\arg\max_{\theta} \ell(\theta)
-$$
+# Likelihood: P(word | class) with Laplace smoothing
+def word_prob(word, word_list, vocab_size, alpha=1):
+    count = word_list.count(word) + alpha
+    total = len(word_list) + alpha * vocab_size
+    return count / total
 
----
+def classify(email, vocab=vocab):
+    words = email.split()
+    # Log probabilities to avoid underflow
+    log_p_spam = np.log(p_spam)
+    log_p_ham  = np.log(p_ham)
 
-## Why MLE Matters
+    for word in words:
+        log_p_spam += np.log(word_prob(word, all_words_spam, len(vocab)))
+        log_p_ham  += np.log(word_prob(word, all_words_ham,  len(vocab)))
 
-Many ML loss functions are derived directly from maximum likelihood.
+    return "SPAM" if log_p_spam > log_p_ham else "HAM"
 
-Examples:
+test_emails = [
+    "buy cheap prize now",
+    "meeting at conference tomorrow",
+    "free money win fast",
+]
 
-* Cross-entropy
-* Logistic regression
-* Gaussian regression
+for email in test_emails:
+    print(f"'{email}' → {classify(email)}")
+```
 
 ---
 
-# 3.6 Cross-Entropy & KL Divergence
+## 3.3 Random Variables & Key Distributions
 
-## Shannon Entropy
+### Expectation and Variance
 
-$$
-H(P)=-\sum_xP(x)\log P(x)
-$$
+$$\mathbb{E}[X] = \sum_x x \cdot P(X=x) \qquad \text{(discrete)}$$
 
-Measures uncertainty.
+$$\text{Var}(X) = \mathbb{E}[X^2] - (\mathbb{E}[X])^2$$
 
-Higher entropy:
+```python
+import numpy as np
 
-* More uncertainty
-* More randomness
+rng = np.random.default_rng(42)
 
----
-
-## Cross-Entropy
+# Bernoulli(p): 1 with prob p, 0 with prob 1-p
+p = 0.7
+samples = rng.binomial(1, p, size=10_000)
 
-$$
-H(P,Q)=-\sum_xP(x)\log Q(x)
-$$
+print(f"Bernoulli(0.7):")
+print(f"  Theoretical mean:     {p:.4f}")
+print(f"  Empirical mean:       {samples.mean():.4f}")
+print(f"  Theoretical variance: {p*(1-p):.4f}")
+print(f"  Empirical variance:   {samples.var():.4f}")
 
-Used as classification loss.
+# Gaussian: N(μ, σ²)
+mu, sigma = 70, 15  # exam scores: mean=70, std=15
+scores = rng.normal(mu, sigma, 10_000)
 
----
+print(f"\nGaussian(70, 15²):")
+print(f"  Mean:    {scores.mean():.2f}")
+print(f"  Std:     {scores.std():.2f}")
+print(f"  Within 1σ: {((scores > mu-sigma) & (scores < mu+sigma)).mean():.1%}")  # ~68%
+print(f"  Within 2σ: {((scores > mu-2*sigma) & (scores < mu+2*sigma)).mean():.1%}")  # ~95%
+print(f"  Within 3σ: {((scores > mu-3*sigma) & (scores < mu+3*sigma)).mean():.1%}")  # ~99.7%
+```
 
-## Cross-Entropy Loss
+### Gaussian PDF
 
-$$
-\mathcal{L}_{CE}=-\sum_ky_k\log\hat{y}_k
-$$
+$$p(x) = \frac{1}{\sigma\sqrt{2\pi}} \exp\!\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)$$
 
-For one-hot labels:
+```python
+def gaussian_pdf(x, mu, sigma):
+    # Normalization constant
+    norm  = 1 / (sigma * np.sqrt(2 * np.pi))
+    # Exponent
+    exponent = np.exp(-0.5 * ((x - mu) / sigma)**2)
+    return norm * exponent
 
-$$
-=-\log \hat{y}_{y^*}
-$$
+x_vals = np.linspace(30, 110, 9)
+probs  = gaussian_pdf(x_vals, mu=70, sigma=15)
 
-Tiny ML example:
+print("Score → P(score):")
+for x, p in zip(x_vals, probs):
+    bar = "█" * int(p * 300)
+    print(f"  {x:5.1f}: {p:.5f} {bar}")
+```
 
-* True class probability predicted as $0.9$ → loss $=-\log(0.9)$ (small, good)
-* True class probability predicted as $0.1$ → loss $=-\log(0.1)$ (large, bad)
-
 ---
-
-## KL Divergence
 
-$$
-D_{KL}(P||Q)=\sum_xP(x)\log\frac{P(x)}{Q(x)}
-$$
+## 3.4 Maximum Likelihood Estimation (MLE)
 
-Measures difference between distributions.
+**Core idea:** Find parameters $\theta$ that make the observed data most probable.
 
----
-
-## Important Properties
+$$\hat{\theta}_{\text{MLE}} = \arg\max_\theta \prod_{i=1}^N p(x^{(i)} ; \theta) = \arg\max_\theta \sum_{i=1}^N \log p(x^{(i)}; \theta)$$
 
-$$
-D_{KL}(P||Q) \geq 0
-$$
+(log converts product → sum, making it numerically stable and easier to differentiate)
 
-and:
+```python
+import numpy as np
 
-$$
-D_{KL}(P||Q) \neq D_{KL}(Q||P)
-$$
+rng = np.random.default_rng(42)
 
-Therefore KL divergence is NOT a true distance metric.
+# Data: exam scores assumed to follow N(μ, σ²)
+true_mu, true_sigma = 72.0, 12.0
+data = rng.normal(true_mu, true_sigma, 1000)
 
----
+# MLE for Gaussian:
+# d/dμ log L = 0 → μ_MLE = sample mean
+# d/dσ log L = 0 → σ_MLE = sample std (biased)
 
-## Relationship Between Cross-Entropy and KL
+mu_mle    = data.mean()
+sigma_mle = data.std(ddof=0)  # ddof=0 → biased MLE
 
-$$
-H(P,Q)=H(P)+D_{KL}(P||Q)
-$$
+print(f"True parameters:  μ={true_mu}, σ={true_sigma}")
+print(f"MLE estimates:    μ={mu_mle:.4f}, σ={sigma_mle:.4f}")
 
-When labels are fixed:
+# The log-likelihood at the MLE solution
+def log_likelihood(data, mu, sigma):
+    n   = len(data)
+    ll  = -n/2 * np.log(2 * np.pi * sigma**2)
+    ll -= 1/(2 * sigma**2) * ((data - mu)**2).sum()
+    return ll
 
-Minimizing cross-entropy = minimizing KL divergence.
+ll_true = log_likelihood(data, true_mu, true_sigma)
+ll_mle  = log_likelihood(data, mu_mle, sigma_mle)
+print(f"\nLog-likelihood (true params): {ll_true:.2f}")
+print(f"Log-likelihood (MLE):         {ll_mle:.2f}")
+print(f"MLE is always >= true params: {ll_mle >= ll_true}")
+```
 
 ---
-
-> **Run:** `python src/01-math/probability.py`
 
-Demonstrates:
+## 3.5 Cross-Entropy and KL Divergence
 
-* Entropy
-* KL divergence
-* MLE fitting
+### Shannon Entropy
 
----
-
-# Summary — Why This Math Powers AI
+$$H(P) = -\sum_x P(x) \log P(x)$$
 
-| ML Concept                  | Mathematical Foundation   |
-| --------------------------- | ------------------------- |
-| Neural network forward pass | Matrix multiplication     |
-| Backpropagation             | Chain rule                |
-| Attention mechanism         | Dot product + softmax     |
-| PCA                         | Eigendecomposition        |
-| Optimization                | Gradient descent          |
-| Embeddings                  | Vector spaces             |
-| Classification loss         | Cross-entropy             |
-| Bayesian learning           | Bayes theorem             |
-| Generative models           | Probability distributions |
-| Regularization              | L1/L2 norms               |
+Entropy measures uncertainty. A uniform distribution has maximum entropy; a peaked distribution has low entropy.
 
----
+### Cross-Entropy Loss (Classification)
 
-# Common Beginner Mistakes
+$$\mathcal{L}_{\text{CE}} = -\sum_k y_k \log \hat{y}_k$$
 
-| Mistake                                                          | Correction                                      |
-| ---------------------------------------------------------------- | ----------------------------------------------- |
-| Treating vectors as only lists                                   | Vectors represent directions and magnitudes     |
-| Confusing matrix multiplication with element-wise multiplication | They are completely different operations        |
-| Ignoring dimensions                                              | Shape mismatches are one of the biggest ML bugs |
-| Memorizing formulas without intuition                            | Always understand geometric meaning             |
-| Thinking probability means certainty                             | Probability models uncertainty                  |
-
----
+For one-hot labels (only one class is correct): $\mathcal{L}_{\text{CE}} = -\log \hat{y}_{y^*}$
 
-# Practical ML Connections
+```python
+import numpy as np
 
-## Transformers
+def cross_entropy(y_true, y_pred, eps=1e-9):
+    # Clip predictions to avoid log(0)
+    y_pred = np.clip(y_pred, eps, 1 - eps)
+    return -np.sum(y_true * np.log(y_pred))
 
-Use:
+# Binary case: cat vs not-cat
+y_true = np.array([1, 0])   # it IS a cat
 
-* Dot products
-* Softmax
-* Matrix multiplication
-* Probability distributions
+# Confident correct prediction
+y_pred_good = np.array([0.95, 0.05])
+print(f"Confident correct:  loss={cross_entropy(y_true, y_pred_good):.4f}")  # small
 
----
+# Uncertain prediction
+y_pred_meh  = np.array([0.55, 0.45])
+print(f"Uncertain:          loss={cross_entropy(y_true, y_pred_meh):.4f}")   # medium
 
-## CNNs
+# Confident WRONG prediction
+y_pred_bad  = np.array([0.05, 0.95])
+print(f"Confident wrong:    loss={cross_entropy(y_true, y_pred_bad):.4f}")   # large!
 
-Use:
+# Multi-class: dog/cat/bird
+y_true_mc  = np.array([0, 1, 0])   # it's a cat (index 1)
+y_pred_mc  = np.array([0.1, 0.8, 0.1])   # 80% cat
+print(f"\nMulticlass correct: loss={cross_entropy(y_true_mc, y_pred_mc):.4f}")
 
-* Matrix operations
-* Gradients
-* Convolutions
+# Softmax for multi-class outputs
+def softmax(z):
+    e = np.exp(z - z.max())  # subtract max for numerical stability
+    return e / e.sum()
 
----
+logits = np.array([1.5, 3.2, 0.8])   # raw model outputs (not probabilities)
+probs  = softmax(logits)
+print(f"\nLogits: {logits}")
+print(f"Probs:  {probs.round(4)}")    # sums to 1
+print(f"Sum:    {probs.sum():.6f}")   # 1.000000
+```
 
-## Recommendation Systems
+### KL Divergence
 
-Use:
+$$D_{\text{KL}}(P \| Q) = \sum_x P(x) \log \frac{P(x)}{Q(x)} \geq 0$$
 
-* Embeddings
-* Cosine similarity
-* Matrix factorization
+Measures how different distribution $Q$ is from reference $P$. **Not symmetric:** $D_{\text{KL}}(P\|Q) \neq D_{\text{KL}}(Q\|P)$.
 
----
+```python
+def kl_divergence(P, Q, eps=1e-9):
+    P = np.clip(P, eps, 1)
+    Q = np.clip(Q, eps, 1)
+    return np.sum(P * np.log(P / Q))
 
-## Diffusion Models
+# P = true distribution, Q = model's distribution
+P = np.array([0.1, 0.4, 0.5])   # true class distribution
+Q = np.array([0.2, 0.3, 0.5])   # model's prediction
 
-Use:
+print(f"KL(P||Q): {kl_divergence(P, Q):.6f}")   # > 0
+print(f"KL(Q||P): {kl_divergence(Q, P):.6f}")   # different!
 
-* Gaussian distributions
-* KL divergence
-* Probability theory
+# When Q = P, KL = 0
+print(f"KL(P||P): {kl_divergence(P, P):.6f}")   # 0.000000
 
----
+# Relationship: H(P,Q) = H(P) + KL(P||Q)
+def entropy(p, eps=1e-9):
+    p = np.clip(p, eps, 1)
+    return -np.sum(p * np.log(p))
 
-# Glossary
+H_P = entropy(P)
+CE  = cross_entropy(P, Q)
+KL  = kl_divergence(P, Q)
+print(f"\nH(P) + KL(P||Q) = {H_P + KL:.6f}")
+print(f"H(P, Q)          = {CE:.6f}")
+print(f"Equal: {np.isclose(H_P + KL, CE)}")  # True
+```
 
-| Term          | Meaning                                      |
-| ------------- | -------------------------------------------- |
-| Scalar        | Single number                                |
-| Vector        | Ordered list of numbers                      |
-| Matrix        | 2D grid of numbers                           |
-| Tensor        | Multi-dimensional array                      |
-| Gradient      | Vector of derivatives                        |
-| Eigenvector   | Direction preserved after transformation     |
-| Eigenvalue    | Scaling factor                               |
-| SVD           | Matrix decomposition method                  |
-| Entropy       | Measure of uncertainty                       |
-| Likelihood    | Probability of data given parameters         |
-| Posterior     | Updated probability after observing data     |
-| KL Divergence | Difference between probability distributions |
+**ML connection:** Training minimizes cross-entropy, which is equivalent to minimizing KL divergence between the true label distribution and model predictions. VAEs minimize KL divergence between the learned latent distribution and a standard Gaussian prior.
 
 ---
 
-# Recommended Resources
+# PART 4 — Interview Q&A
 
-## Books
+## Q1: Why must matrix multiplication dimensions match?
 
-### Mathematics for Machine Learning
+Matrix multiply computes dot products between rows of $A$ and columns of $B$. The rows of $A$ have $k$ elements; the columns of $B$ must also have $k$ elements to compute the dot product.
 
-Authors:
+## Q2: What is the difference between L1 and L2 regularization?
 
-* Deisenroth
-* Faisal
-* Ong
+**L1 (Lasso):** Penalty $\lambda \|\mathbf{w}\|_1$. Gradient is constant ($\pm\lambda$) regardless of weight magnitude, so small weights can be driven exactly to zero. Creates sparse models.
 
-Website:
+**L2 (Ridge):** Penalty $\lambda \|\mathbf{w}\|_2^2$. Gradient is $2\lambda w_i$, proportional to weight size. Shrinks all weights but never to exactly zero. Bayesian interpretation: Gaussian prior.
 
-* [https://mml-book.github.io](https://mml-book.github.io)
+## Q3: Why do we use log-likelihood instead of likelihood?
 
----
-
-### Introduction to Probability
+Products of many small probabilities ($\prod p_i$ where each $p_i < 1$) quickly underflow floating-point precision. Logarithm converts products to sums ($\sum \log p_i$), stable and differentiable everywhere. Maximizing log-likelihood is equivalent to maximizing likelihood since log is monotone increasing.
 
-Authors:
+## Q4: Explain backpropagation in one sentence.
 
-* Blitzstein
-* Hwang
+Backprop applies the chain rule layer-by-layer from loss to inputs, computing each parameter's gradient as the product of all downstream derivatives.
 
-Website:
-
-* [https://stat110.net](https://stat110.net)
-
----
+## Q5: What is the gradient of cross-entropy loss with respect to the softmax input?
 
-# Video Resources
+$$\frac{\partial \mathcal{L}_{\text{CE}}}{\partial z_k} = \hat{y}_k - y_k$$
 
-## 3Blue1Brown — Essence of Linear Algebra
+The simplest gradient in deep learning: prediction minus label. This elegant form emerges from combining the softmax derivative and cross-entropy derivative.
 
-Excellent visual explanation of:
+## Q6: Why does PCA use eigendecomposition?
 
-* Vectors
-* Matrices
-* Eigenvectors
-* Transformations
+PCA finds axes of maximum variance. Variance in direction $\mathbf{v}$ is $\mathbf{v}^T \Sigma \mathbf{v}$ (quadratic form). Maximizing this subject to $\|\mathbf{v}\|=1$ is exactly the eigenvector problem for covariance matrix $\Sigma$.
 
-YouTube Playlist:
+## Q7: What does SVD tell you that eigendecomposition cannot?
 
-* [https://www.youtube.com/watch?v=fNk_zzaMoSs](https://www.youtube.com/watch?v=fNk_zzaMoSs)
+Eigendecomposition requires square matrices. SVD works for any shape — a 10,000×768 embedding matrix can be SVD-decomposed. The singular values reveal the effective rank (how many meaningful dimensions data actually occupies).
 
 ---
 
-## 3Blue1Brown — Essence of Calculus
+# PART 5 — Cheat Sheet
 
-Best intuition for:
+| Formula | Name | ML Role |
+|---------|------|---------|
+| $\mathbf{u} \cdot \mathbf{v} = \|\mathbf{u}\|\|\mathbf{v}\|\cos\theta$ | Dot product | Attention, similarity, layer computation |
+| $\text{cosim}(\mathbf{u},\mathbf{v}) = \frac{\mathbf{u}\cdot\mathbf{v}}{\|\mathbf{u}\|\|\mathbf{v}\|}$ | Cosine similarity | Embedding search, RAG retrieval |
+| $A = U\Sigma V^T$ | SVD | Compression, recommendation, LoRA |
+| $A\mathbf{v} = \lambda\mathbf{v}$ | Eigendecomposition | PCA, spectral clustering |
+| $\mathbf{w} \leftarrow \mathbf{w} - \eta\nabla\mathcal{L}$ | Gradient descent | All neural network training |
+| $\frac{dL}{dw} = \frac{dL}{d\hat{y}} \cdot \frac{d\hat{y}}{dz} \cdot \frac{dz}{dw}$ | Chain rule | Backpropagation |
+| $P(A|B) = \frac{P(B|A)P(A)}{P(B)}$ | Bayes theorem | Bayesian ML, spam filter |
+| $\hat{\theta} = \arg\max \sum \log p(x|\theta)$ | MLE | Loss function derivation |
+| $H(P,Q) = -\sum P(x)\log Q(x)$ | Cross-entropy | Classification loss |
+| $D_{\text{KL}}(P\|Q) = \sum P\log\frac{P}{Q}$ | KL divergence | VAE, RLHF, distribution matching |
 
-* Derivatives
-* Integrals
-* Gradients
-* Chain rule
-
-Playlist:
-
-* [https://www.youtube.com/watch?v=WUvTyaaNkzM](https://www.youtube.com/watch?v=WUvTyaaNkzM)
-
 ---
-
-## MIT 18.06 — Linear Algebra
 
-Professor:
+# MINI-PROJECT — Grade Predictor from Scratch
 
-* Gilbert Strang
+**What you will build:** A linear regression model trained with gradient descent that predicts a student's final exam score from study hours, sleep hours, and attendance percentage. Every line of code uses math from this module.
 
-MIT OpenCourseWare:
+**Learning goals:**
+- Vectors = student feature profiles
+- Matrix operations = batch prediction
+- Gradient descent = learning from errors
+- Cross-entropy / MSE = measuring how wrong we are
 
-* [https://ocw.mit.edu](https://ocw.mit.edu)
-
 ---
-
-# NumPy References
-
-Official documentation:
-
-* [https://numpy.org/doc](https://numpy.org/doc)
-
-Important functions:
 
-| Function          | Purpose             |
-| ----------------- | ------------------- |
-| `np.dot()`        | Dot product         |
-| `np.linalg.inv()` | Matrix inverse      |
-| `np.linalg.eig()` | Eigenvalues         |
-| `np.linalg.svd()` | SVD                 |
-| `np.gradient()`   | Numerical gradients |
+## Step 1 — Generate Synthetic Dataset
 
----
-
-# Interview Reference — Math for ML
+```python
+import numpy as np
 
-## Why must matrix multiplication dimensions match?
+rng = np.random.default_rng(42)
+n   = 200  # 200 students
 
-Because multiplication computes dot products between rows and columns.
-The lengths must be equal.
+# Features: study hours (0-8), sleep hours (4-9), attendance (50-100)
+study      = rng.uniform(0, 8, n)
+sleep      = rng.uniform(4, 9, n)
+attendance = rng.uniform(50, 100, n)
 
----
+# True relationship: score = 5*study + 2*sleep + 0.3*attendance + noise
+true_weights = np.array([5.0, 2.0, 0.3])
+bias_true    = 10.0
 
-## Why are eigenvectors important?
+X = np.column_stack([study, sleep, attendance])  # shape (200, 3)
+y = X @ true_weights + bias_true + rng.normal(0, 3, n)  # add noise
 
-They identify important directions in transformed space.
-Used in:
+# Print what we're working with
+print(f"Dataset shape: X={X.shape}, y={y.shape}")
+print(f"\nFirst 3 students:")
+print(f"  {'Study':>8} {'Sleep':>8} {'Attend':>8} {'Score':>8}")
+for i in range(3):
+    print(f"  {X[i,0]:8.1f} {X[i,1]:8.1f} {X[i,2]:8.1f} {y[i]:8.1f}")
 
-* PCA
-* Spectral methods
-* Stability analysis
+# Statistics
+print(f"\nScore stats: mean={y.mean():.1f}, std={y.std():.1f}, "
+      f"min={y.min():.1f}, max={y.max():.1f}")
+```
 
 ---
 
-## Why is SVD powerful?
+## Step 2 — Normalize Features
 
-Because it works for any matrix.
-It enables:
+Neural networks and gradient descent converge faster when features are on similar scales. Study hours (0–8) and attendance (50–100) are very different scales.
 
-* Compression
-* Denoising
-* Dimensionality reduction
-* Recommendation systems
+```python
+# Standardize: (x - mean) / std  →  mean=0, std=1
+X_mean = X.mean(axis=0)  # shape (3,) — one mean per feature
+X_std  = X.std(axis=0)
 
----
+X_norm = (X - X_mean) / X_std
 
-## Why is chain rule essential in deep learning?
+print("Before normalization:")
+print(f"  Study hours:  mean={X[:,0].mean():.2f}, std={X[:,0].std():.2f}")
+print(f"  Sleep hours:  mean={X[:,1].mean():.2f}, std={X[:,1].std():.2f}")
+print(f"  Attendance:   mean={X[:,2].mean():.2f}, std={X[:,2].std():.2f}")
 
-Backpropagation repeatedly applies chain rule across layers.
-Without it, neural networks cannot learn.
+print("\nAfter normalization:")
+print(f"  Study hours:  mean={X_norm[:,0].mean():.4f}, std={X_norm[:,0].std():.4f}")
+print(f"  Sleep hours:  mean={X_norm[:,1].mean():.4f}, std={X_norm[:,1].std():.4f}")
+print(f"  Attendance:   mean={X_norm[:,2].mean():.4f}, std={X_norm[:,2].std():.4f}")
+# All means ~0, all stds ~1
+```
 
 ---
 
-## Why use cross-entropy for classification?
+## Step 3 — Train / Validation Split
 
-Because it directly corresponds to maximizing likelihood under probabilistic models.
+Never evaluate model performance on training data — it can memorize noise.
 
----
-
-# Cheat Sheet — Math for ML
+```python
+# 80% training, 20% validation
+split    = int(0.8 * n)
+idx      = rng.permutation(n)  # shuffle indices
 
-## Dot Product
+train_idx = idx[:split]
+val_idx   = idx[split:]
 
-$$
-a \cdot b = \|a\|\,\|b\|\cos\theta
-$$
+X_train, y_train = X_norm[train_idx], y[train_idx]
+X_val,   y_val   = X_norm[val_idx],   y[val_idx]
 
-Meaning:
+print(f"Training samples:   {len(X_train)}")
+print(f"Validation samples: {len(X_val)}")
+```
 
-* Measures similarity and alignment between vectors
-* Core operation in neural networks and transformers
-
 ---
-
-## Cosine Similarity
-
-$$
-	ext{cosine similarity} = \frac{a \cdot b}{\|a\|\,\|b\|}
-$$
 
-Meaning:
+## Step 4 — Linear Regression with Gradient Descent
 
-* Measures directional similarity
-* Common in embeddings and semantic search
+```python
+# Initialize weights to zero
+w = np.zeros(3)   # one weight per feature
+b = 0.0           # bias term
 
----
-
-## L2 Norm
+lr     = 0.01
+epochs = 1000
 
-$$
-||x||_2 = \sqrt{\sum x_i^2}
-$$
+train_losses = []
+val_losses   = []
 
-Meaning:
+for epoch in range(epochs):
+    # ── FORWARD PASS ──────────────────────────────────────
+    # y_pred = X @ w + b
+    # X_train: (160, 3), w: (3,) → y_pred: (160,)
+    y_pred_train = X_train @ w + b
 
-* Euclidean distance from origin
-* Used in regularization and optimization
+    # ── COMPUTE MSE LOSS ──────────────────────────────────
+    errors = y_pred_train - y_train       # shape (160,)
+    mse    = (errors**2).mean()           # scalar
+    train_losses.append(mse)
 
----
+    # ── COMPUTE GRADIENTS ─────────────────────────────────
+    # dMSE/dw = (2/n) * X^T @ errors
+    # dMSE/db = (2/n) * sum(errors)
+    n_train = len(y_train)
+    dL_dw   = (2 / n_train) * (X_train.T @ errors)  # shape (3,)
+    dL_db   = (2 / n_train) * errors.sum()            # scalar
 
-## Eigendecomposition
+    # ── UPDATE WEIGHTS ────────────────────────────────────
+    w -= lr * dL_dw
+    b -= lr * dL_db
 
-$$
-A = Q\Lambda Q^{-1}
-$$
+    # ── VALIDATION LOSS ───────────────────────────────────
+    y_pred_val = X_val @ w + b
+    val_mse    = ((y_pred_val - y_val)**2).mean()
+    val_losses.append(val_mse)
 
-Meaning:
+    if epoch % 200 == 0:
+        print(f"Epoch {epoch:4d}: train_loss={mse:.4f}, val_loss={val_mse:.4f}")
 
-* Decomposes matrix into eigenvectors and eigenvalues
-* Used in PCA and spectral analysis
+print(f"\nFinal weights: {w.round(4)}")
+print(f"Final bias:    {b:.4f}")
+```
 
 ---
-
-## Singular Value Decomposition (SVD)
 
-$$
-A = U\Sigma V^T
-$$
+## Step 5 — Evaluate the Model
 
-Meaning:
+```python
+# Predictions on validation set
+y_pred_val = X_val @ w + b
 
-* Works for any matrix shape
-* Used in dimensionality reduction and recommendation systems
+# Mean Absolute Error
+mae = np.abs(y_pred_val - y_val).mean()
 
----
-
-## Gradient Descent
+# Root Mean Squared Error
+rmse = np.sqrt(((y_pred_val - y_val)**2).mean())
 
-$$
-\theta \leftarrow \theta - \alpha \nabla_\theta L
-$$
+# R² score (coefficient of determination)
+ss_res = ((y_val - y_pred_val)**2).sum()
+ss_tot = ((y_val - y_val.mean())**2).sum()
+r2     = 1 - ss_res / ss_tot
 
-Meaning:
+print(f"Validation MAE:  {mae:.2f} points")
+print(f"Validation RMSE: {rmse:.2f} points")
+print(f"R² score:        {r2:.4f}  (1.0 = perfect)")
 
-* Updates parameters to minimize loss
-* Backbone of neural network training
+# Look at a few predictions vs actual
+print(f"\n{'Predicted':>12} {'Actual':>10} {'Error':>8}")
+for pred, actual in zip(y_pred_val[:5], y_val[:5]):
+    print(f"{pred:12.1f} {actual:10.1f} {actual - pred:8.1f}")
+```
 
 ---
 
-## Bayes Theorem
+## Step 6 — Understand What the Model Learned
 
-$$
-P(A \mid B)=\frac{P(B \mid A)P(A)}{P(B)}
-$$
+```python
+# The weights are in normalized space; convert back to interpret
+# w_i_original = w_i / X_std_i
+w_original = w / X_std
 
-Meaning:
+print("Feature importance (in original units):")
+feature_names = ["Study hours", "Sleep hours", "Attendance %"]
+for name, weight in zip(feature_names, w_original):
+    print(f"  {name:<15}: {weight:+.4f} points per unit increase")
 
-* Updates belief after observing evidence
-* Foundation of Bayesian learning
+# Compare to ground truth
+print(f"\nTrue weights: {true_weights}")
+print(f"Learned:      {w_original.round(4)}")
+```
 
 ---
-
-## Maximum Likelihood Estimation (MLE)
-
-$$
-\arg\max_\theta \log P(D \mid \theta)
-$$
-
-Meaning:
 
-* Finds parameters most likely to generate observed data
+## Step 7 — Predict for a New Student
 
----
-
-## KL Divergence
+```python
+# New student: studies 6 hours, sleeps 7 hours, 85% attendance
+new_student = np.array([[6.0, 7.0, 85.0]])
 
-$$
-D_{KL}(P || Q)=\sum P(x)\log\frac{P(x)}{Q(x)}
-$$
+# Normalize using TRAINING statistics (never use test/new data to fit normalizer)
+new_norm = (new_student - X_mean) / X_std
 
-Meaning:
+# Predict
+predicted_score = new_norm @ w + b
+print(f"Student profile: study=6h, sleep=7h, attendance=85%")
+print(f"Predicted score: {predicted_score[0]:.1f}")
 
-* Measures difference between probability distributions
+# Compute what the true model would predict (without noise)
+true_prediction = new_student[0] @ true_weights + bias_true
+print(f"True model prediction: {true_prediction:.1f}")
+print(f"Our model error: {abs(predicted_score[0] - true_prediction):.1f} points")
+```
 
 ---
-
-## Cross-Entropy
-
-$$
-H(P,Q)=H(P)+D_{KL}(P || Q)
-$$
 
-Meaning:
+## Step 8 — Loss Curve Analysis
 
-* Common classification loss function
-* Minimizing cross-entropy reduces distribution mismatch
+```python
+# Print training dynamics
+print("Training progress summary:")
+milestones = [0, 100, 200, 500, 999]
+print(f"  {'Epoch':>8} {'Train Loss':>12} {'Val Loss':>12}")
+for ep in milestones:
+    print(f"  {ep:>8} {train_losses[ep]:>12.4f} {val_losses[ep]:>12.4f}")
 
----
-
-# Suggested Learning Path
+# Convergence check: how much improvement in last 100 epochs?
+improvement = train_losses[-101] - train_losses[-1]
+print(f"\nLoss improvement in last 100 epochs: {improvement:.6f}")
+print(f"Converged: {improvement < 0.01}")
 
-1. Learn vectors and matrices visually
-2. Practice NumPy operations
-3. Understand derivatives intuitively
-4. Implement gradient descent manually
-5. Study probability distributions
-6. Learn optimization deeply
-7. Move into neural networks
+# Check for overfitting: val_loss should be close to train_loss
+gap = val_losses[-1] - train_losses[-1]
+print(f"Train/Val gap: {gap:.4f} (small = no overfitting)")
+```
 
 ---
 
-# Practice Exercises
+## What This Project Demonstrated
 
-## Linear Algebra
+| Concept | Where it appeared |
+|---------|------------------|
+| Vectors | Student profiles: `np.array([6, 7, 85])` |
+| Matrix multiply | Batch prediction: `X_train @ w` |
+| L2 norm | RMSE: `sqrt(mean(errors²))` |
+| Gradient descent | Weight updates: `w -= lr * dL_dw` |
+| Partial derivatives | `dL/dw = (2/n) * X^T @ errors` |
+| Chain rule | The gradient formula itself |
+| MLE | MSE loss = MLE under Gaussian noise |
+| Normalization | Zero-mean unit-variance features |
 
-1. Compute cosine similarity between two vectors
-2. Implement matrix multiplication from scratch
-3. Compute eigenvalues of a 2×2 matrix
+Every concept from this module appeared in one coherent project. This is exactly how senior engineers think: math → code → model → evaluation.
 
 ---
 
-## Calculus
+## Complete Project Code (All Steps Together)
 
-1. Differentiate polynomial functions
-2. Implement gradient descent manually
-3. Compare numerical vs analytical gradients
+```python
+import numpy as np
 
----
+def main():
+    rng = np.random.default_rng(42)
+    n   = 200
 
-## Probability
+    # Data
+    study      = rng.uniform(0, 8, n)
+    sleep      = rng.uniform(4, 9, n)
+    attendance = rng.uniform(50, 100, n)
+    X = np.column_stack([study, sleep, attendance])
+    y = X @ np.array([5.0, 2.0, 0.3]) + 10.0 + rng.normal(0, 3, n)
 
-1. Compute entropy of distributions
-2. Implement Naive Bayes classifier
-3. Calculate KL divergence between two distributions
-
----
+    # Normalize
+    X_mean = X.mean(axis=0); X_std = X.std(axis=0)
+    X_norm = (X - X_mean) / X_std
 
-# Final Advice
+    # Split
+    idx = rng.permutation(n)
+    X_train, y_train = X_norm[idx[:160]], y[idx[:160]]
+    X_val,   y_val   = X_norm[idx[160:]], y[idx[160:]]
 
-Do not attempt to memorize all formulas immediately.
+    # Train
+    w, b = np.zeros(3), 0.0
+    for _ in range(1000):
+        errors = X_train @ w + b - y_train
+        w -= 0.01 * (2/160) * (X_train.T @ errors)
+        b -= 0.01 * (2/160) * errors.sum()
 
-Focus on:
+    # Evaluate
+    y_pred = X_val @ w + b
+    rmse   = np.sqrt(((y_pred - y_val)**2).mean())
+    r2     = 1 - ((y_val - y_pred)**2).sum() / ((y_val - y_val.mean())**2).sum()
+    print(f"RMSE: {rmse:.2f}, R²: {r2:.4f}")
 
-* Intuition
-* Geometry
-* Practical meaning
-* ML applications
+    # Predict new student
+    new = (np.array([[6.0, 7.0, 85.0]]) - X_mean) / X_std
+    print(f"New student predicted score: {(new @ w + b)[0]:.1f}")
 
-Mathematics becomes significantly easier once connected to real ML systems.
+if __name__ == "__main__":
+    main()
+```
 
 ---
 
