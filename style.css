@@ -1835,3 +1835,5 @@ body.light-mode.focus-mode #sidebar.focus-revealed,
 body.light-mode.floating-mode #sidebar.focus-revealed {
   box-shadow: 6px 6px 0px #000000;
 }
+
+body.light-mode .logo-tag { color: #000000; }
