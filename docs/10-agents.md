@@ -1,680 +1,1134 @@
 # Module 10 — LLM Agents & Tool Use
 
-> **Run the code:**
-> ```bash
-> cd src/10-agents
-> python3.14 react_agent.py
-> python3.14 tool_calling.py
-> python3.14 agent_memory.py
-> python3.14 agent_eval.py
-> ```
+## What is an Agent?
+
+A plain LLM call: input → output. Done. One step.
+
+An **agent** is an LLM in a loop: it reasons about what to do, takes an action (calling a tool, querying a database, running code), observes the result, and repeats until it reaches a goal. The LLM becomes the brain; tools are the hands.
+
+**The core loop:**
+```
+Observation → Think → Act → New Observation → Think → Act → ...
+```
+
+Why agents matter: most real tasks require more information than fits in a single prompt. An agent asking "What's the population of Tokyo?" can call a search tool. An agent debugging code can run the code and read the error. An agent writing a report can search, compute, and write iteratively.
 
 ---
 
-## Prerequisites & Overview
+## 1. ReAct: Reason + Act
 
-**Time estimate:** 6–8 hours
-
-| Prerequisite | From |
-|-------------|------|
-| Transformer decoder & autoregressive generation | Module 07 |
-| Flask API patterns | Module 04 |
-| Attention mechanism | Module 06 |
-
-**Before you start:**
-- [ ] Understand how the Transformer decoder generates one token at a time
-- [ ] Know the shape of a `POST /chat/completions` request and response
-- [ ] Understand JSON Schema (`type`, `properties`, `required`, `enum`)
-
-**Module map:**
-
-| Section | Core concept |
-|---------|-------------|
-| ReAct loop | Thought → Action → Observation interleaving |
-| Tool schemas | JSON Schema function definitions |
-| Chain-of-thought | Zero-shot, few-shot, self-consistency |
-| Multi-step planning | Plan → Execute decomposition |
-| Agent memory | Buffer ($N$ messages) + summary compression |
-| Error recovery | Retry with error injected as observation |
-| Evaluation | Trajectory accuracy, tool precision, answer F1 |
-
----
-
-## ReAct — Reasoning + Acting
-
-### The Core Loop
-
-ReAct (Yao et al., 2022) interleaves chain-of-thought reasoning with tool actions. The LLM never takes an action without first generating a reasoning trace.
+ReAct (Yao et al. 2022) interleaves reasoning traces with actions. The model outputs:
+- **Thought**: internal reasoning about what to do next
+- **Action**: a structured call to a tool
+- **Observation**: the tool's response (injected by the runtime, not generated)
 
 ```
-THOUGHT → ACTION → OBSERVATION → THOUGHT → ACTION → OBSERVATION → FINAL ANSWER
+Thought: I need to find the population of Tokyo.
+Action: search("Tokyo population 2024")
+Observation: Tokyo metropolitan area population is approximately 37.4 million.
+Thought: Now I have the answer.
+Action: finish("Tokyo's population is approximately 37.4 million.")
 ```
 
-### Formal Definition
-
-State $s_t = (q, h_t)$ where $q$ is the question and $h_t$ is the trajectory history:
-
-$$h_t = (o_1, a_1, \text{obs}_1, \;o_2, a_2, \text{obs}_2, \;\ldots)$$
-
-LLM policy $\pi_\theta$ generates reasoning $o_t$ then action $a_t$:
-
-$$o_t \sim \pi_\theta(\cdot \mid s_t), \qquad a_t \sim \pi_\theta(\cdot \mid s_t, o_t)$$
-
-Tool executor $\mathcal{E}$: $\;\text{obs}_t = \mathcal{E}(a_t)$
-
-Termination condition: $a_t = \text{FINISH}[\text{answer}]$
-
-### Prompt Template
-
-```
-You are an agent with access to tools. Use this format exactly:
-
-Thought: reason about what to do next
-Action: tool_name[input]
-Observation: (filled by system after tool runs)
-... (Thought/Action/Observation repeats)
-Thought: I now know the final answer
-Final Answer: the answer
-
-Tools:
-- calculator[expr]: evaluates a Python math expression
-- search[query]: returns the top web result summary
-- read_file[path]: reads a local file and returns its content
-
-Question: {question}
-```
-
-### Python Implementation
+This trace format is parseable — the runtime can extract action names and arguments using regex or structured parsing.
 
 ```python
-import re, math
+import re
+import json
+from typing import Callable, Any
 
-def parse_action(action_str: str):
-    m = re.match(r"(\w+)\[(.+)\]", action_str.strip())
-    if not m:
-        raise ValueError(f"Bad action format: {action_str}")
-    return m.group(1), m.group(2)
 
-class ReActAgent:
-    def __init__(self, llm, tools: dict, max_steps: int = 10):
-        self.llm      = llm       # callable(prompt: str) -> str
-        self.tools    = tools     # {"tool_name": callable(input) -> str}
-        self.max_steps = max_steps
+def section(title: str) -> None:
+    print(f"\n{'='*60}\n{title}\n{'='*60}")
 
-    def run(self, question: str) -> str:
-        history = f"Question: {question}\n"
 
-        for step in range(self.max_steps):
-            raw = self.llm(SYSTEM_PROMPT + history)
+# ── Tool registry ──────────────────────────────────────────────
+class Tool:
+    """Wraps a Python function with metadata the LLM can see."""
+    
+    def __init__(self, name: str, description: str, fn: Callable):
+        self.name = name
+        self.description = description  # shown to LLM in system prompt
+        self.fn = fn
+    
+    def __call__(self, *args, **kwargs) -> Any:
+        return self.fn(*args, **kwargs)
+    
+    def schema(self) -> str:
+        """Human-readable description for the system prompt."""
+        return f"- {self.name}: {self.description}"
 
-            # Extract Thought
-            thought_m = re.search(r"Thought:\s*(.+?)(?=Action:|Final Answer:)", raw, re.S)
-            thought = thought_m.group(1).strip() if thought_m else ""
 
-            # Check for Final Answer
-            fa_m = re.search(r"Final Answer:\s*(.+)", raw, re.S)
-            if fa_m:
-                history += f"Thought: {thought}\nFinal Answer: {fa_m.group(1).strip()}\n"
-                return fa_m.group(1).strip()
+# ── Define tools ────────────────────────────────────────────────
+def calculator(expression: str) -> str:
+    """
+    Safely evaluate a mathematical expression.
+    Only allows numbers, operators, and parentheses — no eval() on arbitrary code.
+    """
+    # Whitelist: digits, operators, spaces, parentheses, decimal points
+    if not re.match(r'^[\d\s\+\-\*\/\(\)\.]+$', expression):
+        return f"Error: invalid expression '{expression}'"
+    
+    try:
+        result = eval(expression, {"__builtins__": {}}, {})  # restricted eval
+        return str(result)
+    except Exception as e:
+        return f"Error: {e}"
 
-            # Extract Action
-            action_m = re.search(r"Action:\s*(.+)", raw)
-            if not action_m:
-                break
-            action_str = action_m.group(1).strip()
 
-            history += f"Thought: {thought}\nAction: {action_str}\n"
-
-            # Execute tool with error recovery
-            try:
-                tool_name, tool_input = parse_action(action_str)
-                if tool_name not in self.tools:
-                    observation = f"Error: unknown tool '{tool_name}'. Available: {list(self.tools)}"
-                else:
-                    observation = str(self.tools[tool_name](tool_input))
-            except Exception as e:
-                observation = f"Error: {e}. Rethink your approach."
-
-            history += f"Observation: {observation}\n"
-            print(f"  [step {step+1}] {action_str} → {observation[:80]}")
-
-        return "Max steps reached."
-```
-
----
-
-## Tool Schemas — OpenAI Function Calling Format
-
-### JSON Schema for a Tool
-
-The OpenAI tools API format is the industry standard for structured tool use:
-
-```json
-{
-  "type": "function",
-  "function": {
-    "name": "get_weather",
-    "description": "Get current weather for a city",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "city": {
-          "type": "string",
-          "description": "City name, e.g. 'London'"
-        },
-        "unit": {
-          "type": "string",
-          "enum": ["celsius", "fahrenheit"]
-        }
-      },
-      "required": ["city"]
+def search(query: str) -> str:
+    """Simulate a search engine with a small knowledge base."""
+    knowledge_base = {
+        "python": "Python is a high-level programming language created by Guido van Rossum in 1991.",
+        "transformer": "Transformers were introduced in 'Attention Is All You Need' (Vaswani et al., 2017).",
+        "lora": "LoRA (Low-Rank Adaptation) adds trainable rank-decomposition matrices to frozen weights.",
+        "gradient descent": "Gradient descent updates parameters by moving in the direction of steepest loss decrease.",
+        "attention": "Attention computes a weighted sum of values, with weights determined by query-key similarity.",
+        "backpropagation": "Backpropagation computes gradients via the chain rule, layer by layer from output to input.",
+        "rag": "RAG (Retrieval-Augmented Generation) retrieves relevant documents and injects them into LLM prompts.",
+        "bert": "BERT is a bidirectional Transformer encoder pretrained with masked language modeling.",
+        "gpt": "GPT is a unidirectional Transformer decoder pretrained with causal (next-token) language modeling.",
+        "relu": "ReLU (Rectified Linear Unit) outputs max(0, x), providing nonlinearity without saturation.",
     }
-  }
+    
+    query_lower = query.lower()
+    for key, value in knowledge_base.items():
+        if key in query_lower:
+            return value
+    
+    return f"No results found for '{query}'. Try a more specific term."
+
+
+def get_weather(city: str) -> str:
+    """Simulated weather API."""
+    weather_data = {
+        "tokyo": "Tokyo: 22°C, Partly cloudy, humidity 65%",
+        "london": "London: 14°C, Overcast, light rain expected",
+        "new york": "New York: 18°C, Clear, wind 12 km/h",
+        "paris": "Paris: 16°C, Sunny, humidity 55%",
+    }
+    return weather_data.get(city.lower(), f"Weather data unavailable for {city}")
+
+
+def word_count(text: str) -> str:
+    """Count words in a text."""
+    words = len(text.split())
+    chars = len(text)
+    return f"Words: {words}, Characters: {chars}"
+
+
+# Register tools
+TOOLS: dict[str, Tool] = {
+    "calculator": Tool("calculator", "Evaluate math expressions. Usage: calculator('2 + 2')", calculator),
+    "search": Tool("search", "Search for information. Usage: search('query')", search),
+    "get_weather": Tool("get_weather", "Get current weather. Usage: get_weather('city name')", get_weather),
+    "word_count": Tool("word_count", "Count words in text. Usage: word_count('some text here')", word_count),
 }
 ```
 
-The LLM outputs a structured `tool_calls` array; the application dispatches and injects `role: "tool"` messages back.
-
-### Tool Registry Decorator
+### ReAct Parser
 
 ```python
-import json, math
-
-TOOL_REGISTRY: dict = {}
-
-def tool(name, description, params):
-    def decorator(fn):
-        TOOL_REGISTRY[name] = {
-            "fn": fn,
-            "schema": {
-                "type": "function",
-                "function": {"name": name, "description": description, "parameters": params}
-            }
-        }
-        return fn
-    return decorator
-
-@tool("calculator", "Evaluate a Python math expression",
-      {"type":"object","properties":{"expression":{"type":"string"}},"required":["expression"]})
-def calculator(expression: str) -> float:
-    allowed = set("0123456789+-*/().^ eE")
-    if not all(c in allowed for c in expression):
-        raise ValueError("Invalid characters")
-    return eval(expression, {"__builtins__": {}}, {"sqrt": math.sqrt, "pi": math.pi, "log": math.log})
-
-@tool("word_count", "Count words in a string",
-      {"type":"object","properties":{"text":{"type":"string"}},"required":["text"]})
-def word_count(text: str) -> int:
-    return len(text.split())
-
-def dispatch_tool_call(tool_call_dict: dict) -> str:
-    name = tool_call_dict["function"]["name"]
-    args = json.loads(tool_call_dict["function"]["arguments"])
-    if name not in TOOL_REGISTRY:
-        return f"Unknown tool: {name}"
-    try:
-        return str(TOOL_REGISTRY[name]["fn"](**args))
-    except Exception as e:
-        return f"Tool error: {e}"
-```
-
-### Multi-Tool Request Cycle (with real API)
-
-```python
-def run_agentic_loop(client, user_message: str, max_rounds: int = 5) -> str:
-    messages = [{"role": "user", "content": user_message}]
-    tool_schemas = [t["schema"] for t in TOOL_REGISTRY.values()]
-
-    for _ in range(max_rounds):
-        response = client.chat.completions.create(
-            model="claude-sonnet-4-6",
-            messages=messages,
-            tools=tool_schemas,
-            tool_choice="auto",
-        )
-        msg = response.choices[0].message
-        messages.append(msg)
-
-        if not msg.tool_calls:
-            return msg.content           # LLM done, no more tool calls
-
-        for tc in msg.tool_calls:
-            result = dispatch_tool_call(tc.model_dump())
-            messages.append({
-                "role": "tool",
-                "tool_call_id": tc.id,
-                "content": result,
-            })
-
-    return "Max rounds reached."
-```
-
-### Parallel Tool Calls
-
-Modern LLMs can request multiple tool calls in a single response (parallel execution):
-
-```python
-# LLM response with 2 parallel tool calls:
-# tool_calls = [
-#   {id:"call_1", function:{name:"calculator", arguments:'{"expression":"2**10"}'}},
-#   {id:"call_2", function:{name:"word_count", arguments:'{"text":"hello world"}'}},
-# ]
-
-import concurrent.futures
-
-def dispatch_parallel(tool_calls: list) -> list:
-    with concurrent.futures.ThreadPoolExecutor() as pool:
-        futures = {tc.id: pool.submit(dispatch_tool_call, tc.model_dump())
-                   for tc in tool_calls}
-    return [{"role":"tool","tool_call_id":tid,"content":f.result()}
-            for tid, f in futures.items()]
+class ReActParser:
+    """
+    Parses ReAct-format LLM output into structured Thought/Action/Observation steps.
+    
+    Expected format:
+        Thought: <reasoning>
+        Action: tool_name('arg1', 'arg2')
+        Observation: <injected by runtime>
+    """
+    
+    # Regex to extract tool calls like: search('query') or calculator('2+2')
+    ACTION_PATTERN = re.compile(r"Action:\s*(\w+)\s*\((.+?)\)\s*$", re.MULTILINE)
+    THOUGHT_PATTERN = re.compile(r"Thought:\s*(.+?)(?=Action:|$)", re.DOTALL)
+    FINISH_PATTERN = re.compile(r"finish\(['\"](.+?)['\"]\)", re.IGNORECASE)
+    
+    @classmethod
+    def extract_action(cls, text: str) -> tuple[str, str] | None:
+        """Returns (tool_name, argument) or None if no action found."""
+        match = cls.ACTION_PATTERN.search(text)
+        if not match:
+            return None
+        
+        tool_name = match.group(1)
+        # Remove surrounding quotes from argument
+        arg = match.group(2).strip().strip("'\"")
+        return tool_name, arg
+    
+    @classmethod
+    def extract_thought(cls, text: str) -> str:
+        match = cls.THOUGHT_PATTERN.search(text)
+        return match.group(1).strip() if match else ""
+    
+    @classmethod
+    def is_finished(cls, text: str) -> tuple[bool, str]:
+        """Returns (is_done, final_answer)."""
+        match = cls.FINISH_PATTERN.search(text)
+        if match:
+            return True, match.group(1)
+        return False, ""
 ```
 
 ---
 
-## Chain-of-Thought Prompting
-
-### Zero-Shot CoT
-
-Appending "Let's think step by step." to a prompt improves multi-step reasoning across LLMs (Kojima et al., 2022). The model first generates a reasoning chain, then the final answer.
-
-```
-Q: Roger has 5 tennis balls. He buys 2 cans of 3 balls each.
-   How many balls does he have now? Let's think step by step.
-
-A: Roger starts with 5 balls.
-   He bought 2 cans × 3 = 6 balls.
-   5 + 6 = 11 balls.
-   The answer is 11.
-```
-
-Extract final answer: `re.search(r"answer is (\d+)", response).group(1)`
-
-### Few-Shot CoT
-
-Provide 3–5 worked examples before the target question. Each example shows the full reasoning chain → final answer. More reliable than zero-shot for complex multi-step tasks.
+## 2. The Agent Loop
 
 ```python
-COT_EXAMPLES = [
-    {"q": "John has 3 apples and gives 1 away. How many?",
-     "a": "John starts with 3. Gives 1 away. 3 - 1 = 2. The answer is 2."},
-    {"q": "A rectangle is 4cm × 6cm. What is its area?",
-     "a": "Area = length × width = 4 × 6 = 24 sq cm. The answer is 24."},
+class ReActAgent:
+    """
+    A ReAct agent that runs a think-act-observe loop.
+    
+    The 'LLM' here is simulated with a rule-based responder for demonstration.
+    In production, replace _call_llm() with an actual API call.
+    """
+    
+    def __init__(self, tools: dict[str, Tool], max_steps: int = 10):
+        self.tools = tools
+        self.max_steps = max_steps
+        self.parser = ReActParser()
+        
+        # Build system prompt from tool descriptions
+        tool_docs = "\n".join(t.schema() for t in tools.values())
+        self.system_prompt = f"""You are a helpful assistant with access to these tools:
+
+{tool_docs}
+- finish(answer): Stop and return the final answer.
+
+Use this exact format:
+Thought: [your reasoning about what to do]
+Action: tool_name('argument')
+
+After seeing the Observation, continue with another Thought/Action or finish.
+"""
+    
+    def _call_llm(self, conversation: list[dict]) -> str:
+        """
+        Simulate LLM responses for demonstration.
+        In production: return openai.chat.completions.create(...).choices[0].message.content
+        """
+        # Extract the latest user message to determine what tool to use
+        last_msg = conversation[-1]["content"] if conversation else ""
+        observations = [m["content"] for m in conversation if m["role"] == "tool"]
+        
+        # Rule-based simulation — mimics what an LLM would generate
+        if not observations:
+            # First step: analyze the question
+            if "weather" in last_msg.lower():
+                city = re.search(r'in ([A-Z][a-z]+)', last_msg)
+                city_name = city.group(1) if city else "Tokyo"
+                return f"Thought: I need to look up the weather for {city_name}.\nAction: get_weather('{city_name}')"
+            elif any(op in last_msg for op in ['+', '-', '*', '/', 'calculate', 'compute', 'what is']):
+                expr = re.search(r'[\d\s\+\-\*\/\(\)\.]+', last_msg)
+                if expr:
+                    return f"Thought: I need to calculate this expression.\nAction: calculator('{expr.group().strip()}')"
+            elif "count" in last_msg.lower() and "word" in last_msg.lower():
+                return f"Thought: I need to count words in the given text.\nAction: word_count('{last_msg[:50]}')"
+            else:
+                # Default: search
+                query = last_msg.split("?")[0].replace("What is", "").replace("Tell me about", "").strip()
+                return f"Thought: I should search for information about this.\nAction: search('{query}')"
+        else:
+            # Have at least one observation — synthesize answer
+            last_obs = observations[-1]
+            return f"Thought: I now have the information needed to answer.\nAction: finish('{last_obs[:200]}')"
+    
+    def run(self, query: str, verbose: bool = True) -> str:
+        """Execute the ReAct loop for a given query."""
+        conversation = [
+            {"role": "system", "content": self.system_prompt},
+            {"role": "user", "content": query}
+        ]
+        
+        if verbose:
+            print(f"\nQuery: {query}")
+            print("-" * 50)
+        
+        for step in range(self.max_steps):
+            # Get LLM response
+            llm_response = self._call_llm(conversation)
+            
+            # Check if we're done
+            is_done, final_answer = self.parser.is_finished(llm_response)
+            if is_done:
+                if verbose:
+                    thought = self.parser.extract_thought(llm_response)
+                    if thought:
+                        print(f"Thought: {thought}")
+                    print(f"\nFinal Answer: {final_answer}")
+                return final_answer
+            
+            # Parse action
+            action = self.parser.extract_action(llm_response)
+            thought = self.parser.extract_thought(llm_response)
+            
+            if verbose:
+                if thought:
+                    print(f"Thought: {thought}")
+            
+            if not action:
+                # LLM didn't produce a valid action — ask it to try again
+                conversation.append({"role": "assistant", "content": llm_response})
+                conversation.append({"role": "user", "content": "Please provide an Action in the correct format."})
+                continue
+            
+            tool_name, argument = action
+            
+            if verbose:
+                print(f"Action: {tool_name}('{argument}')")
+            
+            # Execute tool
+            if tool_name not in self.tools:
+                observation = f"Error: tool '{tool_name}' not found. Available: {list(self.tools.keys())}"
+            else:
+                try:
+                    observation = str(self.tools[tool_name](argument))
+                except Exception as e:
+                    observation = f"Tool error: {e}"
+            
+            if verbose:
+                print(f"Observation: {observation}")
+            
+            # Add to conversation history
+            conversation.append({"role": "assistant", "content": llm_response})
+            conversation.append({"role": "tool", "content": observation})
+        
+        return "Max steps reached without finding an answer."
+
+
+section("ReAct Agent Demo")
+agent = ReActAgent(TOOLS, max_steps=5)
+
+queries = [
+    "What is 15 * 23 + 47?",
+    "What is the weather in Tokyo?",
+    "What is a Transformer in deep learning?",
+    "Tell me about gradient descent",
 ]
 
-def few_shot_cot_prompt(question: str) -> str:
-    examples = "\n\n".join(f"Q: {e['q']}\nA: {e['a']}" for e in COT_EXAMPLES)
-    return f"{examples}\n\nQ: {question}\nA:"
-```
-
-### Self-Consistency
-
-Sample $k$ reasoning chains at temperature $T > 0$, extract final answers, return majority vote:
-
-$$\hat{a} = \text{mode}(\{a_1, a_2, \ldots, a_k\})$$
-
-Self-consistency (Wang et al., 2022) outperforms single-sample CoT by 5–15% on math and reasoning benchmarks.
-
-```python
-from collections import Counter
-
-def self_consistent_answer(llm, question: str, k: int = 7, temp: float = 0.7) -> str:
-    prompt = few_shot_cot_prompt(question)
-    answers = [extract_final_answer(llm(prompt, temperature=temp)) for _ in range(k)]
-    return Counter(answers).most_common(1)[0][0]
+for q in queries:
+    result = agent.run(q, verbose=True)
+    print()
 ```
 
 ---
 
-## Multi-Step Planning
+## 3. Tool Use with Structured Output
 
-### Plan-then-Execute
-
-Decompose complex tasks into a numbered plan before tool execution:
-
-```
-System: First output a numbered plan. Then execute each step using tools.
-        Format:
-        Plan:
-        1. step one
-        2. step two
-        ...
-        Executing step 1: ...
-        Result: ...
-        Executing step 2: ...
-        Final Answer: ...
-
-User: Analyze the sales data in sales.csv and summarize the top 3 products.
-```
-
-### Hierarchical Planning
-
-For long-horizon tasks, decompose recursively:
-
-```
-Level 1 (planner):  break task → subtasks
-Level 2 (executor): for each subtask → tool calls
-Level 3 (verifier): check output meets requirements
-```
+Modern LLM APIs (OpenAI, Anthropic) support **function calling**: instead of parsing free text, the model outputs structured JSON that maps directly to tool calls.
 
 ```python
-class HierarchicalAgent:
-    def __init__(self, planner_llm, executor_llm, tools, verifier_llm=None):
-        self.planner  = planner_llm
-        self.executor = executor_llm
-        self.tools    = tools
-        self.verifier = verifier_llm
+import json
 
-    def run(self, task: str) -> str:
-        # Phase 1: Plan
-        plan_prompt = f"Break this task into ≤5 numbered subtasks:\n{task}"
-        plan_text = self.planner(plan_prompt)
-        subtasks = parse_numbered_list(plan_text)
+# Structured tool definition (OpenAI function calling format)
+TOOL_SCHEMAS = [
+    {
+        "name": "calculator",
+        "description": "Evaluate a mathematical expression",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "expression": {
+                    "type": "string",
+                    "description": "Mathematical expression to evaluate, e.g. '2 + 3 * 4'"
+                }
+            },
+            "required": ["expression"]
+        }
+    },
+    {
+        "name": "search",
+        "description": "Search for information about a topic",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search query"
+                }
+            },
+            "required": ["query"]
+        }
+    },
+    {
+        "name": "get_weather",
+        "description": "Get current weather for a city",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string",
+                    "description": "City name"
+                }
+            },
+            "required": ["city"]
+        }
+    }
+]
 
-        results = []
-        for i, subtask in enumerate(subtasks):
-            # Phase 2: Execute
-            agent = ReActAgent(self.executor, self.tools, max_steps=5)
-            result = agent.run(subtask)
-            results.append(result)
-            print(f"  Subtask {i+1} done: {result[:60]}")
 
-        # Phase 3: Synthesize
-        synthesis_prompt = (
-            f"Original task: {task}\n"
-            f"Subtask results:\n" +
-            "\n".join(f"{i+1}. {r}" for i, r in enumerate(results)) +
-            "\nSynthesize a final answer:"
-        )
-        return self.planner(synthesis_prompt)
+class StructuredToolCaller:
+    """
+    Handles the structured function calling pattern:
+    1. Parse JSON tool call from LLM output
+    2. Validate arguments against schema
+    3. Execute and return result
+    """
+    
+    def __init__(self, tools: dict[str, Tool], schemas: list[dict]):
+        self.tools = tools
+        self.schemas = {s["name"]: s for s in schemas}
+    
+    def parse_tool_call(self, llm_output: str) -> dict | None:
+        """Extract JSON tool call from LLM output."""
+        # LLM outputs: {"name": "calculator", "arguments": {"expression": "2+2"}}
+        try:
+            # Try to find JSON in the output
+            json_match = re.search(r'\{.*\}', llm_output, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+        except json.JSONDecodeError:
+            pass
+        return None
+    
+    def validate_and_execute(self, tool_call: dict) -> str:
+        """Validate tool call against schema and execute."""
+        name = tool_call.get("name")
+        args = tool_call.get("arguments", {})
+        
+        if name not in self.tools:
+            return json.dumps({"error": f"Unknown tool: {name}"})
+        
+        # Validate required params
+        schema = self.schemas.get(name, {})
+        required = schema.get("parameters", {}).get("required", [])
+        missing = [p for p in required if p not in args]
+        
+        if missing:
+            return json.dumps({"error": f"Missing required parameters: {missing}"})
+        
+        # Execute
+        try:
+            result = self.tools[name](**args)
+            return json.dumps({"result": result})
+        except Exception as e:
+            return json.dumps({"error": str(e)})
+    
+    def process(self, llm_output: str) -> str:
+        """Full pipeline: parse → validate → execute → return."""
+        tool_call = self.parse_tool_call(llm_output)
+        if not tool_call:
+            return json.dumps({"error": "No valid tool call found in output"})
+        return self.validate_and_execute(tool_call)
+
+
+section("Structured Tool Calling")
+caller = StructuredToolCaller(TOOLS, TOOL_SCHEMAS)
+
+# Simulate LLM outputs with structured tool calls
+test_outputs = [
+    '{"name": "calculator", "arguments": {"expression": "100 * 1.08 + 50"}}',
+    '{"name": "search", "arguments": {"query": "transformer attention mechanism"}}',
+    '{"name": "get_weather", "arguments": {"city": "London"}}',
+    '{"name": "calculator", "arguments": {}}',  # missing required param
+]
+
+for output in test_outputs:
+    result = caller.process(output)
+    parsed = json.loads(result)
+    print(f"Input:  {output[:60]}")
+    print(f"Output: {result[:100]}\n")
 ```
 
 ---
 
-## Agent Memory
+## 4. Memory Systems for Agents
 
-### Buffer Memory (Last N Messages)
+Agents need memory to be useful across multiple turns. Four types:
 
-The simplest memory: keep the last $N$ messages in the context window.
+| Memory type | Storage | Lifespan | Use case |
+|---|---|---|---|
+| **In-context** | Prompt/conversation | Current session | Recent turns, tool results |
+| **External (episodic)** | Vector DB | Persistent | Past conversations, facts learned |
+| **Semantic** | Knowledge base | Persistent | Domain knowledge, user preferences |
+| **Procedural** | Code/instructions | Persistent | How to use tools, workflows |
 
 ```python
+import numpy as np
 from collections import deque
 
-class BufferMemory:
-    def __init__(self, max_messages: int = 20):
-        self.buffer = deque(maxlen=max_messages)
+class ConversationMemory:
+    """
+    Sliding window memory: keeps last N turns in context.
+    When window overflows, oldest turns are dropped.
+    """
+    
+    def __init__(self, max_turns: int = 10):
+        self.turns: deque[dict] = deque(maxlen=max_turns * 2)  # *2 for user+assistant
+        self.max_turns = max_turns
+    
+    def add(self, role: str, content: str) -> None:
+        self.turns.append({"role": role, "content": content})
+    
+    def get_context(self) -> list[dict]:
+        return list(self.turns)
+    
+    def clear(self) -> None:
+        self.turns.clear()
+    
+    def __len__(self) -> int:
+        return len(self.turns)
 
-    def add(self, role: str, content: str):
-        self.buffer.append({"role": role, "content": content})
 
-    def get_messages(self) -> list:
-        return list(self.buffer)
+class SemanticMemory:
+    """
+    Long-term memory using TF-IDF similarity for retrieval.
+    Stores facts and retrieves them based on query relevance.
+    """
+    
+    def __init__(self):
+        self.memories: list[dict] = []  # {"text": ..., "tags": [...], "timestamp": ...}
+        self._vocab: dict[str, int] = {}
+        self._idf: np.ndarray | None = None
+        self._matrix: np.ndarray | None = None
+        self._dirty = True  # True when index needs rebuilding
+    
+    def store(self, text: str, tags: list[str] | None = None) -> None:
+        """Add a memory entry."""
+        self.memories.append({"text": text, "tags": tags or []})
+        self._dirty = True
+    
+    def _build_index(self) -> None:
+        """Rebuild TF-IDF index after new entries."""
+        if not self.memories:
+            return
+        
+        texts = [m["text"] for m in self.memories]
+        
+        # Build vocabulary
+        all_words = sorted(set(w for t in texts for w in t.lower().split()))
+        self._vocab = {w: i for i, w in enumerate(all_words)}
+        
+        N = len(texts)
+        import math
+        from collections import Counter
+        
+        df = np.zeros(len(self._vocab))
+        for text in texts:
+            for w in set(text.lower().split()):
+                if w in self._vocab:
+                    df[self._vocab[w]] += 1
+        
+        self._idf = np.log((N + 1) / (df + 1)) + 1
+        
+        # Build document matrix
+        self._matrix = np.zeros((N, len(self._vocab)))
+        for i, text in enumerate(texts):
+            counts = Counter(text.lower().split())
+            total = max(len(text.split()), 1)
+            for w, c in counts.items():
+                if w in self._vocab:
+                    self._matrix[i, self._vocab[w]] = (c / total) * self._idf[self._vocab[w]]
+        
+        self._dirty = False
+    
+    def recall(self, query: str, k: int = 3) -> list[dict]:
+        """Retrieve k most relevant memories for a query."""
+        if self._dirty:
+            self._build_index()
+        
+        if not self.memories or self._matrix is None:
+            return []
+        
+        from collections import Counter
+        
+        # Vectorize query
+        q = np.zeros(len(self._vocab))
+        for w, c in Counter(query.lower().split()).items():
+            if w in self._vocab:
+                q[self._vocab[w]] = c * self._idf[self._vocab[w]]
+        
+        q_norm = q / (np.linalg.norm(q) + 1e-9)
+        mat_norm = self._matrix / (np.linalg.norm(self._matrix, axis=1, keepdims=True) + 1e-9)
+        sims = mat_norm @ q_norm
+        
+        top_k = np.argsort(sims)[::-1][:k]
+        return [
+            {**self.memories[i], "similarity": float(sims[i])}
+            for i in top_k if sims[i] > 0.01
+        ]
 
-    def token_count(self) -> int:
-        return sum(len(m["content"].split()) * 4 // 3   # rough token estimate
-                   for m in self.buffer)
-```
 
-**Problem:** Older context is lost when maxlen is exceeded. Relevant early information (like the user's name or initial constraints) is forgotten.
+section("Memory Systems Demo")
 
-### Summary Memory
+# Conversation memory
+conv_mem = ConversationMemory(max_turns=3)
+for i, (role, msg) in enumerate([
+    ("user", "What is LoRA?"),
+    ("assistant", "LoRA adds trainable rank-decomposition matrices to frozen weights."),
+    ("user", "How does QLoRA differ?"),
+    ("assistant", "QLoRA combines 4-bit quantization with LoRA adapters."),
+    ("user", "What is the rank parameter?"),
+    ("assistant", "Rank r controls adapter capacity; higher r = more parameters."),
+    ("user", "When should I use rank 4 vs rank 16?"),  # this should evict turn 1
+]):
+    conv_mem.add(role, msg)
 
-When the buffer exceeds a token threshold, compress old messages into a summary:
+print(f"Conversation memory ({len(conv_mem)} turns kept out of 8 total):")
+for turn in conv_mem.get_context():
+    print(f"  [{turn['role']}]: {turn['content'][:60]}...")
 
-```python
-class SummaryMemory:
-    def __init__(self, llm, buffer_limit: int = 2000, summary_tokens: int = 300):
-        self.llm           = llm
-        self.buffer_limit  = buffer_limit
-        self.summary_tokens = summary_tokens
-        self.summary       = ""              # compressed old context
-        self.recent        = []             # recent messages (not yet summarized)
+# Semantic memory
+sem_mem = SemanticMemory()
+facts = [
+    "The user prefers concise explanations without jargon.",
+    "The user is preparing for ML engineering interviews at FAANG.",
+    "The user has strong Python skills but is new to transformers.",
+    "The user's preferred learning style is code-first, theory-second.",
+    "The user wants to understand RLHF and alignment techniques.",
+]
+for fact in facts:
+    sem_mem.store(fact)
 
-    def add(self, role: str, content: str):
-        self.recent.append({"role": role, "content": content})
-        if self._token_count(self.recent) > self.buffer_limit:
-            self._compress()
-
-    def _compress(self):
-        to_compress = self.recent[:-4]  # keep last 4 messages as-is
-        text = "\n".join(f"{m['role']}: {m['content']}" for m in to_compress)
-        self.summary = self.llm(
-            f"Summarize this conversation in {self.summary_tokens} tokens:\n{text}"
-        )
-        self.recent = self.recent[-4:]
-
-    def get_messages(self) -> list:
-        messages = []
-        if self.summary:
-            messages.append({"role": "system",
-                             "content": f"Conversation summary: {self.summary}"})
-        messages.extend(self.recent)
-        return messages
-
-    def _token_count(self, messages: list) -> int:
-        return sum(len(m["content"].split()) * 4 // 3 for m in messages)
-```
-
-### Entity Memory
-
-Extract and track named entities across turns:
-
-```python
-class EntityMemory:
-    def __init__(self, llm):
-        self.llm      = llm
-        self.entities: dict = {}   # entity → facts
-
-    def update(self, text: str):
-        prompt = (
-            f"Extract entity facts from this text as JSON "
-            f'{{entity: [facts...]}}:\n{text}'
-        )
-        extracted = json.loads(self.llm(prompt))
-        for entity, facts in extracted.items():
-            if entity not in self.entities:
-                self.entities[entity] = []
-            self.entities[entity].extend(facts)
-
-    def get_context(self) -> str:
-        if not self.entities:
-            return ""
-        lines = [f"{e}: {'; '.join(f)}" for e, f in self.entities.items()]
-        return "Known entities:\n" + "\n".join(lines)
+print(f"\nSemantic memory recall for 'how should I explain things':")
+results = sem_mem.recall("how should I explain things to this user")
+for r in results:
+    print(f"  [{r['similarity']:.3f}] {r['text']}")
 ```
 
 ---
 
-## Error Recovery
+## 5. Multi-Agent Systems
 
-### Retry with Error Observation
+Single agents hit limits: one LLM token budget, one perspective, sequential execution. Multi-agent systems parallelize and specialize.
 
-When a tool fails, inject the error as an observation so the agent can self-correct:
+**Patterns:**
 
-```python
-# Instead of:
-# raise on tool failure  ← bad
-
-# Do:
-try:
-    result = tool(input)
-    observation = result
-except Exception as e:
-    observation = (
-        f"Error: {e}. "
-        "Rethink your approach — maybe use a different tool or different input format."
-    )
-# Inject observation and let the agent retry
-```
-
-### Retry with Exponential Backoff (API rate limits)
+| Pattern | Structure | Use case |
+|---|---|---|
+| **Supervisor** | One orchestrator → N workers | Planning, task decomposition |
+| **Peer-to-peer** | Agents communicate directly | Debate, adversarial review |
+| **Pipeline** | Agent A output → Agent B input | Sequential processing |
+| **Voting** | N agents vote on answer | Reduces single-model errors |
 
 ```python
-import time, random
-
-def call_llm_with_retry(client, messages, max_retries=3):
-    for attempt in range(max_retries):
-        try:
-            return client.chat.completions.create(
-                model="claude-sonnet-4-6", messages=messages
-            )
-        except Exception as e:
-            if "rate_limit" in str(e).lower() and attempt < max_retries - 1:
-                wait = (2 ** attempt) + random.uniform(0, 1)
-                print(f"Rate limited. Waiting {wait:.1f}s...")
-                time.sleep(wait)
+class SubAgent:
+    """A specialized agent with a specific role."""
+    
+    def __init__(self, role: str, expertise: str, tools: dict[str, Tool] | None = None):
+        self.role = role
+        self.expertise = expertise
+        self.tools = tools or {}
+        self.memory = ConversationMemory(max_turns=5)
+    
+    def process(self, task: str) -> str:
+        """
+        Simulate specialized processing based on role.
+        In production: call a real LLM with role-specific system prompt.
+        """
+        self.memory.add("user", task)
+        
+        # Role-based simulated responses
+        if self.role == "researcher":
+            result = f"[Research] Finding relevant information about: {task[:50]}"
+            for key in ["transformer", "lora", "rag", "gradient descent", "attention"]:
+                if key in task.lower():
+                    result = search(key)
+                    break
+        elif self.role == "calculator":
+            nums = re.findall(r'\d+\.?\d*', task)
+            if len(nums) >= 2:
+                result = f"[Calculation] {nums[0]} * {nums[1]} = {float(nums[0]) * float(nums[1])}"
             else:
-                raise
-```
+                result = f"[Calculation] No computable expression found in: {task[:50]}"
+        elif self.role == "critic":
+            result = f"[Critique] Reviewing: {task[:50]}... Response appears well-structured and accurate."
+        elif self.role == "synthesizer":
+            result = f"[Synthesis] Combining information: {task[:100]}..."
+        else:
+            result = f"[{self.role}] Processed: {task[:50]}"
+        
+        self.memory.add("assistant", result)
+        return result
 
-### Validation Before Execution
 
-```python
-def safe_tool_call(tool_name: str, args: dict, schema: dict) -> str:
-    """Validate args against JSON schema before calling tool."""
-    # Check required fields
-    required = schema["parameters"].get("required", [])
-    missing = [r for r in required if r not in args]
-    if missing:
-        return f"Validation error: missing required fields {missing}"
-
-    # Check enum constraints
-    props = schema["parameters"].get("properties", {})
-    for key, val in args.items():
-        if key in props and "enum" in props[key]:
-            if val not in props[key]["enum"]:
-                return f"Validation error: '{val}' not in enum {props[key]['enum']}"
-
-    return dispatch_tool_call({"function": {"name": tool_name, "arguments": json.dumps(args)}})
-```
-
----
-
-## Agent Evaluation
-
-### Evaluation Dimensions
-
-| Metric | Definition |
-|--------|-----------|
-| **Task success rate** | Fraction of tasks with correct final answer |
-| **Trajectory accuracy** | Fraction of steps that match reference trajectory |
-| **Tool precision** | Fraction of tool calls that were necessary + correct |
-| **Tool recall** | Fraction of necessary tools that were actually called |
-| **Steps efficiency** | Reference steps / actual steps (lower = more detours) |
-| **Answer F1** | Token-level F1 between generated and reference answers |
-
-### Ground-Truth Trajectory Comparison
-
-```python
-def trajectory_accuracy(predicted: list, reference: list) -> float:
+class SupervisorAgent:
     """
-    predicted, reference: lists of (action_type, action_input) tuples
-    Returns: fraction of reference actions that appear in predicted (order-free).
+    Orchestrates multiple sub-agents to complete complex tasks.
+    Decomposes queries, routes to specialists, synthesizes results.
     """
-    pred_set = set(predicted)
-    ref_set  = set(reference)
-    if not ref_set:
-        return 1.0
-    return len(pred_set & ref_set) / len(ref_set)
+    
+    def __init__(self):
+        self.agents: dict[str, SubAgent] = {
+            "researcher": SubAgent("researcher", "information retrieval and fact-finding", TOOLS),
+            "calculator": SubAgent("calculator", "mathematical computations"),
+            "critic": SubAgent("critic", "quality review and fact-checking"),
+            "synthesizer": SubAgent("synthesizer", "combining and summarizing information"),
+        }
+        self.conversation_log: list[dict] = []
+    
+    def _route_task(self, task: str) -> list[str]:
+        """Decide which agents should handle this task (simplified routing)."""
+        agents_needed = []
+        
+        if any(w in task.lower() for w in ["what is", "explain", "how does", "define"]):
+            agents_needed.append("researcher")
+        
+        if any(w in task.lower() for w in ['+', '-', '*', '/', 'calculate', 'compute', 'how many']):
+            agents_needed.append("calculator")
+        
+        # Always synthesize if multiple agents contribute
+        if len(agents_needed) > 1:
+            agents_needed.append("synthesizer")
+        
+        # Add critic for factual claims
+        if "researcher" in agents_needed:
+            agents_needed.append("critic")
+        
+        return agents_needed or ["researcher"]  # default to researcher
+    
+    def run(self, query: str, verbose: bool = True) -> str:
+        """Orchestrate agents to answer a query."""
+        if verbose:
+            print(f"\nQuery: {query}")
+            print("-" * 50)
+        
+        # Route to appropriate agents
+        agent_names = self._route_task(query)
+        
+        if verbose:
+            print(f"Routing to agents: {agent_names}")
+        
+        results = {}
+        
+        # Execute agents (sequentially here, could be parallel)
+        for agent_name in agent_names:
+            agent = self.agents[agent_name]
+            
+            if agent_name == "synthesizer" and results:
+                # Synthesizer receives all previous results
+                combined = " | ".join(f"{k}: {v}" for k, v in results.items())
+                result = agent.process(f"Synthesize: {combined}")
+            elif agent_name == "critic" and "researcher" in results:
+                result = agent.process(f"Review: {results['researcher']}")
+            else:
+                result = agent.process(query)
+            
+            results[agent_name] = result
+            
+            if verbose:
+                print(f"\n[{agent_name.upper()}]: {result[:100]}...")
+        
+        # Final answer: last agent's output
+        final = results.get("synthesizer") or results.get("critic") or results.get("researcher", "No answer.")
+        
+        if verbose:
+            print(f"\nFinal: {final[:200]}")
+        
+        self.conversation_log.append({"query": query, "agents": agent_names, "result": final})
+        return final
 
-def answer_f1(prediction: str, reference: str) -> float:
-    pred_tokens = set(prediction.lower().split())
-    ref_tokens  = set(reference.lower().split())
-    if not pred_tokens or not ref_tokens:
-        return 0.0
-    tp        = len(pred_tokens & ref_tokens)
-    precision = tp / len(pred_tokens)
-    recall    = tp / len(ref_tokens)
-    if precision + recall == 0:
-        return 0.0
-    return 2 * precision * recall / (precision + recall)
-```
 
-### Evaluation Dataset Format
+section("Multi-Agent System Demo")
+supervisor = SupervisorAgent()
 
-```python
-# Evaluation examples: each has question, reference trajectory, reference answer
-EVAL_DATASET = [
-    {
-        "question": "What is 2^10 + sqrt(144)?",
-        "reference_trajectory": [("calculator", "2**10"), ("calculator", "144**0.5")],
-        "reference_answer": "1036.0",
-        "reference_steps": 2,
-    },
-    {
-        "question": "How many words are in 'The quick brown fox'?",
-        "reference_trajectory": [("word_count", "The quick brown fox")],
-        "reference_answer": "4",
-        "reference_steps": 1,
-    },
+queries = [
+    "What is attention in Transformers?",
+    "Calculate 128 * 256 and explain what it could represent",
+    "What is gradient descent and how does it compute updates?",
 ]
 
-def evaluate_agent(agent, dataset):
-    results = {"success": 0, "total": len(dataset), "f1s": [], "efficiencies": []}
-
-    for ex in dataset:
-        response, trajectory = agent.run_with_trajectory(ex["question"])
-        f1     = answer_f1(response, ex["reference_answer"])
-        n_steps = len(trajectory)
-        efficiency = ex["reference_steps"] / n_steps if n_steps > 0 else 0
-        success = f1 >= 0.8
-
-        results["success"] += int(success)
-        results["f1s"].append(f1)
-        results["efficiencies"].append(efficiency)
-
-    results["success_rate"] = results["success"] / results["total"]
-    results["mean_f1"]      = sum(results["f1s"]) / len(results["f1s"])
-    results["mean_efficiency"] = sum(results["efficiencies"]) / len(results["efficiencies"])
-    return results
+for q in queries:
+    supervisor.run(q, verbose=True)
+    print()
 ```
 
 ---
 
-## Interview Q&A
+## 6. Agent Planning: Chain-of-Thought and Self-Consistency
 
-**Q: What is the difference between ReAct and Plan-and-Execute?**
-**A:** ReAct interleaves reasoning and action at every step — each thought immediately leads to one tool call. Plan-and-Execute first generates a complete plan (list of subtasks), then executes them, then synthesizes. Plan-and-Execute is better for long-horizon tasks where the full plan helps avoid dead ends. ReAct is better for tasks where the next step depends on the previous observation (adaptive). Most production agents hybridize: plan globally, execute locally with ReAct.
+### Chain-of-Thought (CoT)
 
-**Q: Why is tool input validation important before dispatching?**
-**A:** LLMs hallucinate arguments. Without validation, a tool might receive an integer where a string is expected, or a missing required field, causing cryptic errors. Injecting a validation error back as an observation allows the agent to self-correct. Always validate against the JSON Schema before calling the underlying function.
+CoT prompting forces the model to show its reasoning step-by-step before answering. Drastically improves performance on multi-step problems.
 
-**Q: What causes infinite loops in agents, and how do you prevent them?**
-**A:** An agent loops when it repeatedly calls the same tool with the same input (usually because the tool returns an unhelpful result and the agent doesn't adapt). Prevention: (1) `max_steps` hard limit, (2) detect repeated (tool, input) pairs in the trajectory and inject "You already tried this — try a different approach," (3) temperature > 0 adds randomness that breaks deterministic loops.
+```python
+COT_PROMPT = """Solve the following problem step by step.
 
-**Q: How does buffer memory vs. summary memory trade off?**
-**A:** Buffer memory retains exact wording but loses older context beyond `maxlen`. Summary memory preserves semantics of old context in compressed form but loses exact quotes and numbers. For tasks requiring precise recall (e.g., "what was the exact number I mentioned 20 messages ago?"), buffer is safer. For long conversations, summary avoids context overflow. A hybrid — buffer recent messages + summary of older ones — is the production standard.
+Problem: {problem}
 
-**Q: How do parallel tool calls work and when are they beneficial?**
-**A:** When the LLM identifies that multiple tool calls are independent (do not depend on each other's results), it returns them in a single response as an array of `tool_calls`. The application executes them concurrently and returns all results in a single `role: "tool"` batch. This reduces the number of LLM round-trips. It is beneficial when a task needs multiple data points that can be fetched simultaneously (e.g., weather in 3 cities, or 3 independent calculator operations).
+Solution:
+Step 1:"""
 
-**Q: How do you evaluate whether an agent is using tools appropriately?**
-**A:** Three metrics: (1) **Tool precision** = fraction of tool calls that were necessary (penalizes unnecessary calls), (2) **Tool recall** = fraction of necessary tools that were actually invoked (penalizes missing tools), (3) **Steps efficiency** = reference steps / actual steps (penalizes verbose trajectories). Additionally, check trajectory against a reference with human-labeled "correct action sequences" for the task.
 
-**Q: What is self-consistency and why does it work?**
-**A:** Self-consistency samples $k$ independent reasoning chains (at temperature > 0) and returns the majority-vote answer. It works because CoT reasoning errors are stochastic — different incorrect paths lead to different wrong answers, while the correct reasoning path consistently reaches the correct answer. The majority vote amplifies the signal. It adds a $k\times$ compute cost but consistently outperforms greedy decoding by 5–15% on math benchmarks.
+def chain_of_thought(problem: str, steps: list[str]) -> str:
+    """Simulate a CoT solution trace."""
+    solution = f"Problem: {problem}\n\nSolution:\n"
+    for i, step in enumerate(steps, 1):
+        solution += f"Step {i}: {step}\n"
+    return solution
 
-**Q: What is the ReAct agent's limitation for tasks requiring backtracking?**
-**A:** ReAct is greedy — it commits to each action and cannot backtrack to an earlier state. If a wrong tool call leads to an irreversible state (e.g., deleting a file, sending an email), the agent cannot undo it. Mitigation: (1) use reversible tools wherever possible, (2) add a confirmation step before irreversible actions, (3) use tree-search variants like Tree-of-Thoughts for tasks where backtracking is essential.
+
+section("Chain-of-Thought Example")
+
+# Multi-step math word problem
+problem = "A model has 7B parameters at 4-bit quantization. Each parameter uses 0.5 bytes. How many GB of memory does it need? (1 GB = 1e9 bytes)"
+
+steps = [
+    "Identify given values: 7B = 7 × 10^9 parameters, 0.5 bytes each.",
+    "Calculate total bytes: 7 × 10^9 × 0.5 = 3.5 × 10^9 bytes.",
+    "Convert to GB: 3.5 × 10^9 / 10^9 = 3.5 GB.",
+    "Answer: 3.5 GB of memory.",
+]
+
+print(chain_of_thought(problem, steps))
+
+# Verify with calculator tool
+print(f"Calculator verification: {calculator('7e9 * 0.5 / 1e9')} GB")
+```
+
+### Self-Consistency: Vote on Reasoning Paths
+
+Run the same query N times with temperature > 0, then majority-vote on answers. Reduces variance from a single reasoning chain.
+
+```python
+def self_consistency(answers: list[str]) -> tuple[str, dict]:
+    """
+    Majority vote over multiple independently generated answers.
+    Returns (most_common_answer, vote_distribution).
+    """
+    from collections import Counter
+    
+    # Normalize answers (strip whitespace, lowercase for comparison)
+    normalized = [a.strip().lower() for a in answers]
+    vote_dist = dict(Counter(normalized))
+    
+    # Most common answer
+    best = max(vote_dist, key=vote_dist.get)
+    
+    return best, vote_dist
+
+
+section("Self-Consistency Demo")
+
+# Simulate 5 independent reasoning paths (some with errors, some correct)
+# In production these would be actual LLM outputs with temperature > 0
+simulated_answers = [
+    "3.5 GB",   # correct
+    "3.5 GB",   # correct
+    "3.5 GB",   # correct
+    "7.0 GB",   # error (forgot 0.5 byte multiplier)
+    "3.5 GB",   # correct
+]
+
+best, dist = self_consistency(simulated_answers)
+print(f"Answers: {simulated_answers}")
+print(f"Vote distribution: {dist}")
+print(f"Self-consistent answer: {best}")
+print(f"Confidence: {dist[best.strip().lower()] / len(simulated_answers) * 100:.0f}%")
+```
 
 ---
 
-## Resources
+## 7. Interview Q&A
 
-**Papers:**
-- [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629) — Yao et al., 2022
-- [Chain-of-Thought Prompting Elicits Reasoning in LLMs](https://arxiv.org/abs/2201.11903) — Wei et al., 2022
-- [Self-Consistency Improves Chain of Thought Reasoning](https://arxiv.org/abs/2203.11171) — Wang et al., 2022
-- [Toolformer: Language Models Can Teach Themselves to Use Tools](https://arxiv.org/abs/2302.04761) — Schick et al., 2023
-- [Tree of Thoughts: Deliberate Problem Solving with LLMs](https://arxiv.org/abs/2305.10601) — Yao et al., 2023
+**Q: What's the difference between a chain and an agent?**
+A chain is a fixed sequence of LLM calls (pipeline). An agent is dynamic: the LLM decides which tools to call and when, based on the current state. Chains are deterministic and fast; agents are flexible but harder to predict and debug.
 
-**Documentation:**
-- OpenAI Function Calling Guide — tool schema format and multi-turn examples
-- Anthropic Claude Tool Use — identical JSON Schema format, parallel tools
+**Q: What is the ReAct framework?**
+ReAct interleaves Reasoning (Thought: ...) and Acting (Action: ...) in a single generation, grounded by real Observations from tool calls. This prevents hallucination from compounding — the model gets real feedback after each action rather than reasoning in isolation.
 
-**Books:**
-- *Building LLM Powered Applications* — Valentino Zocca (2024) — Chapter 5: Agents
+**Q: How do you handle agent loops (infinite loops)?**
+1. Max step limit — hard ceiling on iterations
+2. Step deduplication — detect if the same action+args appears twice
+3. Progress checks — measure if each step moves toward the goal
+4. Timeout — wall-clock time limit
+
+**Q: What's the difference between episodic and semantic memory?**
+Episodic: specific experiences ("User asked about BERT yesterday"). Semantic: general facts/knowledge ("This user is an ML engineer"). Episodic decays; semantic is updated and compressed over time.
+
+**Q: When would you use function calling vs free-text parsing?**
+Function calling: structured, reliable, validated JSON — production systems. Free-text ReAct parsing: fallback for models that don't support function calling; also useful for reasoning traces you need to log. Function calling has lower error rates and easier argument validation.
+
+**Q: How do you evaluate agent performance?**
+- **Task success rate**: did the agent reach the correct final answer?
+- **Tool call accuracy**: were the right tools called with correct arguments?
+- **Steps to completion**: fewer steps = more efficient
+- **Hallucination rate**: did the agent fabricate tool results?
+- **Trajectory evaluation**: score intermediate reasoning steps, not just the final answer
 
 ---
 
-*Next: [Module 11 — Deployment & Production ML](11-deployment.md)*
+## 8. Cheat Sheet
+
+```
+AGENT ANATOMY
+  Perception:  parse input + retrieve memory
+  Reasoning:   LLM decides next action (CoT)
+  Action:      tool call / API / code execution
+  Memory:      update conversation + long-term store
+  Output:      final answer or next input to loop
+
+REACT FORMAT
+  Thought: [reasoning step]
+  Action: tool_name('argument')
+  Observation: [injected tool result]
+  ... repeat until ...
+  Action: finish('final answer')
+
+TOOL CALLING
+  Function calling: JSON schema, validated, structured
+  ReAct text:       regex parse, flexible, log-friendly
+
+MEMORY TYPES
+  In-context:   last N turns in prompt (sliding window)
+  Episodic:     vector DB of past interactions
+  Semantic:     user prefs, domain facts (vector DB)
+  Procedural:   tool docs, system instructions
+
+MULTI-AGENT PATTERNS
+  Supervisor:   orchestrator delegates to specialists
+  Pipeline:     A → B → C sequential processing
+  Debate:       agents argue, critic arbitrates
+  Voting:       N agents answer, majority wins
+
+EVALUATION METRICS
+  Task success rate     (did it get the right answer?)
+  Tool accuracy         (right tool, right args?)
+  Step efficiency       (fewer = better)
+  Grounding rate        (answers from tools, not hallucinations)
+```
+
+---
+
+## Mini-Project: Research Assistant Agent
+
+Build a multi-turn research assistant that can search for information, perform calculations, remember past queries, and synthesize multi-source answers.
+
+```python
+# research_agent.py
+import re
+import json
+import math
+import numpy as np
+from collections import deque, Counter
+
+
+def section(title: str) -> None:
+    print(f"\n{'='*60}\n{title}\n{'='*60}")
+
+
+# ── Knowledge base ───────────────────────────────────────────────
+KNOWLEDGE = {
+    "transformer": "Transformers use self-attention to model sequences. Introduced by Vaswani et al. 2017. Key components: multi-head attention, positional encoding, feed-forward layers.",
+    "bert": "BERT is a bidirectional encoder pretrained with MLM and NSP. Used for classification, NER, QA. Comes in base (110M params) and large (340M params).",
+    "gpt": "GPT is a unidirectional decoder pretrained with causal LM. GPT-2 has 1.5B params. GPT-3 has 175B. GPT-4 is multimodal.",
+    "lora": "LoRA freezes base weights and trains rank-r matrices A,B. ΔW = BA. Uses ~0.1-1% of params. r=8 is common. Merge at inference: W_new = W + (α/r)BA.",
+    "rag": "RAG retrieves relevant docs and injects them into prompts. Pipeline: chunk → embed → index → retrieve → prompt → generate. Evaluated with context precision and recall.",
+    "attention": "Attention: softmax(QK^T / sqrt(d_k)) V. Multi-head splits d_model into h heads. Self-attention: Q=K=V=X. Cross-attention: Q from decoder, K/V from encoder.",
+    "gradient descent": "GD: θ ← θ - η∇L. SGD: use one example. Mini-batch: use B examples. Adam: adaptive per-parameter learning rates with momentum. lr=1e-4 typical for transformers.",
+    "backprop": "Backprop applies chain rule layer-by-layer. ∂L/∂W_l = ∂L/∂h_l · ∂h_l/∂W_l. Vanishing gradients: use ReLU, residual connections, LayerNorm.",
+    "quantization": "Quantization reduces precision: FP32→INT8 (2× smaller), FP32→INT4 (4× smaller). NF4 is optimized for normally distributed weights. QLoRA uses 4-bit weights + FP32 LoRA.",
+    "rlhf": "RLHF: (1) supervised FT on demonstrations, (2) train reward model from human rankings, (3) PPO to optimize policy against reward model. DPO simplifies step 3.",
+}
+
+
+def search_kb(query: str) -> str:
+    query_lower = query.lower()
+    # Exact key match
+    for key, value in KNOWLEDGE.items():
+        if key in query_lower:
+            return f"[Found: {key}] {value}"
+    # Partial word match
+    query_words = set(query_lower.split())
+    for key, value in KNOWLEDGE.items():
+        if any(w in query_words for w in key.split()):
+            return f"[Found: {key}] {value}"
+    return f"No information found for '{query}'. Known topics: {', '.join(KNOWLEDGE.keys())}"
+
+
+def calculator(expr: str) -> str:
+    if not re.match(r'^[\d\s\+\-\*\/\(\)\.eE]+$', expr):
+        return f"Error: invalid expression"
+    try:
+        return str(round(eval(expr, {"__builtins__": {}}, {}), 6))
+    except Exception as e:
+        return f"Error: {e}"
+
+
+def compare_models(model_names: str) -> str:
+    """Compare two ML models."""
+    models = {
+        "bert": {"params": "110M-340M", "type": "encoder", "task": "classification, NER, QA"},
+        "gpt-2": {"params": "117M-1.5B", "type": "decoder", "task": "text generation"},
+        "gpt-3": {"params": "175B", "type": "decoder", "task": "general purpose"},
+        "t5": {"params": "60M-11B", "type": "encoder-decoder", "task": "seq2seq, summarization"},
+        "llama": {"params": "7B-70B", "type": "decoder", "task": "general purpose, instruction following"},
+    }
+    
+    names = [n.strip().lower() for n in model_names.replace(" vs ", ",").split(",")]
+    results = []
+    for name in names:
+        for key, info in models.items():
+            if key in name or name in key:
+                results.append(f"{key}: {json.dumps(info)}")
+                break
+    
+    return "\n".join(results) if results else f"No model data for: {model_names}"
+
+
+# ── Memory ────────────────────────────────────────────────────────
+class AgentMemory:
+    def __init__(self, window: int = 6):
+        self.turns: deque = deque(maxlen=window)
+        self.facts: list[str] = []
+    
+    def add_turn(self, role: str, content: str) -> None:
+        self.turns.append(f"[{role}]: {content}")
+    
+    def remember_fact(self, fact: str) -> None:
+        if fact not in self.facts:
+            self.facts.append(fact)
+    
+    def get_context(self) -> str:
+        parts = []
+        if self.facts:
+            parts.append("Known facts: " + "; ".join(self.facts[-3:]))
+        parts.extend(self.turns)
+        return "\n".join(parts)
+
+
+# ── Agent ────────────────────────────────────────────────────────
+class ResearchAssistant:
+    
+    TOOLS = {
+        "search": search_kb,
+        "calculator": calculator,
+        "compare": compare_models,
+    }
+    
+    def __init__(self):
+        self.memory = AgentMemory(window=8)
+        self.step_count = 0
+    
+    def _decide_action(self, query: str) -> tuple[str, str]:
+        """Simple rule-based action selection (replace with LLM in production)."""
+        q = query.lower()
+        
+        if "compare" in q or " vs " in q:
+            # Extract models to compare
+            models = re.sub(r'compare|vs|and|,', ' ', q).strip()
+            return "compare", models
+        
+        if any(op in query for op in ['+', '-', '*', '/', 'calculate', 'compute']):
+            # Extract expression
+            expr = re.search(r'[\d\s\+\-\*\/\(\)\.eE]+', query)
+            return "calculator", expr.group().strip() if expr else query
+        
+        # Default: search
+        # Extract core query term
+        for filler in ["what is", "tell me about", "explain", "how does", "describe"]:
+            if filler in q:
+                term = q.split(filler, 1)[1].strip().rstrip('?')
+                return "search", term
+        
+        return "search", q
+    
+    def ask(self, query: str) -> None:
+        """Process a single query through the ReAct loop."""
+        print(f"\nUser: {query}")
+        print("-" * 50)
+        
+        self.memory.add_turn("User", query)
+        
+        # Step 1: Think
+        tool_name, arg = self._decide_action(query)
+        print(f"Thought: I should use {tool_name} to answer this.")
+        
+        # Step 2: Act
+        print(f"Action: {tool_name}('{arg[:60]}')")
+        result = self.TOOLS[tool_name](arg)
+        
+        # Step 3: Observe
+        print(f"Observation: {result[:150]}...")
+        
+        # Step 4: Respond
+        # In production: LLM synthesizes observation into natural language
+        response = f"Based on {tool_name} results: {result[:200]}"
+        
+        # Update memory
+        self.memory.add_turn("Assistant", response)
+        if len(result) > 20 and result not in self.memory.facts:
+            self.memory.remember_fact(result[:100])
+        
+        print(f"\nAssistant: {response}")
+        self.step_count += 1
+    
+    def multi_hop(self, query: str) -> None:
+        """
+        Multi-hop reasoning: decompose complex query into sub-questions.
+        Example: "How many parameters does BERT-base have and how much memory does it need in FP32?"
+        """
+        print(f"\nMulti-hop Query: {query}")
+        print("=" * 50)
+        
+        # Step 1: Gather facts about BERT
+        tool, arg = "search", "bert parameters"
+        result1 = self.TOOLS[tool](arg)
+        print(f"Sub-query 1 - {tool}('{arg}'):\n  {result1[:150]}")
+        
+        # Extract param count (110M base)
+        params_match = re.search(r'(\d+)M', result1)
+        if params_match:
+            params_m = int(params_match.group(1))
+            
+            # Step 2: Calculate memory
+            expr = f"{params_m} * 1e6 * 4 / 1e9"  # params × 4 bytes / 1e9 = GB
+            result2 = self.TOOLS["calculator"](expr)
+            print(f"\nSub-query 2 - calculator('{expr}'):\n  {result2} GB in FP32")
+            
+            print(f"\nSynthesis: BERT-base has {params_m}M parameters. "
+                  f"In FP32 (4 bytes/param), that's {result2} GB.")
+        else:
+            print(f"\nCould not extract parameter count from: {result1[:100]}")
+
+
+def main():
+    agent = ResearchAssistant()
+    
+    section("Single-Turn Queries")
+    queries = [
+        "What is attention in Transformers?",
+        "Explain LoRA fine-tuning",
+        "Calculate 7e9 * 0.5 / 1e9",
+        "Compare BERT vs GPT-2",
+        "What is RLHF?",
+    ]
+    
+    for q in queries:
+        agent.ask(q)
+    
+    section("Multi-Hop Reasoning")
+    agent.multi_hop("How many parameters does BERT-base have and how much FP32 memory does it need?")
+    
+    section("Conversation Memory State")
+    print("Recent context:")
+    print(agent.memory.get_context()[:400])
+    print(f"\nTotal queries processed: {agent.step_count}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+### Expected Output
+
+```
+============================================================
+Single-Turn Queries
+============================================================
+
+User: What is attention in Transformers?
+--------------------------------------------------
+Thought: I should use search to answer this.
+Action: search('attention in transformers')
+Observation: [Found: attention] Attention: softmax(QK^T / sqrt(d_k)) V. Multi-head splits...
