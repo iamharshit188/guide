@@ -54,17 +54,18 @@
 ## 5. FRONTEND & UI (Dark + Light Mode, Liquid Glass)
 - **Tech:** marked.js, highlight.js (theme swaps on mode change), MathJax. `.md` link intercepts prevent GH Pages 404s.
 - **Design:** CSS custom-property based theming. Default: near-black (`#000`, `#0a0a0a`, `#111`) with electric yellow (`#E6FF00`) accents. Fonts: Space Grotesk, Outfit, JetBrains Mono.
-- **Theming:** `body.light-mode` class swaps all `--black-*` / `--white-*` variables to warm white palette. Toggle persists in `localStorage` key `aiml_theme`. hljs theme swaps between `base16/onedark` (dark) and `github` (light).
+- **Theming:** `body.light-mode` class is the absolute DEFAULT theme. Persists in `localStorage` key `aiml_theme`. hljs theme swaps between `base16/onedark` (dark) and `github` (light).
 - **State:** `localStorage` keys: `aiml_platform_progress`, `aiml_platform_projects_progress`, `aiml_theme`, `aiml_notes`.
 - **Layout:**
-  - Sidebar (290px fixed) with MODULES / PROJECTS / CODE tabs. Code tab groups files by module with module name headers.
+  - Sidebar (70vh height, 200px fixed, floating/pinned toggle) with MODULES / PROJECTS / CODE tabs. Code tab groups files by module with module name headers.
   - Topbar: liquid glass (`backdrop-filter: blur(32px) saturate(2.2)`, layered box-shadow, specular `::after` highlight).
   - Content area: tabbed welcome screen (MODULES / PROJECTS / CODE) — no endless scroll; single panel switches via tab clicks.
   - macOS Dock: fixed centered bottom bar with real liquid glass (blur 56px, iridescent `::before` gradient-border mask, top-shine `::after` arc). Items: Home, Focus, Search, Notes, Theme toggle (moon/sun), Reset, "made with ❤ Harshit" → harshittiwari.me.
 - **Features:**
-  - SVG progress ring on welcome hero (animates on module completion).
+  - SVG progress ring on welcome hero.
+  - Dock intro jump animation (`macDockJump` CSS keyframes).
   - Focus mode: `F` key / FOCUS button → fullscreen + sidebar auto-hides, reveals on left-edge hover (16px zone).
-  - Dark/light mode toggle: moon icon = dark (default), sun icon = light.
+  - Dark/light mode toggle: sun icon = light (default), moon icon = dark.
   - Search modal (Ctrl+K), Notes panel (slide-in from right), keyboard shortcuts (F = focus, Esc = home/exit-focus, Ctrl+Enter = mark complete).
 
 ## 6. RULES & STYLE (NON-NEGOTIABLE)

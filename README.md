@@ -214,7 +214,7 @@ The platform is a static SPA served by a minimal Flask dev server. No build step
 
 ```
 .
-├── index.html          # SPA shell — Dark Neo-Brutalism UI
+├── index.html          # SPA shell — Neo-Brutalism UI (Light & Dark)
 ├── style.css           # Space Grotesk + JetBrains Mono, electric yellow accents
 ├── app.js              # Module/project routing, progress tracking (localStorage)
 ├── server.py           # Flask dev server (port 3000)
@@ -231,7 +231,7 @@ The platform is a static SPA served by a minimal Flask dev server. No build step
 
 ## Design
 
-Dark Neo-Brutalism. Pure black backgrounds (`#050505`, `#121212`), electric yellow accents, sharp borders. Fonts: [Space Grotesk](https://fonts.google.com/specimen/Space+Grotesk) for headings, [Outfit](https://fonts.google.com/specimen/Outfit) for body, [JetBrains Mono](https://www.jetbrains.com/lp/mono/) for code.
+Colorful Neo-Brutalism (Light mode default) with pastel backgrounds (`#FFF5E1`) and frosted glass, alongside a Dark Mode (`#050505`, `#121212`) featuring heavy liquid glass effects and electric yellow accents. Fonts: [Space Grotesk](https://fonts.google.com/specimen/Space+Grotesk) for headings, [Outfit](https://fonts.google.com/specimen/Outfit) for body, [JetBrains Mono](https://www.jetbrains.com/lp/mono/) for code.
 
 ---
 
