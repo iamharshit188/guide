@@ -46,20 +46,14 @@ html, body {
   line-height: 1.6;
 }
 
-/* Ambient color blobs — glass blurs these, creating the tinted refraction effect */
+/* Muted gradient blobs for dark mode only (very simple) */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  will-change: transform;
-  transform: translateZ(0); /* Hardware acceleration */
-  background:
-    /* Neo-brutalist yellow/white subtle blobs instead of purple/blue to remove the purplish tone */
-    radial-gradient(ellipse 80vw 60vh at 20% 20%, rgba(230, 255, 0, 0.05) 0%, transparent 60%),
-    radial-gradient(ellipse 60vw 70vh at 80% 80%, rgba(255, 255, 255, 0.04) 0%, transparent 60%),
-    radial-gradient(ellipse 50vw 50vh at 50% 50%, rgba(150, 150, 150, 0.03) 0%, transparent 50%);
+  background: radial-gradient(circle at 50% 50%, rgba(200, 255, 0, 0.02) 0%, transparent 60%);
 }
 
 /* ── Skip Link ───────────────────────────────────────────────── */
@@ -184,7 +178,7 @@ body.focus-mode #sidebar-hover-zone { display: block; }
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
   z-index: 150;
   opacity: 0;
   transition: opacity var(--transition-smooth);
@@ -231,8 +225,8 @@ body.focus-mode #sidebar-hover-zone { display: block; }
   width: var(--sidebar-w);
   /* Sidebar glass: translucent, blurs the ambient blobs behind it */
   background: rgba(8, 8, 14, 0.72);
-  backdrop-filter: blur(24px) saturate(2.5) brightness(0.95);
-  -webkit-backdrop-filter: blur(24px) saturate(2.5) brightness(0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--white);
   display: flex;
   flex-direction: column;
@@ -568,8 +562,8 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
 #welcome-hero {
   padding: 0 48px 0;
   background: rgba(255,255,255,0.02);
-  backdrop-filter: blur(16px) saturate(2);
-  -webkit-backdrop-filter: blur(16px) saturate(2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid rgba(255,255,255,0.06);
   position: relative;
 }
@@ -721,8 +715,8 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
   padding: 0 48px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   background: rgba(255,255,255,0.018);
-  backdrop-filter: blur(20px) saturate(2.2);
-  -webkit-backdrop-filter: blur(20px) saturate(2.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -782,8 +776,8 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
   cursor: pointer;
   /* Glass card */
   background: rgba(255,255,255,0.03);
-  backdrop-filter: blur(12px) saturate(2);
-  -webkit-backdrop-filter: blur(12px) saturate(2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   transition: border-color var(--transition-smooth),
               transform var(--transition),
               background var(--transition-smooth),
@@ -949,8 +943,8 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
   padding: 12px 14px;
   cursor: pointer;
   background: rgba(255,255,255,0.025);
-  backdrop-filter: blur(10px) saturate(1.8);
-  -webkit-backdrop-filter: blur(10px) saturate(1.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   transition: border-color var(--transition-smooth),
               background var(--transition-smooth),
               transform var(--transition),
@@ -1004,8 +998,8 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
 
   /* Glass reading panel */
   background: rgba(255,255,255,0.025);
-  backdrop-filter: blur(20px) saturate(1.8) brightness(1.05);
-  -webkit-backdrop-filter: blur(20px) saturate(1.8) brightness(1.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: 4px;
   padding: 48px 56px;
@@ -1227,65 +1221,16 @@ body.focus-mode #doc-rendered {
   flex-shrink: 0;
   position: relative;
   z-index: 20;
-  isolation: isolate;
-  will-change: transform, backdrop-filter;
-  transform: translateZ(0); /* Hardware acceleration */
 
-  /* macOS styled liquid glass */
-  background: rgba(30, 30, 30, 0.45);
-  backdrop-filter: blur(28px) saturate(2) brightness(1.1);
-  -webkit-backdrop-filter: blur(28px) saturate(2) brightness(1.1);
+  /* Traditional transparency with simple blur for max performance */
+  background: rgba(15, 15, 15, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 
-  border-bottom: 1px solid transparent;
-  box-shadow:
-    /* outer depth */
-    0 4px 28px rgba(0,0,0,0.35),
-    0 1px 6px rgba(0,0,0,0.2),
-    /* inner top shine */
-    inset 0 1.5px 0 rgba(255,255,255,0.20),
-    /* inner bottom shadow */
-    inset 0 -1px 0 rgba(0,0,0,0.12);
+  border-bottom: 1px solid var(--gray-border);
 }
 
-/* Prismatic bottom border on topbar */
-#topbar::before {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(120,80,255,0.4) 15%,
-    rgba(80,200,255,0.5) 35%,
-    rgba(200,255,200,0.3) 50%,
-    rgba(255,180,80,0.4) 65%,
-    rgba(255,80,160,0.4) 85%,
-    transparent 100%
-  );
-  pointer-events: none;
-  z-index: 2;
-}
 
-/* Top specular highlight on topbar */
-#topbar::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 45%;
-  background: linear-gradient(
-    180deg,
-    rgba(255,255,255,0.14) 0%,
-    rgba(255,255,255,0.05) 50%,
-    transparent 100%
-  );
-  pointer-events: none;
-  z-index: 1;
-}
 
 /* ── Prismatic border shimmer animation ──────────────────────── */
 @keyframes glass-prism {
@@ -1299,8 +1244,7 @@ body.focus-mode #doc-rendered {
   position: fixed;
   bottom: 14px;
   left: 50%;
-  transform: translateX(-50%) translateZ(0); /* Hardware acceleration */
-  will-change: transform, backdrop-filter;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 2px;
@@ -1308,77 +1252,16 @@ body.focus-mode #doc-rendered {
   border-radius: 26px;
   z-index: 500;
   white-space: nowrap;
-  isolation: isolate;
 
-  /* macOS styled liquid glass (lower blur radius for performance) */
-  background: rgba(40, 40, 40, 0.45);
-  backdrop-filter: blur(28px) saturate(2) brightness(1.15);
-  -webkit-backdrop-filter: blur(28px) saturate(2) brightness(1.15);
-
-  /* Layered physical depth */
-  box-shadow:
-    /* far outer glow */
-    0 32px 80px rgba(0,0,0,0.65),
-    0 12px 28px rgba(0,0,0,0.45),
-    0 4px 10px rgba(0,0,0,0.30),
-    /* inner top specular (glass catches light) */
-    inset 0 2px 0 rgba(255,255,255,0.32),
-    /* inner bottom edge shadow */
-    inset 0 -1.5px 0 rgba(0,0,0,0.25),
-    /* subtle inner glow from ambient color blobs */
-    inset 0 0 40px rgba(100,60,200,0.04);
-
-  /* Transparent border — the ::before draws the real iridescent one */
-  border: 1px solid rgba(255,255,255,0.08);
+  /* Classic transparency to save CPU */
+  background: rgba(30, 30, 30, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--gray-border);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
-/* Animated prismatic/iridescent border */
-#dock::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 27px;
-  padding: 1px;
-  background: linear-gradient(
-    130deg,
-    rgba(255,160,160,0.50) 0%,
-    rgba(160,200,255,0.40) 18%,
-    rgba(160,255,200,0.30) 36%,
-    rgba(255,230,100,0.40) 54%,
-    rgba(200,140,255,0.45) 72%,
-    rgba(100,200,255,0.35) 90%,
-    rgba(255,160,160,0.50) 100%
-  );
-  background-size: 300% 100%;
-  animation: glass-prism 10s linear infinite;
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: destination-out;
-  mask-composite: exclude;
-  pointer-events: none;
-  z-index: -1;
-}
 
-/* Top specular shine — the curved bright arc you see on real glass */
-#dock::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 20px;
-  right: 20px;
-  height: 46%;
-  border-radius: 20px 20px 60% 60% / 16px 16px 100% 100%;
-  background: linear-gradient(
-    180deg,
-    rgba(255,255,255,0.38) 0%,
-    rgba(255,255,255,0.18) 30%,
-    rgba(255,255,255,0.06) 65%,
-    transparent 100%
-  );
-  pointer-events: none;
-  z-index: 0;
-}
 
 .dock-item {
   display: flex;
@@ -1497,11 +1380,11 @@ body.focus-mode #doc-rendered {
   filter: drop-shadow(0 0 3px rgba(255,48,96,0.5));
 }
 
-/* Focus mode — dock even more transparent in clean reading mode */
+/* Focus mode — dock minimal */
 body.focus-mode #dock {
-  background: rgba(255,255,255,0.025);
-  backdrop-filter: blur(80px) saturate(6) brightness(1.4) contrast(0.82);
-  -webkit-backdrop-filter: blur(80px) saturate(6) brightness(1.4) contrast(0.82);
+  background: rgba(10, 10, 10, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 /* ── Light Mode ─────────────────────────────────────────────── */
@@ -1533,17 +1416,13 @@ body.light-mode::before {
     radial-gradient(ellipse 50vw 50vh at 50% 50%, rgba(0, 0, 0, 0.02) 0%, transparent 50%);
 }
 
-/* Topbar glass in light mode */
+/* Topbar neobrutalism in light mode */
 body.light-mode #topbar {
-  background: rgba(245, 245, 245, 0.55);
-  backdrop-filter: blur(28px) saturate(1.8) brightness(1.05);
-  -webkit-backdrop-filter: blur(28px) saturate(1.8) brightness(1.05);
-  border-bottom-color: rgba(0,0,0,0.08);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-}
-
-body.light-mode #topbar::after {
-  background: linear-gradient(180deg, rgba(255,255,255,0.4) 0%, transparent 100%);
+  background: #F4F4F0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: 2px solid #111111;
+  box-shadow: none;
 }
 
 /* Sidebar in light mode */
@@ -1622,29 +1501,13 @@ body.light-mode #doc-rendered th    { background: #D8D8D6; color: #111; border-b
 body.light-mode #doc-rendered td    { color: #333; border-bottom-color: rgba(0,0,0,0.06); }
 body.light-mode #doc-rendered tr:hover td { background: rgba(0,0,0,0.03); color: #111; }
 
-/* Dock in light mode */
+/* Dock neobrutalism in light mode */
 body.light-mode #dock {
-  background: rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(28px) saturate(1.8) brightness(1.05);
-  -webkit-backdrop-filter: blur(28px) saturate(1.8) brightness(1.05);
-  box-shadow:
-    0 12px 40px rgba(0,0,0,0.10),
-    0 4px 12px rgba(0,0,0,0.08),
-    inset 0 1.5px 0 rgba(255,255,255,0.90),
-    inset 0 -1px 0 rgba(0,0,0,0.06);
-}
-
-body.light-mode #dock::before {
-  background: linear-gradient(
-    140deg,
-    rgba(255,255,255,0.8) 0%,
-    rgba(200,200,255,0.2) 40%,
-    rgba(0,0,0,0.05) 100%
-  );
-}
-
-body.light-mode #dock::after {
-  background: linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
+  background: #F4F4F0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 2px solid #111;
+  box-shadow: 6px 6px 0px #111;
 }
 
 body.light-mode .dock-item         { color: rgba(0,0,0,0.45); }
@@ -1755,7 +1618,7 @@ body.light-mode #sidebar-overlay { background: rgba(200,200,200,0.5); }
   justify-content: center;
   align-items: flex-start;
   padding-top: 10vh;
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
 }
 
 #search-modal.hidden { display: none; }
