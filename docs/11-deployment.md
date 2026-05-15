@@ -1,5 +1,8 @@
 # Module 11 — Deployment & Production ML
 
+> **Prerequisites:** Modules 04–05 (Flask backend, deep learning). Docker basics helpful.
+> **Estimated time:** 10–15 hours
+
 ## From Notebook to Production
 
 A model that scores 97% in a notebook but crashes in production is worthless. Production ML adds constraints your notebook never had:
@@ -8,6 +11,28 @@ A model that scores 97% in a notebook but crashes in production is worthless. Pr
 - **Reliability**: 99.9% uptime, graceful degradation on failures
 - **Observability**: know when model quality degrades before users complain
 - **Cost**: inference at scale is expensive — optimize ruthlessly
+
+```
+ML Deployment Pipeline:
+
+Data Scientist                        MLOps / Engineer
+┌──────────────┐                     ┌──────────────────────────────────┐
+│  Notebook    │                     │  Production System               │
+│  model.pkl   │──[serialize ONNX]──▶│                                  │
+│  accuracy=97%│                     │  [Docker container]              │
+└──────────────┘                     │  ┌──────────────────────┐        │
+                                     │  │  Flask/FastAPI server │        │
+                                     │  │  /predict endpoint    │        │
+                                     │  │  validation + auth    │        │
+                                     │  └──────────────────────┘        │
+                                     │           │                       │
+                                     │  [Load balancer]                  │
+                                     │  [Monitoring + alerts]            │
+                                     │  [A/B testing router]             │
+                                     └──────────────────────────────────┘
+
+Key steps: serialize → containerize → serve → monitor → iterate
+```
 
 ---
 
@@ -336,7 +361,33 @@ for idx, proba in results[:5]:
 
 ### Model Quantization (Inference)
 
-Post-training quantization reduces model size and speeds up inference without retraining:
+Post-training quantization reduces model size and speeds up inference without retraining.
+
+```
+Quantization — trading precision for speed and memory:
+
+FP32 (float32):  4 bytes/param, full precision
+  [0.3142, -0.2718, 0.1414, ...]  ← 32 bits each, ~±3.4×10^38 range
+
+FP16 (float16):  2 bytes/param, half precision
+  [0.314, -0.272, 0.141, ...]     ← 16 bits each, still good for inference
+
+INT8:             1 byte/param, 256 levels
+  [40, -35, 18, ...]              ← integer 0-255 mapped via scale factor
+  Dequantize: actual_value = int_value × scale
+
+INT4 (NF4):      0.5 bytes/param, 16 levels
+  [0100, 1011, 0010, ...]         ← 4 bits, used in QLoRA
+
+Memory comparison for a 7B param model:
+  FP32:  28 GB  (7B × 4 bytes)
+  FP16:  14 GB  (7B × 2 bytes)
+  INT8:   7 GB  (7B × 1 byte)
+  INT4: 3.5 GB  (7B × 0.5 bytes)  ← fits on a consumer GPU!
+
+Speed:  INT8 matrix multiply is 2-4× faster than FP32 on modern hardware.
+Accuracy drop:  FP16 ≈ 0%, INT8 ≈ 0.5%, INT4 ≈ 1-2% on typical tasks.
+```
 
 ```python
 class QuantizedLinear:
