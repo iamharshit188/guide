@@ -57,7 +57,29 @@
 
 # 1. Introduction to Frontend Engineering
 
+> **Prerequisites:** Basic HTML/CSS knowledge, JavaScript fundamentals.
+> **Estimated time:** 20–30 hours (full guide)
+
 Frontend engineering is the discipline of building the visual and interactive layer of applications that users directly interact with.
+
+```
+Learning Path — Frontend Engineering:
+
+Beginner                 Intermediate              Advanced
+┌──────────────┐        ┌────────────────┐       ┌──────────────────┐
+│ HTML/CSS/JS  │───────▶│ React basics   │──────▶│ Next.js          │
+│ DOM basics   │        │ Components     │       │ SSR/SSG          │
+│ HTTP         │        │ State & Props  │       │ Performance      │
+└──────────────┘        │ Hooks          │       │ Testing          │
+                        │ React Router   │       │ TypeScript       │
+                        └────────────────┘       └──────────────────┘
+                                │                        │
+                                ▼                        ▼
+                         Tailwind CSS              Production deploy
+                         (styling)                 CI/CD pipelines
+
+Time estimate: Beginner (5h) → Intermediate (10h) → Advanced (15h)
+```
 
 A frontend engineer is responsible for:
 
@@ -607,6 +629,32 @@ function Counter() {
 Event -> State Update -> Re-render -> UI Update
 ```
 
+```
+React data flow — more detailed:
+
+User clicks button
+       │
+       ▼
+  onClick handler fires
+       │
+  setCount(count + 1)   ← call state setter
+       │
+  React schedules re-render
+       │
+  Component function runs again   ← "re-render"
+  count is now the new value
+       │
+  React computes Virtual DOM diff
+       │
+  React updates only changed DOM nodes   ← efficient!
+       │
+  User sees updated UI
+
+Key: React only re-runs components that depend on the changed state.
+     Parent state change re-renders the component + all children.
+     Use memo() to prevent unnecessary child re-renders.
+```
+
 ---
 
 # 12. Event Handling
@@ -708,6 +756,34 @@ const handleSubmit = (e) => {
 # 16. React Hooks
 
 Hooks allow function components to use React features.
+
+```
+Most important hooks and when to use them:
+
+┌──────────────────────────────────────────────────────────┐
+│  Hook              What it does         When to use      │
+├──────────────────────────────────────────────────────────┤
+│  useState()        Store & update       Any dynamic data  │
+│                    component state      (counter, input)  │
+├──────────────────────────────────────────────────────────┤
+│  useEffect()       Side effects         Fetch data, DOM,  │
+│                    after render         subscriptions     │
+├──────────────────────────────────────────────────────────┤
+│  useContext()      Read context         Theme, auth,      │
+│                    value               global state      │
+├──────────────────────────────────────────────────────────┤
+│  useRef()          Mutable ref         DOM access,        │
+│                    (no re-render)      timers, prev value │
+├──────────────────────────────────────────────────────────┤
+│  useMemo()         Cache computed       Expensive calcs   │
+│                    value               to avoid re-run    │
+├──────────────────────────────────────────────────────────┤
+│  useCallback()     Cache function      Prevent child      │
+│                    reference           re-renders         │
+└──────────────────────────────────────────────────────────┘
+
+Rule: Hooks must be called at the top level (not inside if/loops).
+```
 
 ## useState
 
@@ -1278,6 +1354,34 @@ Shared UI wrapper.
 ---
 
 # 30. Server Components vs Client Components
+
+```
+Decision guide: Server Component or Client Component?
+
+Does this component need:
+  - useState / useReducer?     → Client Component ("use client")
+  - useEffect?                 → Client Component
+  - onClick / onChange?        → Client Component
+  - Browser APIs (window, etc) → Client Component
+  - User interactions?         → Client Component
+
+Otherwise:
+  - Fetch data from DB?        → Server Component (default) ✓
+  - Access backend secrets?    → Server Component ✓
+  - Large dependencies?        → Server Component ✓ (not sent to browser)
+  - Static content?            → Server Component ✓
+
+Best practice: Server by default, Client only at the leaves.
+              Keep "use client" as close to interactive parts as possible.
+
+Tree example:
+  Page (Server)             ← fetch data, no bundle sent
+    Layout (Server)         ← shared UI
+      Header (Server)       ← static navigation
+        SearchBar (Client)  ← needs useState for input
+      Main (Server)         ← data display
+        LikeButton (Client) ← needs onClick
+```
 
 ## Server Components
 
