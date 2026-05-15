@@ -1,10 +1,51 @@
 # Module 08 — RAG: Retrieval-Augmented Generation
 
+> **Prerequisites:** Module 06 (embeddings, attention), Module 03 (vector databases).
+> **Estimated time:** 8–12 hours
+
 ## Why RAG Exists
 
 LLMs are frozen at training time. A model trained in 2023 knows nothing about your company's internal docs, your codebase, or last week's meeting notes. Fine-tuning updates weights — expensive and slow. RAG is cheaper: at query time, retrieve relevant documents, inject them into the prompt, let the LLM reason over fresh context.
 
 The formula: **answer quality = retrieval quality × generation quality**. A perfect retriever with a bad LLM fails. A great LLM with irrelevant context hallucinates confidently. Both components matter.
+
+## RAG Pipeline at a Glance
+
+```
+OFFLINE (run once to build the index):
+  Documents (PDF, TXT, web)
+       │
+  [Chunker] → splits into 200–500 token pieces
+       │
+  [Embedder] → sentence-transformer converts each chunk to a vector
+       │
+  [Vector DB] → stores (vector, chunk text, metadata)
+       │
+  Index is ready!
+
+ONLINE (run on every user query):
+  User: "What is the refund policy?"
+       │
+  [Embed query] → same embedding model
+       │
+  [Retrieve top-k] → vector DB finds most similar chunks
+       │             (e.g. top-3 by cosine similarity)
+  ┌────▼──────────────────────────────┐
+  │ Context:                          │
+  │   Chunk 1: "...refunds within..." │
+  │   Chunk 2: "...exceptions are..." │
+  │   Chunk 3: "...contact support..." │
+  └────────────────────────────────────┘
+       │
+  [LLM Prompt]:
+    "Answer using the context below:
+     {context}
+     Question: {user_question}"
+       │
+  [LLM generates answer grounded in retrieved docs]
+       │
+  Response: "Refunds are accepted within 30 days..."
+```
 
 ---
 
@@ -217,6 +258,26 @@ for score, doc in sims:
 BM25 adds two corrections TF-IDF lacks:
 1. **TF saturation**: A word appearing 100× isn't 100× more relevant than appearing 10×
 2. **Document length normalization**: Long docs naturally have higher term counts
+
+```
+TF-IDF vs BM25 — term frequency saturation:
+
+Relevance
+  ↑          BM25 (saturates)
+  │         ─ ─ ─ ─ ─
+  │       ─              ← TF contribution plateaus
+  │     ─
+  │   ─        TF-IDF (grows linearly)
+  │  /
+  │ /       ← keeps growing, overweights spam repetition
+  │/
+  └─────────────────────▶ term frequency in document
+    1    10   100  1000
+
+BM25 says: "The word 'python' appearing 100 times vs 10 times
+            doesn't mean the doc is 10× more relevant — it's
+            probably just a longer document."
+```
 
 $$\text{BM25}(t, d) = \text{IDF}(t) \cdot \frac{f_{t,d}(k_1 + 1)}{f_{t,d} + k_1\left(1 - b + b\frac{|d|}{\text{avgdl}}\right)}$$
 
