@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="6" fill="#000000"/>
+  <rect x="2" y="2" width="28" height="28" rx="5" fill="#E6FF00"/>
+  <rect x="4" y="4" width="24" height="24" rx="4" fill="#000000"/>
+  <text x="16" y="22" font-family="'Space Grotesk', Arial, sans-serif" font-weight="900" font-size="13" fill="#E6FF00" text-anchor="middle" letter-spacing="-0.5">ML</text>
+</svg>
