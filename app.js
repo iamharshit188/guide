@@ -127,6 +127,7 @@ let state = {
   floatingMode:     false,
   lightMode:        localStorage.getItem("aiml_theme") ? localStorage.getItem("aiml_theme") === "light" : true,
   notes:            localStorage.getItem("aiml_notes") || "",
+  activeTabIdx:     0,
 };
 
 // ── Persistence ─────────────────────────────────────────────────
@@ -927,18 +928,21 @@ document.addEventListener("keydown", e => {
   }
 });
 
-// ── Sidebar Tabs ─────────────────────────────────────────────────
+// ── Sidebar Tabs — Dynamic Drum Selector ─────────────────────────
 const ALL_NAV_LISTS = ["module-list", "project-list", "language-list", "code-list"];
 
 function setActiveTab(activeIdx) {
+  state.activeTabIdx = activeIdx;
   const tabs = Array.from(document.querySelectorAll(".sidebar-tab"));
-  const target = tabs[activeIdx]?.getAttribute("data-target");
 
   tabs.forEach((tab, i) => {
+    const dist = Math.abs(i - activeIdx);
+    tab.style.setProperty("--dist", dist);
     tab.classList.toggle("active", i === activeIdx);
     tab.setAttribute("aria-selected", i === activeIdx ? "true" : "false");
   });
 
+  const target = tabs[activeIdx]?.getAttribute("data-target");
   ALL_NAV_LISTS.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle("hidden", id !== target);
@@ -947,6 +951,21 @@ function setActiveTab(activeIdx) {
 
 document.querySelectorAll(".sidebar-tab").forEach((tab, i) => {
   tab.addEventListener("click", () => setActiveTab(i));
+
+  tab.addEventListener("mouseenter", () => {
+    if (i === state.activeTabIdx) return;
+    const tabs = Array.from(document.querySelectorAll(".sidebar-tab"));
+    tabs.forEach((t, j) => {
+      const distFromHover = Math.abs(j - i);
+      const distFromActive = Math.abs(j - state.activeTabIdx);
+      const blendedDist = Math.min(distFromHover * 0.5, distFromActive);
+      t.style.setProperty("--dist", blendedDist.toFixed(2));
+    });
+  });
+
+  tab.addEventListener("mouseleave", () => {
+    setActiveTab(state.activeTabIdx);
+  });
 });
 
 
