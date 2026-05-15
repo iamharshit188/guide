@@ -334,100 +334,33 @@ body.floating-mode #main {
   border-radius: 2px;
 }
 
-/* ── Sidebar Tabs — Stacked Collapse / Expand on Hover ──────── */
+/* ── Sidebar Tabs ───────────────────────────────────────────── */
 #sidebar-tabs {
   display: flex;
-  flex-direction: column;
-  gap: 0;
+  border-bottom: var(--border);
   background: var(--black-soft);
   flex-shrink: 0;
-  padding: 4px 0 6px;
-  border-bottom: var(--border);
-  overflow: hidden;
 }
 
-/* ── Collapsed state (default) ─────────────────────────────── */
 .sidebar-tab {
-  width: 100%;
+  flex: 1;
   background: transparent;
   border: none;
+  border-right: 1px solid rgba(255,255,255,0.07);
+  color: #555;
   font-family: var(--font-sans);
+  font-size: 10px;
   font-weight: 900;
+  padding: 10px 4px;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
-  text-align: left;
-  padding: 0 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  line-height: 1;
-  will-change: height, font-size, opacity, filter, color;
-  transform-origin: left center;
-  overflow: hidden;
-  /* collapsed: compact rows, distance-scaled */
-  height:    calc(22px - var(--dist, 0) * 2px);
-  font-size: calc(9.5px - var(--dist, 0) * 0.5px);
-  opacity:   calc(0.65 - var(--dist, 0) * 0.12);
-  filter:    blur(calc(var(--dist, 0) * 0.25px));
-  color: #555;
-  transition: height    0.3s cubic-bezier(.4,0,.2,1),
-              font-size 0.3s cubic-bezier(.4,0,.2,1),
-              opacity   0.3s cubic-bezier(.4,0,.2,1),
-              filter    0.3s cubic-bezier(.4,0,.2,1),
-              color     0.2s ease-out;
+  letter-spacing: 0.5px;
+  transition: color var(--transition-smooth), background var(--transition-smooth);
 }
 
-/* active tab is always slightly taller even collapsed */
-.sidebar-tab.active {
-  color: var(--yellow);
-  height: 26px;
-  font-size: 10.5px;
-  opacity: 1;
-  filter: blur(0);
-}
-
-/* ── Expanded state — container hovered ─────────────────────── */
-#sidebar-tabs:hover .sidebar-tab {
-  height:    calc(30px - var(--dist, 0) * 3px);
-  font-size: calc(10px - var(--dist, 0) * 0.6px);
-  opacity:   calc(1    - var(--dist, 0) * 0.2);
-  filter:    blur(calc(var(--dist, 0) * 0.4px));
-  color: #555;
-}
-
-#sidebar-tabs:hover .sidebar-tab.active {
-  color: var(--yellow);
-  height: 30px;
-  font-size: 11px;
-  opacity: 1;
-  filter: blur(0);
-}
-
-#sidebar-tabs:hover .sidebar-tab:not(.active):hover {
-  color: var(--white-dim);
-  opacity: calc(1 - var(--dist, 0) * 0.08);
-  filter: blur(0);
-}
-
-/* dot indicator */
-.sidebar-tab::before {
-  content: '';
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background: currentColor;
-  opacity: 0;
-  transform: scale(0);
-  transition: opacity 0.2s, transform 0.2s;
-}
-
-.sidebar-tab.active::before {
-  opacity: 1;
-  transform: scale(1);
-  background: var(--yellow);
-}
+.sidebar-tab:last-child { border-right: none; }
+.sidebar-tab:hover { color: var(--white-dim); background: rgba(255,255,255,0.04); }
+.sidebar-tab.active { color: var(--yellow); background: rgba(230,255,0,0.06); }
 
 
 
@@ -1508,13 +1441,10 @@ body.light-mode #sidebar {
 
 body.light-mode #sidebar-header { background: transparent; }
 body.light-mode #sidebar-footer { background: transparent; border-top-color: rgba(0,0,0,0.08); }
-body.light-mode #sidebar-tabs { background: transparent; border-bottom-color: rgba(0,0,0,0.08); }
-body.light-mode .sidebar-tab  { color: #bbb; }
-body.light-mode .sidebar-tab.active { color: #111; }
-body.light-mode .sidebar-tab.active::before { background: #111; }
-body.light-mode #sidebar-tabs:hover .sidebar-tab { color: #aaa; }
-body.light-mode #sidebar-tabs:hover .sidebar-tab.active { color: #111; }
-body.light-mode #sidebar-tabs:hover .sidebar-tab:not(.active):hover { color: #333; }
+body.light-mode #sidebar-tabs   { background: transparent; border-bottom-color: rgba(0,0,0,0.08); }
+body.light-mode .sidebar-tab    { color: #888; border-right-color: rgba(0,0,0,0.08); }
+body.light-mode .sidebar-tab:hover { color: #333; background: rgba(0,0,0,0.04); }
+body.light-mode .sidebar-tab.active { color: #111; background: rgba(0,0,0,0.06); }
 
 body.light-mode #module-list li,
 body.light-mode #project-list li,
