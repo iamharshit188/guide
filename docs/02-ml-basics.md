@@ -47,6 +47,28 @@ Linear Regression → Logistic Regression   (supervised, parametric)
     PCA → K-Means                          (unsupervised)
 ```
 
+### Algorithm Quick Reference
+
+```
+PROBLEM TYPE        ALGORITHM           WHEN TO USE
+─────────────────────────────────────────────────────────────────
+Regression          Linear Regression   Baseline; fast; interpretable
+                    Gradient Boosting   Best accuracy on tabular data
+
+Classification      Logistic Regression Probabilistic output; fast
+                    Decision Tree       Interpretable; visualizable
+                    Random Forest       Robust; handles missing vals
+                    SVM                 Small dataset; high-dim space
+                    Gradient Boosting   Best accuracy on tabular data
+
+Dimensionality      PCA                 Reduce features; visualize
+Reduction
+
+Clustering          K-Means             When you know # clusters
+                    DBSCAN              Irregular shapes; noise
+─────────────────────────────────────────────────────────────────
+```
+
 ### The Universal ML Framework
 
 Every supervised algorithm answers the same question:
@@ -219,6 +241,28 @@ You want to classify emails as spam or not-spam. The output should be a **probab
 
 $$\sigma(z) = \frac{1}{1 + e^{-z}} \in (0, 1)$$
 
+> **Formula breakdown:**
+> - $z = \mathbf{w}^T\mathbf{x} + b$ — the raw linear score (can be any real number)
+> - $e^{-z}$ — exponential of the negative score
+> - $\frac{1}{1 + e^{-z}}$ — squashes any real number into the range $(0, 1)$
+> - Output is interpreted as a probability
+
+```
+σ(z) shape — the "S-curve":
+
+1.0 ┤                                   ·····
+    │                              ·····
+0.5 ┤─────────────────────────────·──────────  ← decision boundary
+    │                        ·····
+0.0 ┤·····
+    └──────────────────────────────────────────▶ z
+      -5   -3   -2   -1    0    1    2    3   5
+
+z → -∞  : σ(z) → 0   (definitely class 0)
+z =  0  : σ(z) = 0.5 (uncertain, 50/50)
+z → +∞  : σ(z) → 1   (definitely class 1)
+```
+
 $$P(y=1 \mid \mathbf{x}) = \sigma(\mathbf{w}^T\mathbf{x} + b)$$
 
 ```python
@@ -360,6 +404,34 @@ For any estimator $\hat{f}$:
 
 $$\mathbb{E}[(y - \hat{f}(\mathbf{x}))^2] = \underbrace{(\mathbb{E}[\hat{f}] - f^*)^2}_{\text{Bias}^2} + \underbrace{\mathbb{E}[(\hat{f} - \mathbb{E}[\hat{f}])^2]}_{\text{Variance}} + \underbrace{\sigma^2_\epsilon}_{\text{Noise}}$$
 
+> **Formula breakdown:**
+> - $\mathbb{E}[\hat{f}]$ — average prediction across many training sets
+> - $f^*$ — the true underlying function
+> - **Bias²** — how far average prediction is from truth (systematic error)
+> - **Variance** — how much predictions vary across different training sets (sensitivity to data)
+> - **Noise** $\sigma^2_\epsilon$ — irreducible error from randomness in the data
+
+```
+Error vs. Model Complexity:
+
+Error
+  ↑
+  │  Total Error = Bias² + Variance
+  │  ╲                            
+  │    ╲ Bias²    ╱ Variance     
+  │      ╲      ╱               
+  │        ╲  ╱                 
+  │          ╲╱   ← sweet spot  
+  │          ╱╲                 
+  │        ╱    ╲               
+  └──────────────────────────────▶ Model Complexity
+     Simple              Complex
+  (Linear)           (Deep NN / high-degree poly)
+
+Too simple → High Bias (underfitting): model can't capture the pattern
+Too complex → High Variance (overfitting): model memorizes noise
+```
+
 | State | Bias | Variance | Symptom | Fix |
 |-------|------|----------|---------|-----|
 | Underfitting | High | Low | Train error also high | More features, higher model complexity |
@@ -438,6 +510,24 @@ for alpha in [0.01, 0.1, 1.0, 10.0, 100.0]:
 | **Actual Positive** | TP (True Pos) | FN (False Neg) |
 | **Actual Negative** | FP (False Pos) | TN (True Neg) |
 
+```
+Confusion matrix — medical diagnosis analogy:
+
+                   Predicted: SICK    Predicted: HEALTHY
+                ┌────────────────────┬──────────────────────┐
+Actual: SICK    │   TP (caught it)   │  FN (missed it!) ←bad│
+                ├────────────────────┼──────────────────────┤
+Actual: HEALTHY │ FP (false alarm)   │  TN (correctly clear)│
+                └────────────────────┴──────────────────────┘
+
+Precision = TP / (TP + FP)  → "When I say sick, how often am I right?"
+Recall    = TP / (TP + FN)  → "Of all sick people, how many did I catch?"
+
+High stakes (cancer): maximize Recall (missing a case = dangerous)
+Spam filter:          maximize Precision (blocking real email = annoying)
+General:              use F1 = harmonic mean of both
+```
+
 $$\text{Accuracy} = \frac{TP+TN}{N} \qquad \text{Precision} = \frac{TP}{TP+FP} \qquad \text{Recall} = \frac{TP}{TP+FN}$$
 
 $$F_1 = \frac{2 \cdot \text{Prec} \cdot \text{Rec}}{\text{Prec} + \text{Rec}} = \frac{2TP}{2TP+FP+FN}$$
@@ -501,6 +591,27 @@ for i in range(0, len(thresholds), len(thresholds)//5):
 ## Intuition
 
 Think of a decision tree as 20 Questions. You ask yes/no questions to narrow down the answer. At each step, you choose the question that splits the data most cleanly.
+
+```
+Predicting whether a student passes (example tree, depth=2):
+
+                     [All students]
+                          │
+              Study hours ≥ 4?
+             /                  \
+           YES                   NO
+            │                    │
+   [studying enough]       [not studying]
+            │                    │
+    Sleep hours ≥ 7?         → FAIL (leaf)
+      /          \
+    YES           NO
+     │             │
+→ PASS (leaf)  → FAIL (leaf)
+
+Each internal node = one question (feature + threshold)
+Each leaf node    = a prediction (majority class)
+```
 
 ## 4.1 Splitting Criteria
 
@@ -739,11 +850,36 @@ for name, model in [("Decision Tree", dt), ("Random Forest", rf)]:
 
 Draw a line between two classes. Now push that line as far from both classes as possible. The gap between the line and the nearest points is the **margin**. Maximizing margin leads to better generalization.
 
+```
+SVM margin visualization (2D):
+
+    ●  ●                     ○ ○
+  ●   ●  ●                 ○    ○
+●       ●  ┊-- margin --┊ ○       ○
+  ●   ●    │  Decision  │   ○  ○
+    ●      │  boundary  │      ○
+           │             │
+    ●●●    ←-- margin --→    ○○○
+(class -1)  w·x + b = 0  (class +1)
+            support vectors (closest points)
+            determine the boundary entirely
+
+Key insight: Only the support vectors (points on the margin edge) matter.
+All other training points can be removed — the boundary won't change!
+```
+
 ## 6.1 Hard-Margin SVM
 
 **Find the widest lane between classes:**
 
 $$\min_{\mathbf{w}, b} \frac{1}{2}\|\mathbf{w}\|^2 \quad \text{s.t.} \quad y^{(i)}(\mathbf{w}^T\mathbf{x}^{(i)} + b) \geq 1 \; \forall i$$
+
+> **Formula breakdown:**
+> - $\mathbf{w}$ — normal vector to the decision boundary (determines its orientation)
+> - $b$ — bias (shifts the boundary)
+> - $\frac{1}{2}\|\mathbf{w}\|^2$ — objective to minimize (equivalent to maximizing margin $\frac{2}{\|\mathbf{w}\|}$)
+> - $y^{(i)} \in \{-1, +1\}$ — class labels encoded as -1 and +1
+> - The constraint ensures every point is correctly classified with at least unit margin
 
 The margin width is $\frac{2}{\|\mathbf{w}\|}$. Minimizing $\|\mathbf{w}\|^2$ is equivalent to maximizing the margin.
 
@@ -811,6 +947,26 @@ for kernel in kernels:
 Instead of training many independent trees and averaging (Random Forest), Gradient Boosting trains trees **sequentially**. Each new tree fixes the mistakes of all previous trees.
 
 **Analogy:** A student takes a test. The teacher marks wrong answers. The next study session focuses on correcting exactly those mistakes.
+
+```
+Random Forest (parallel):           Gradient Boosting (sequential):
+
+Training data                       Training data
+    │                                   │
+    ├──▶ Tree 1 (random subset)         ▼
+    ├──▶ Tree 2 (random subset)     Tree 1: predicts y
+    ├──▶ Tree 3 (random subset)         │  compute residuals = y - ŷ₁
+    └──▶ Tree N (random subset)         ▼
+          │                         Tree 2: predicts residuals
+          ▼                             │  update: F₂ = F₁ + η·Tree2
+     Vote / Average                     ▼
+          │                         Tree 3: predicts remaining residuals
+          ▼                             │  ...and so on
+     Final prediction              Final: F = T₁ + η·T₂ + η·T₃ + ...
+
+Best for: variance reduction        Best for: bias reduction
+         (high variance models)              (high bias models)
+```
 
 ## 7.1 Algorithm
 
