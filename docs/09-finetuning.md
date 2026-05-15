@@ -107,8 +107,40 @@ Instead of learning $\Delta W \in \mathbb{R}^{d \times k}$ directly, decompose i
 
 $$\Delta W = BA \quad \text{where} \quad B \in \mathbb{R}^{d \times r},\ A \in \mathbb{R}^{r \times k},\ r \ll \min(d, k)$$
 
+```
+LoRA parameter comparison (LLaMA-7B attention, d=4096, k=4096):
+
+Full fine-tuning:
+  ΔW ∈ ℝ^{4096×4096}
+  Params = 4096 × 4096 = 16,777,216 ← have to store all of these
+
+LoRA with rank r=8:
+  A ∈ ℝ^{8×4096}   → 32,768 params
+  B ∈ ℝ^{4096×8}   → 32,768 params
+  Total = 65,536 params   ← 256× fewer!
+
+Visualized:
+  Full ΔW:        LoRA decomposition:
+  ┌──────────┐    ┌───┐   ┌──────────┐
+  │          │    │   │   │          │
+  │  4096    │  = │ B │ × │    A     │
+  │   ×      │    │4096×r │  r×4096  │
+  │  4096    │    │   │   │          │
+  └──────────┘    └───┘   └──────────┘
+   16M params    4096r + 4096r = 8r × 4096 params
+
+ΔW = B × A is the same mathematical operation,
+     but B and A are tiny — only r=8 "bottleneck" dimensions.
+```
+
 Forward pass with LoRA:
 $$h = Wx + \frac{\alpha}{r} BAx$$
+
+> **Formula breakdown:**
+> - $Wx$ — frozen pretrained computation (gradients don't flow through W)
+> - $BAx$ — LoRA branch: $A$ projects $x$ to rank-$r$ space, then $B$ projects back
+> - $\frac{\alpha}{r}$ — scaling factor; $\alpha = r$ means scale = 1 (no amplification)
+> - At initialization: $B=0$, so $BAx = 0$ → identical to base model (no shock to training)
 
 - $W$: frozen pretrained weights (never updated)
 - $A$, $B$: trainable LoRA matrices (initialized: $A \sim \mathcal{N}(0, \sigma^2)$, $B = 0$)
@@ -413,6 +445,30 @@ QLoRA (Dettmers et al. 2023) stacks two innovations:
 1. **4-bit NF4 quantization**: Store $W$ in 4-bit NormalFloat format (not int4 — optimized for normally-distributed weights)
 2. **Double quantization**: Quantize the quantization constants themselves, saving ~0.37 bits/param extra
 3. **Paged optimizers**: Offload optimizer states to CPU RAM when GPU memory spikes
+
+```
+QLoRA forward pass:
+
+FP32/FP16 input x
+      │
+      │         ┌──────────────────────────────────────┐
+      │         │  Frozen base weights W (4-bit NF4)   │
+      │         │  Dequantize on the fly for compute    │
+      │         │  W_fp16 = dequantize(W_4bit)          │
+      ├────────▶│  W_fp16 × x  (compute in BF16)       │──┐
+      │         └──────────────────────────────────────┘  │
+      │                                                    │  add
+      │         ┌──────────────────────────────────────┐  │
+      │         │  LoRA adapters A, B  (BF16)           │  │
+      └────────▶│  (α/r) × B × A × x                   │──┘
+                └──────────────────────────────────────┘
+                      ↑ only these get gradient updates
+
+Memory savings (LLaMA-7B):
+  Full FP32:  4 bytes × 7B params = 28 GB
+  FP16:       2 bytes × 7B params = 14 GB
+  NF4:       0.5 bytes × 7B params = 3.5 GB  ← 8× smaller than FP32!
+```
 
 **Memory calculation for LLaMA-7B:**
 
