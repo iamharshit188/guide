@@ -91,6 +91,13 @@ const CODE_META = [
   { file: "13-multimodal/zero_shot.py",        label: "zero_shot.py",              module: "13" },
 ];
 
+const LANGUAGE_META = [
+  { file: "lang-c.md",      label: "C",          tag: "C",   badge: "lang-c",   desc: "Systems · Memory · Pointers"     },
+  { file: "lang-cpp.md",    label: "C++",         tag: "C++", badge: "lang-cpp", desc: "OOP · RAII · Templates · STL"    },
+  { file: "lang-python.md", label: "Python",      tag: "PY",  badge: "lang-py",  desc: "Internals · Async · Decorators"  },
+  { file: "lang-js.md",     label: "JavaScript",  tag: "JS",  badge: "lang-js",  desc: "V8 · Event Loop · Promises"      },
+];
+
 const PROJECT_META = [
   { file: "p01-pca-compressor.md",      label: "PCA Image Compressor",        module: "01", difficulty: "Starter"      },
   { file: "p02-titanic-pipeline.md",    label: "Titanic Survival Pipeline",   module: "02", difficulty: "Starter"      },
@@ -120,6 +127,7 @@ let state = {
   floatingMode:     false,
   lightMode:        localStorage.getItem("aiml_theme") ? localStorage.getItem("aiml_theme") === "light" : true,
   notes:            localStorage.getItem("aiml_notes") || "",
+  activeTabIdx:     0,
 };
 
 // ── Persistence ─────────────────────────────────────────────────
@@ -439,6 +447,63 @@ function buildCodeNav() {
   });
 }
 
+// ── Build language sidebar nav ────────────────────────────────────
+function buildLanguageNav() {
+  const ul = $("language-list");
+  ul.innerHTML = "";
+
+  LANGUAGE_META.forEach((lang, idx) => {
+    const li = document.createElement("li");
+    li.dataset.file = lang.file;
+    li.dataset.idx  = idx;
+    li.className    = "project-item";
+    li.setAttribute("role", "listitem");
+    li.setAttribute("tabindex", "0");
+    li.setAttribute("aria-label", `Language: ${lang.label}`);
+
+    li.innerHTML = `
+      <span class="module-num" aria-hidden="true">${lang.tag}</span>
+      <span class="module-name">${lang.label}</span>
+    `;
+
+    li.addEventListener("click", () => { openLanguage(lang.file, lang.label); closeSidebar(); });
+    li.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openLanguage(lang.file, lang.label); closeSidebar(); }
+    });
+    ul.appendChild(li);
+  });
+}
+
+// ── Build languages welcome grid ─────────────────────────────────
+function buildLanguagesGrid() {
+  const grid = $("languages-grid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  LANGUAGE_META.forEach((lang, idx) => {
+    const card = document.createElement("div");
+    card.className = `welcome-module-card language-card wlc-${idx}`;
+    card.style.animationDelay = `${idx * 35}ms`;
+    card.setAttribute("role", "listitem");
+    card.setAttribute("tabindex", "0");
+    card.setAttribute("aria-label", `Open language: ${lang.label}`);
+
+    card.innerHTML = `
+      <span class="wmc-num" aria-hidden="true">LANGUAGE</span>
+      <div class="wmc-title">${lang.label}</div>
+      <div style="font-size:11px;color:#666;margin-top:4px;font-family:var(--font-mono)">${lang.desc}</div>
+      <span class="lang-badge ${lang.badge}" aria-label="${lang.label}">${lang.tag}</span>
+      <div class="wmc-status" aria-hidden="true"></div>
+    `;
+
+    card.addEventListener("click", () => openLanguage(lang.file, lang.label));
+    card.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openLanguage(lang.file, lang.label); }
+    });
+    grid.appendChild(card);
+  });
+}
+
 // ── Build module welcome grid ────────────────────────────────────
 function buildWelcomeGrid() {
   const grid = $("welcome-grid");
@@ -684,6 +749,35 @@ async function openCode(file, label) {
   });
 }
 
+// ── Open language file ───────────────────────────────────────────
+async function openLanguage(file, label) {
+  state.currentFile = file;
+  state.currentType = "language";
+
+  document.querySelectorAll("#module-list li").forEach(li => li.classList.remove("active"));
+  document.querySelectorAll("#project-list li").forEach(li => li.classList.remove("active"));
+  document.querySelectorAll("#code-list li").forEach(li => li.classList.remove("active"));
+  document.querySelectorAll("#language-list li").forEach(li =>
+    li.classList.toggle("active", li.dataset.file === file));
+
+  $("breadcrumb").textContent = "LANGUAGE — " + label;
+  $("btn-complete").classList.add("hidden");
+
+  fadeContent(async () => {
+    $("welcome-screen").classList.add("hidden");
+    $("doc-view").classList.remove("hidden");
+    $("doc-rendered").innerHTML = `<p style="font-family:monospace;color:#444;font-size:13px;">Loading ${file}…</p>`;
+
+    try {
+      const res = await fetch(`docs/${file}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      renderMarkdown(await res.text());
+    } catch (err) {
+      $("doc-rendered").innerHTML = `<div class="error-box"><strong>Error loading ${file}</strong><br>${err.message}</div>`;
+    }
+  });
+}
+
 // ── Render markdown ──────────────────────────────────────────────
 function renderMarkdown(md) {
   $("doc-rendered").innerHTML = marked.parse(md);
@@ -768,9 +862,11 @@ function resetProgress() {
   saveProjectsProgress();
   buildNav();
   buildProjectNav();
+  buildLanguageNav();
   buildCodeNav();
   buildWelcomeGrid();
   buildProjectsGrid();
+  buildLanguagesGrid();
   buildCodeGrid();
   updateProgressBar();
 }
@@ -781,6 +877,7 @@ function goHome() {
   state.currentType = null;
   document.querySelectorAll("#module-list li").forEach(li => li.classList.remove("active"));
   document.querySelectorAll("#project-list li").forEach(li => li.classList.remove("active"));
+  document.querySelectorAll("#language-list li").forEach(li => li.classList.remove("active"));
   document.querySelectorAll("#code-list li").forEach(li => li.classList.remove("active"));
 
   fadeContent(() => {
@@ -790,6 +887,7 @@ function goHome() {
     $("btn-complete").classList.add("hidden");
     buildWelcomeGrid();
     buildProjectsGrid();
+    buildLanguagesGrid();
     buildCodeGrid();
     updateGreeting();
   });
@@ -830,18 +928,46 @@ document.addEventListener("keydown", e => {
   }
 });
 
-// ── Sidebar Tabs ─────────────────────────────────────────────────
-document.querySelectorAll(".sidebar-tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".sidebar-tab").forEach(t => t.classList.remove("active"));
-    tab.classList.add("active");
-    const target = tab.getAttribute("data-target");
-    ["module-list", "project-list", "code-list"].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.classList.toggle("hidden", id !== target);
+// ── Sidebar Tabs — Dynamic Drum Selector ─────────────────────────
+const ALL_NAV_LISTS = ["module-list", "project-list", "language-list", "code-list"];
+
+function setActiveTab(activeIdx) {
+  state.activeTabIdx = activeIdx;
+  const tabs = Array.from(document.querySelectorAll(".sidebar-tab"));
+
+  tabs.forEach((tab, i) => {
+    const dist = Math.abs(i - activeIdx);
+    tab.style.setProperty("--dist", dist);
+    tab.classList.toggle("active", i === activeIdx);
+    tab.setAttribute("aria-selected", i === activeIdx ? "true" : "false");
+  });
+
+  const target = tabs[activeIdx]?.getAttribute("data-target");
+  ALL_NAV_LISTS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle("hidden", id !== target);
+  });
+}
+
+document.querySelectorAll(".sidebar-tab").forEach((tab, i) => {
+  tab.addEventListener("click", () => setActiveTab(i));
+
+  tab.addEventListener("mouseenter", () => {
+    if (i === state.activeTabIdx) return;
+    const tabs = Array.from(document.querySelectorAll(".sidebar-tab"));
+    tabs.forEach((t, j) => {
+      const distFromHover = Math.abs(j - i);
+      const distFromActive = Math.abs(j - state.activeTabIdx);
+      const blendedDist = Math.min(distFromHover * 0.5, distFromActive);
+      t.style.setProperty("--dist", blendedDist.toFixed(2));
     });
   });
+
+  tab.addEventListener("mouseleave", () => {
+    setActiveTab(state.activeTabIdx);
+  });
 });
+
 
 // ── Welcome Screen Tabs ──────────────────────────────────────────
 document.querySelectorAll(".welcome-tab").forEach(tab => {
@@ -859,9 +985,10 @@ document.querySelectorAll(".welcome-tab").forEach(tab => {
     });
 
     // Rebuild panels on switch to keep animations fresh
-    if (panelId === "modules-panel")  buildWelcomeGrid();
-    if (panelId === "projects-panel") buildProjectsGrid();
-    if (panelId === "code-panel")     buildCodeGrid();
+    if (panelId === "modules-panel")   buildWelcomeGrid();
+    if (panelId === "projects-panel")  buildProjectsGrid();
+    if (panelId === "languages-panel") buildLanguagesGrid();
+    if (panelId === "code-panel")      buildCodeGrid();
   });
 });
 
@@ -938,6 +1065,10 @@ $("dock-reset").addEventListener("click",  resetProgress);
       if (p.label.toLowerCase().includes(q) || p.file.toLowerCase().includes(q))
         res.push({ type: "Project", label: p.label, execute: () => openProject(p.file, p.label) });
     });
+    LANGUAGE_META.forEach(l => {
+      if (l.label.toLowerCase().includes(q) || l.file.toLowerCase().includes(q))
+        res.push({ type: "Language", label: l.label, execute: () => openLanguage(l.file, l.label) });
+    });
     CODE_META.forEach(c => {
       if (c.label.toLowerCase().includes(q) || c.file.toLowerCase().includes(q))
         res.push({ type: "Code", label: c.label, execute: () => openCode(c.file, c.label) });
@@ -1001,10 +1132,13 @@ function init() {
 
   buildNav();
   buildProjectNav();
+  buildLanguageNav();
   buildCodeNav();
   buildWelcomeGrid();
   buildProjectsGrid();
+  buildLanguagesGrid();
   buildCodeGrid();
+  setActiveTab(0);
   updateProgressBar();
   updateGreeting();
 

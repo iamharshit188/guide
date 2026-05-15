@@ -86,15 +86,17 @@
       </div>
     </div>
 
-    <div id="sidebar-tabs" aria-label="Sidebar tabs">
-      <button class="sidebar-tab active" data-target="module-list">MODULES</button>
-      <button class="sidebar-tab" data-target="project-list">PROJECTS</button>
-      <button class="sidebar-tab" data-target="code-list">CODE</button>
+    <div id="sidebar-tabs" aria-label="Sidebar section selector" role="tablist">
+      <button class="sidebar-tab active" data-target="module-list" role="tab" aria-selected="true" data-idx="0">MODULES</button>
+      <button class="sidebar-tab" data-target="project-list" role="tab" aria-selected="false" data-idx="1">PROJECTS</button>
+      <button class="sidebar-tab" data-target="language-list" role="tab" aria-selected="false" data-idx="2">LANGUAGES</button>
+      <button class="sidebar-tab" data-target="code-list" role="tab" aria-selected="false" data-idx="3">CODE</button>
     </div>
 
     <nav id="module-nav" aria-label="Content lists">
       <ul id="module-list" role="list"></ul>
       <ul id="project-list" role="list" class="hidden"></ul>
+      <ul id="language-list" role="list" class="hidden"></ul>
       <ul id="code-list" role="list" class="hidden"></ul>
     </nav>
 
@@ -151,7 +153,7 @@
           <div id="welcome-headline">
             <div class="welcome-tag">PLACEMENT PREP</div>
             <h2 id="welcome-title">AI/ML/GenAI/Backend<br>Learning Platform</h2>
-            <p id="welcome-sub">14 modules &nbsp;·&nbsp; 16 projects &nbsp;·&nbsp; Math to Multimodal. Select a module to begin.</p>
+            <p id="welcome-sub">14 modules &nbsp;·&nbsp; 16 projects &nbsp;·&nbsp; 4 languages &nbsp;·&nbsp; Math to Multimodal. Select a module to begin.</p>
           </div>
         </div>
 
@@ -162,6 +164,9 @@
           </button>
           <button class="welcome-tab" role="tab" aria-selected="false" data-panel="projects-panel">
             <span class="wtab-num">16</span> Projects
+          </button>
+          <button class="welcome-tab" role="tab" aria-selected="false" data-panel="languages-panel">
+            <span class="wtab-num">4</span> Languages
           </button>
           <button class="welcome-tab" role="tab" aria-selected="false" data-panel="code-panel">
             <span class="wtab-num">60+</span> Code Files
@@ -175,6 +180,10 @@
 
         <div id="projects-panel" class="welcome-panel hidden" role="tabpanel">
           <div class="welcome-grid" id="projects-grid" role="list" aria-label="Project list"></div>
+        </div>
+
+        <div id="languages-panel" class="welcome-panel hidden" role="tabpanel">
+          <div class="welcome-grid" id="languages-grid" role="list" aria-label="Language tutorials"></div>
         </div>
 
         <div id="code-panel" class="welcome-panel hidden" role="tabpanel">
