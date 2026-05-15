@@ -49,6 +49,26 @@ Every concept follows this pattern:
 
 ---
 
+## Module Structure at a Glance
+
+```
+PART 1: Linear Algebra        PART 2: Calculus          PART 3: Probability
+┌──────────────────────┐     ┌─────────────────┐       ┌─────────────────────┐
+│  Scalars/Vectors     │     │  Derivatives    │       │  Bayes Theorem      │
+│  Matrix Operations   │────▶│  Gradients      │──────▶│  Distributions      │
+│  Eigenvalues & SVD   │     │  Chain Rule     │       │  MLE & Cross-Entropy│
+└──────────────────────┘     └─────────────────┘       └─────────────────────┘
+           │                         │                           │
+           └─────────────────────────┴───────────────────────────┘
+                                     │
+                             ┌───────▼──────────┐
+                             │  Mini-Project:   │
+                             │  Grade Predictor │
+                             └──────────────────┘
+```
+
+---
+
 # PART 1 — Linear Algebra
 
 Linear algebra is the language of ML. Almost every computation — from a single neuron to a billion-parameter LLM — is linear algebra under the hood.
@@ -73,6 +93,22 @@ Think of organizing information about students:
 | Vector | $\mathbf{v} \in \mathbb{R}^n$ | `(n,)` | `[1, 2, 3]` |
 | Matrix | $A \in \mathbb{R}^{m \times n}$ | `(m, n)` | `[[1,2],[3,4]]` |
 | Tensor | $\mathcal{T}$ | `(d1, d2, ..., dk)` | batch of images |
+
+### Visualizing Each Object
+
+```
+SCALAR          VECTOR              MATRIX                 TENSOR
+                ┌───┐           ┌───┬───┬───┐         ╔═══╦═══╦═══╗
+  3.14          │ 1 │           │ 1 │ 2 │ 3 │  depth ═╣ . │ . │ . ║
+                │ 2 │           │ 4 │ 5 │ 6 │       ══╬───┼───┼───║
+single          │ 3 │           └───┴───┴───┘         ╚═══╩═══╩═══╝
+number          └───┘
+              n elements        m rows × n cols     d × m × n (3D+)
+
+Think of:       Arrow         Spreadsheet table    Stack of spreadsheets
+```
+
+> **Key insight:** Every image in a CNN is a tensor of shape `(channels, height, width)` — e.g. a 224×224 RGB image is `(3, 224, 224)`. A batch of 32 such images is `(32, 3, 224, 224)`. Neural networks process entire batches at once via matrix operations.
 
 ### Python Code — Creating Each Object
 
@@ -160,7 +196,21 @@ print(f"Doubled:  {doubled}")  # [80 70 96]
 
 $$\mathbf{u} \cdot \mathbf{v} = \sum_{i=1}^{n} u_i v_i = \mathbf{u}^T \mathbf{v}$$
 
+> **Formula breakdown:**
+> - $\mathbf{u}, \mathbf{v}$ — two vectors, each with $n$ elements
+> - $u_i$ — the $i$-th element of $\mathbf{u}$ (e.g. $u_1$ is the first element)
+> - $\sum_{i=1}^{n}$ — sum up all $n$ products
+> - Result is always a **single number** (scalar), not a vector
+
 **Step-by-step numeric example:**
+
+```
+u = [1,  2,  3]
+v = [4,  5,  6]
+     ↓   ↓   ↓
+    1×4 2×5 3×6  =  4 + 10 + 18  =  32
+```
+
 $$[1, 2, 3] \cdot [4, 5, 6] = 1(4) + 2(5) + 3(6) = 4 + 10 + 18 = 32$$
 
 ```python
@@ -183,6 +233,22 @@ print(f"@ op:    {dot2}")    # 32
 
 **Geometric meaning:**
 $$\mathbf{u} \cdot \mathbf{v} = \|\mathbf{u}\| \|\mathbf{v}\| \cos\theta$$
+
+> **Formula breakdown:**
+> - $\|\mathbf{u}\|$ — the length (L2 norm) of vector $\mathbf{u}$
+> - $\cos\theta$ — cosine of the angle between the two vectors
+> - When vectors point the same direction, $\theta=0°$ so $\cos\theta=1$ → maximum dot product
+> - When vectors are perpendicular, $\theta=90°$ so $\cos\theta=0$ → dot product is zero
+
+```
+Same direction      Perpendicular         Opposite direction
+  u →  v →            u →                   u →  ← v
+                       v ↑
+  θ = 0°             θ = 90°               θ = 180°
+  cos(θ) = 1         cos(θ) = 0            cos(θ) = -1
+  dot > 0            dot = 0               dot < 0
+  "aligned"          "independent"         "opposite"
+```
 
 | Angle | $\cos\theta$ | Dot product | Meaning |
 |-------|-------------|-------------|---------|
@@ -306,10 +372,32 @@ If $A \in \mathbb{R}^{m \times k}$ and $B \in \mathbb{R}^{k \times n}$, then $C 
 
 $$C_{ij} = \sum_{l=1}^{k} A_{il} B_{lj}$$
 
+> **Formula breakdown:**
+> - $C_{ij}$ — element in row $i$, column $j$ of the result
+> - $A_{il}$ — element in row $i$, column $l$ of matrix $A$
+> - $B_{lj}$ — element in row $l$, column $j$ of matrix $B$
+> - Each output element is the **dot product** of one row of $A$ with one column of $B$
+
 **Dimension rule:** Inner dimensions must match. `(m × k) × (k × n) → (m × n)`.
+
+```
+Shape check: (m × k) @ (k × n) = (m × n)
+                  ↑       ↑
+           these must match!
+
+Example:  (2×3) @ (3×4) = (2×4)   ✓  valid
+          (2×3) @ (4×3) = ???      ✗  INVALID — 3 ≠ 4
+```
 
 **Step-by-step example:**
 $$\begin{bmatrix}1&2\\3&4\end{bmatrix} \times \begin{bmatrix}5&6\\7&8\end{bmatrix}$$
+
+```
+C[0,0] = row 0 of A · col 0 of B = [1,2]·[5,7] = 1×5 + 2×7 = 19
+C[0,1] = row 0 of A · col 1 of B = [1,2]·[6,8] = 1×6 + 2×8 = 22
+C[1,0] = row 1 of A · col 0 of B = [3,4]·[5,7] = 3×5 + 4×7 = 43
+C[1,1] = row 1 of A · col 1 of B = [3,4]·[6,8] = 3×6 + 4×8 = 50
+```
 
 Row 0 × Col 0: $1(5) + 2(7) = 19$
 Row 0 × Col 1: $1(6) + 2(8) = 22$
@@ -466,7 +554,23 @@ print(f"\nPseudoinverse shape: {A_pinv.shape}")
 
 Every matrix is a transformation — it rotates and stretches vectors. Eigenvectors are the special vectors that **only get stretched, never rotated**. The eigenvalue says by how much.
 
+```
+General vector v:                Eigenvector v:
+                                 
+  v → [A] → Av                   v → [A] → λv
+  
+  The direction changes!         Direction is PRESERVED.
+  Av points somewhere new        Av is just v scaled by λ.
+```
+
 $$A\mathbf{v} = \lambda\mathbf{v}$$
+
+> **Formula breakdown:**
+> - $A$ — the matrix (transformation)
+> - $\mathbf{v}$ — the eigenvector (a special vector that does not rotate when $A$ transforms it)
+> - $\lambda$ — the eigenvalue (a scalar: how much $\mathbf{v}$ gets stretched or shrunk)
+> - $A\mathbf{v}$ — applying matrix $A$ to vector $\mathbf{v}$
+> - The equation says: "transforming $\mathbf{v}$ is the same as scaling it by $\lambda$"
 
 - $\mathbf{v}$ = eigenvector (direction preserved)
 - $\lambda$ = eigenvalue (how much it scales)
@@ -758,6 +862,22 @@ $$\frac{d}{dx} f(g(x)) = f'(g(x)) \cdot g'(x)$$
 For multi-variable composites (neural networks):
 $$\frac{\partial \mathcal{L}}{\partial w} = \frac{\partial \mathcal{L}}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial z} \cdot \frac{\partial z}{\partial w}$$
 
+> **Formula breakdown (reading right to left = backprop direction):**
+> - $\frac{\partial z}{\partial w}$ — how much does the weighted sum $z$ change when weight $w$ changes?
+> - $\frac{\partial \hat{y}}{\partial z}$ — how much does the activation output change when $z$ changes? (activation derivative)
+> - $\frac{\partial \mathcal{L}}{\partial \hat{y}}$ — how much does the loss change when the prediction changes?
+> - Multiply all three to get: how much does the loss change when $w$ changes?
+
+```
+Forward pass (left to right):
+  w ──▶  z = w·x + b ──▶  ŷ = σ(z) ──▶  L = loss(ŷ, y)
+
+Backward pass (right to left, chain rule):
+  ∂L/∂w  ◀──  ∂L/∂ŷ · ∂ŷ/∂z · ∂z/∂w
+               └──────────────────────┘
+                   multiply all together
+```
+
 ### Why This is the Core of Deep Learning
 
 A neural network is a nested function:
@@ -826,6 +946,28 @@ print(f"\nUpdated w1: {w1:.4f}, w2: {w2:.4f}")
 The fundamental optimization algorithm in all of ML:
 
 $$\mathbf{w}_{t+1} = \mathbf{w}_t - \eta \nabla_\mathbf{w} \mathcal{L}(\mathbf{w}_t)$$
+
+> **Formula breakdown:**
+> - $\mathbf{w}_{t+1}$ — the new weights after this update step
+> - $\mathbf{w}_t$ — the current weights
+> - $\eta$ — learning rate (Greek letter "eta"): step size, typically 0.001–0.01
+> - $\nabla_\mathbf{w} \mathcal{L}$ — gradient of the loss w.r.t. weights (points uphill)
+> - $-\eta \nabla_\mathbf{w} \mathcal{L}$ — move a small step *downhill* (negative direction of gradient)
+
+```
+Loss
+ ↑
+ │  *                            ← starting point (high loss)
+ │    *
+ │      *   ← step by -η∇L each iteration
+ │        *
+ │          *
+ │            * * *              ← converged (low loss, ∇L ≈ 0)
+ └──────────────────────▶ weight
+              ↑
+          minimum
+          (∇L = 0 here)
+```
 
 where $\eta$ (eta) is the **learning rate** — how big a step to take.
 
@@ -984,9 +1126,36 @@ print(f"P(pass | study > 4):        {p_pass_given_study:.4f}")
 
 $$P(A|B) = \frac{P(B|A) \cdot P(A)}{P(B)}$$
 
+> **Reading:** "The probability of A given B equals the probability of B given A, times the prior probability of A, divided by the probability of B."
+
+**Medical test analogy:** You test positive for a rare disease. The test is 99% accurate. But the disease affects only 1% of people. Should you panic?
+
+```
+Prior:     P(disease) = 0.01      (1% of population has it)
+Likelihood: P(positive | disease) = 0.99  (test is 99% accurate if sick)
+            P(positive | healthy) = 0.01  (1% false positive rate)
+
+P(positive) = 0.99×0.01 + 0.01×0.99 = 0.0198
+
+Posterior:  P(disease | positive) = (0.99 × 0.01) / 0.0198 = 0.5
+```
+
+Surprising result: even with a 99% accurate test, a positive result only means 50% chance of disease, because the disease is rare. This is base rate neglect — and why Bayes theorem matters.
+
 In ML terms (updating belief about model parameters $\theta$ after seeing data $D$):
 
 $$\underbrace{P(\theta|D)}_{\text{posterior}} = \frac{\underbrace{P(D|\theta)}_{\text{likelihood}} \cdot \underbrace{P(\theta)}_{\text{prior}}}{\underbrace{P(D)}_{\text{evidence}}}$$
+
+```
+Before training         After seeing data
+┌─────────────┐         ┌─────────────────┐
+│ Prior P(θ)  │  + Data │ Posterior P(θ|D)│
+│ "Weights    │ ───────▶│ "Weights that   │
+│  near zero" │         │  explain data"  │
+└─────────────┘         └─────────────────┘
+                              ↑
+                    This is what training does!
+```
 
 | Term | Meaning | Example |
 |------|---------|---------|
