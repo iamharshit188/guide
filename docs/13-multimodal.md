@@ -1,5 +1,8 @@
 # Module 13 — Multimodal Models: CLIP, ViT, and Image-Language Fusion
 
+> **Prerequisites:** Modules 06–07 (attention, transformers).
+> **Estimated time:** 8–12 hours
+
 ## Why Multimodal?
 
 Text alone describes the world. Images show it. Language models that can only read text are blind to the vast majority of information humans communicate — diagrams, photographs, charts, videos.
@@ -11,6 +14,30 @@ Multimodal models combine vision and language so a model can:
 - Reason about charts and diagrams
 
 The core challenge: how do you align representations from two completely different modalities so that "a dog" in text and a photograph of a dog point to the same location in some shared representation space?
+
+```
+The alignment problem — bridging two worlds:
+
+Text world:              Image world:
+  "a dog"                 [pixels: 224×224×3]
+  "cat on a mat"          [pixels: 224×224×3]
+  "sunset over ocean"     [pixels: 224×224×3]
+
+How do we measure: does "a dog" match this photo of a dog?
+
+Solution — shared embedding space:
+  Text encoder:    "a dog"   ──▶  [0.8, 0.2, -0.1, ...] (512-dim vector)
+  Image encoder:   [photo]   ──▶  [0.7, 0.3, -0.2, ...] (512-dim vector)
+                                        ↑
+                    Similar vectors! cosine similarity ≈ 0.95
+
+  "a cat":         [text]   ──▶  [-0.2, 0.9, 0.4, ...] (512-dim vector)
+                                        ↑
+                    Far from the dog photo! cosine similarity ≈ 0.1
+
+CLIP (Contrastive Language-Image Pretraining) learns this shared space
+by training on 400 million (image, caption) pairs from the internet.
+```
 
 ---
 
@@ -26,6 +53,32 @@ For a $224 \times 224$ image with $16 \times 16$ patches:
 - Plus 1 CLS token → sequence length = 197
 
 This sequence is processed exactly like text tokens in a standard Transformer encoder.
+
+```
+ViT — image to patch tokens:
+
+Input image (224×224):               Patches (16×16 each):
+┌─────────────────────┐              [P1][P2][P3]...[P14]
+│    [img pixels]     │  split into  [P15][P16]...[P28]
+│    224 × 224 × 3    │  ──────────▶ ...
+│    (RGB channels)   │              [P183]...[P196]
+└─────────────────────┘
+                                     Each patch = 16×16×3 = 768 values
+
+Flatten & project:
+  P1   ──[Linear 768→512]──▶  e1 ∈ ℝ^512
+  P2   ──[Linear 768→512]──▶  e2 ∈ ℝ^512
+  ...
+  P196 ──[Linear 768→512]──▶  e196 ∈ ℝ^512
+
+Add CLS token + positional encoding:
+  [CLS, e1, e2, ..., e196] → sequence of 197 tokens
+
+Feed to Transformer encoder (same as BERT!):
+  Each patch attends to every other patch
+  CLS token aggregates global image information
+  Output CLS representation = image embedding
+```
 
 ```python
 import numpy as np
