@@ -31,6 +31,39 @@ Phase 3: RL Optimization (PPO)
   Output: policy that maximizes R while staying close to SFT
 ```
 
+```
+Full RLHF pipeline — data flow:
+
+┌──────────────────────────────────────────────────────────────┐
+│ PHASE 1: Supervised Fine-Tuning                              │
+│                                                              │
+│  Prompt: "Explain gravity"                                   │
+│  Human: writes a good response                               │
+│  SFT model: trained to imitate this format                   │
+└─────────────────────────┬────────────────────────────────────┘
+                          ▼ SFT model
+┌──────────────────────────────────────────────────────────────┐
+│ PHASE 2: Reward Model Training                               │
+│                                                              │
+│  Prompt: "Explain gravity"                                   │
+│  Response A: "Gravity is a force that..."   ← human picks A │
+│  Response B: "Gravity makes things fall"    ← rejected       │
+│                                                              │
+│  Reward Model learns: r(A) > r(B)                            │
+│  Loss: -log σ(r(A) - r(B))                                   │
+└─────────────────────────┬────────────────────────────────────┘
+                          ▼ reward model
+┌──────────────────────────────────────────────────────────────┐
+│ PHASE 3: PPO (Proximal Policy Optimization)                  │
+│                                                              │
+│  Policy (SFT model) generates response                       │
+│  Reward model scores it: r = 0.87                            │
+│  KL penalty: -β × KL(policy || SFT)  ← prevents "gaming"    │
+│  Objective: maximize r - β × KL                              │
+│  PPO update: clip(policy ratio) to prevent big jumps         │
+└──────────────────────────────────────────────────────────────┘
+```
+
 ### Phase 1: Supervised Fine-Tuning
 
 Covered in Module 09. Train on `(instruction, high_quality_response)` pairs. The SFT model is the starting point for phases 2 and 3.
@@ -367,6 +400,28 @@ print(f"  Most favored token: {policy.probabilities().argmax()} (highest reward 
 PPO requires training and maintaining 4 models simultaneously: policy, reference, reward model, and value function. This is complex, memory-intensive, and training is unstable.
 
 DPO (Rafailov et al. 2023) eliminates the separate reward model entirely. The key insight: the optimal policy under RLHF can be expressed directly in terms of preference data.
+
+```
+RLHF/PPO (complex):                   DPO (simple):
+
+Preference data                        Preference data
+     │                                      │
+     ▼                                      ▼
+Reward model training (separate)       Directly compute DPO loss
+     │
+     ▼
+PPO loop:                              ┌─────────────────────────┐
+  policy model      ◀── gradients ──── │ π_θ (policy, trainable) │
+  reference model                      │ π_ref (frozen baseline)  │
+  reward model                         └─────────────────────────┘
+  value function                            │
+(4 models!)                            loss = -log σ(β·(log π_θ(y_w)/π_ref(y_w)
+                                               - log π_θ(y_l)/π_ref(y_l)))
+
+DPO intuition:
+  "Make the policy assign relatively higher probability to y_w than y_l,
+   compared to where it started (the reference model)."
+```
 
 **DPO reparameterization:**
 
