@@ -44,6 +44,32 @@ Without backend engineering, your model stays a local experiment. With it, you s
 | Middleware | Rate limiting, logging, CORS | Production requirements |
 | Async tasks | Celery queue | Long inference jobs |
 
+### ML API Request Lifecycle
+
+```
+Client (browser / mobile / curl)
+  │
+  │  POST /predict  {"text": "hello world"}
+  │  Authorization: Bearer eyJhbGciOiJIUzI1...
+  ▼
+┌──────────────────────────────────────────────────────┐
+│                    Flask Server                       │
+│                                                       │
+│  1. Middleware        → check rate limit, log request │
+│  2. Auth decorator    → verify JWT token              │
+│  3. Request validator → Pydantic schema check         │
+│  4. Route handler     → business logic                │
+│  5. ML model          → load & run inference          │
+│  6. Response builder  → format JSON                   │
+└──────────────────────────────────────────────────────┘
+  │
+  │  200 OK  {"prediction": "positive", "confidence": 0.92}
+  ▼
+Client
+
+Each step is a separate layer — failures are caught early before reaching the model.
+```
+
 ---
 
 # 1. How the Web Works
@@ -349,6 +375,18 @@ Never trust user input. Before your ML model sees the data, validate it:
 
 Pydantic makes this declarative — you define the expected shape and it validates automatically.
 
+```
+Without validation:                With Pydantic validation:
+
+  POST /predict                      POST /predict
+  {"age": "twenty"}                  {"age": "twenty"}
+        │                                   │
+        ▼                                   ▼
+  model.predict(age="twenty")        Pydantic: "age must be int"
+  → ValueError: unsupported type     → 422 {"error": "age: int required"}
+  → 500 Internal Server Error        ← clean error, no crash
+```
+
 ```python
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
@@ -451,6 +489,41 @@ test_validation()
 ## Intuition
 
 After login, the server issues a **JWT token** — a cryptographically signed JSON blob. On every subsequent request, the client sends this token. The server verifies the signature without hitting the database.
+
+```
+JWT Authentication Flow:
+
+Step 1 — Login:
+  Client                              Server
+    │   POST /auth/login                │
+    │   {"user": "alice", "pw": "..."}  │
+    │──────────────────────────────────▶│
+    │                                   │ verify password
+    │                                   │ create JWT token
+    │   200 OK {"token": "eyJ..."}      │
+    │◀──────────────────────────────────│
+    │ (client stores token)             │
+
+Step 2 — Authenticated request:
+  Client                              Server
+    │   GET /api/predict                │
+    │   Authorization: Bearer eyJ...    │
+    │──────────────────────────────────▶│
+    │                                   │ decode JWT header+payload
+    │                                   │ verify signature (no DB hit!)
+    │                                   │ check expiry
+    │   200 OK {"result": ...}          │ run prediction
+    │◀──────────────────────────────────│
+
+JWT Structure:  header.payload.signature
+                  │        │        │
+              algorithm  user_id  HMAC sign
+              (base64)   role     with secret key
+                         exp
+
+Key benefit: Stateless — the server stores no session. Any server instance
+             can verify the token using just the shared secret key.
+```
 
 ```
 1. POST /auth/login {username, password}
