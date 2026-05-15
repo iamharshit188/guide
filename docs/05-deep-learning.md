@@ -54,6 +54,26 @@ Input → [Linear → Activation] → [Linear → Activation] → [Linear] → O
          Layer 1                  Layer 2                  Output layer
 ```
 
+```
+Detailed view (3 inputs → 4 hidden → 2 outputs):
+
+Input layer    Hidden layer     Output layer
+  x₁ ─┐          h₁ ─┐
+       ├──[W¹]──▶      ├──[W²]──▶  ŷ₁
+  x₂ ─┤          h₂ ─┤
+       │          h₃ ─┤           ŷ₂
+  x₃ ─┘          h₄ ─┘
+
+Each arrow represents a weight (learnable parameter).
+  z = W·x + b        (linear combination)
+  a = ReLU(z)        (nonlinearity — introduces curves)
+
+Why do we need multiple layers?
+  1 layer  → can only learn lines (hyperplanes)
+  2 layers → can approximate any continuous function (universal approximation theorem)
+  More layers → can learn hierarchical features (edges → shapes → objects)
+```
+
 ## 1.1 The Forward Pass
 
 For layer $l$ with weight matrix $W^{(l)}$ and bias $\mathbf{b}^{(l)}$:
@@ -127,6 +147,22 @@ print(f"\nEach row sums to: {a3.sum(axis=0).round(6)}")  # should be all 1.0
 
 ## 1.2 Activation Functions
 
+```
+Shapes of common activations:
+
+Sigmoid σ(z)        ReLU max(0,z)       Tanh tanh(z)
+    1 ┤···           ↑     /             1 ┤     ···
+      │   ·          │    /                │    ·
+  0.5 ┤─ · ─         │   /            0 ──┼── · ────▶
+      │  ·           │  /                 │  ·
+    0 ┤·             │ /              -1 ─┤···
+      └──────        └──────              └──────
+  range: (0,1)    range: [0,∞)        range: (-1,1)
+  vanishes at ±5  no vanishing          zero-centered
+
+GELU ≈ z·σ(1.702z)  ← smooth version of ReLU, used in GPT/BERT
+```
+
 ```python
 import numpy as np
 
@@ -191,6 +227,20 @@ print(f"  relu'(5)     = {relu_deriv(5):.6f}  ← still 1 (gradient flows!)")
 ## Intuition
 
 Backprop = **chain rule applied layer-by-layer from the output back to the input**. Each layer asks: "by how much does changing my input change the final loss?" That number is the gradient.
+
+```
+Forward pass (computing predictions):
+  x ──▶ z¹=W¹x+b¹ ──▶ a¹=ReLU(z¹) ──▶ z²=W²a¹+b² ──▶ ŷ=σ(z²) ──▶ L
+
+Backward pass (computing gradients via chain rule):
+  ∂L/∂W¹ ◀── ∂L/∂z¹ ◀── ∂L/∂a¹ ◀── ∂L/∂z² ◀── ∂L/∂ŷ ◀── L
+         ↑           ↑          ↑           ↑          ↑
+     ×∂z¹/∂W¹  ×∂a¹/∂z¹  ×∂z²/∂a¹  ×∂ŷ/∂z²  ×∂L/∂ŷ
+     = a⁰ᵀ      = ReLU'    = W²ᵀ       = ŷ(1-ŷ)  = ŷ-y
+
+Key insight: gradients flow backward through the same graph as the forward pass.
+             Each node multiplies its local gradient with the incoming upstream gradient.
+```
 
 ## 2.1 Define the Error Signals
 
@@ -454,6 +504,23 @@ Gradient descent with fixed learning rate is slow and sensitive. Adaptive optimi
 - Use **momentum** to accelerate in consistent directions
 - Adapt **per-parameter learning rates** based on gradient history
 - Handle sparse gradients better (useful for embeddings)
+
+```
+Optimizer behavior on a loss landscape:
+
+SGD (vanilla):              SGD + Momentum:         Adam:
+↓ → ↓ → ↓ → ↓              ↘ ↘ ↘ ↘ ↘ ↘            → → → →
+  zig-zag                    builds speed            smooth,
+  slowly                     like a ball             adaptive
+                             rolling downhill        per-param lr
+
+Loss ↑                      Loss ↑                 Loss ↑
+     │ ↓ ↓ ↓                     │ ↘↘↘↘                │ ────
+     └──────▶ steps               └──────▶ steps         └──────▶ steps
+    many oscillations           fewer oscillations    fewest steps
+
+Rule of thumb: start with Adam, switch to SGD+momentum for fine-tuning.
+```
 
 ## 4.1 Optimizer Implementations from Scratch
 
