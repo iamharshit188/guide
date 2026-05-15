@@ -107,6 +107,27 @@ for w in ['cat', 'dog', 'food']:
 
 **Core idea:** Predict context words given the target word. Hidden layer weights become embeddings.
 
+```
+Skip-gram training example (window=2):
+
+Sentence: "the  cat  sat  on  the  mat"
+           [0]  [1]  [2]  [3]  [4]  [5]
+
+For target word "sat" (index 2), window=2 gives:
+  Training pairs: (sat, the), (sat, cat), (sat, on), (sat, the)
+                    ↑ target → context pairs
+
+The model tries to maximize P("cat" | "sat"), P("on" | "sat"), etc.
+In doing so, the embedding for "sat" must capture the meaning of its contexts.
+
+After training — the embedding space:
+  "cat"  ──▶ [0.8, 0.2, -0.1, ...]   ←─┐
+  "dog"  ──▶ [0.7, 0.3, -0.2, ...]   ←─┘ similar vectors (both animals)
+  "code" ──▶ [-0.1, 0.9, 0.8, ...]       far from animals
+
+Analogy arithmetic works: king - man + woman ≈ queen
+```
+
 $$P(c | w) = \frac{\exp(\mathbf{v}_c \cdot \mathbf{u}_w)}{\sum_{c'} \exp(\mathbf{v}_{c'} \cdot \mathbf{u}_w)}$$
 
 **Negative sampling** (fast approximation):
@@ -200,7 +221,48 @@ In "The animal didn't cross the street because it was too tired," what does "it"
 - **Key** $K$: "what do I describe myself as?"
 - **Value** $V$: "what information do I carry?"
 
+```
+Attention mechanism — library analogy:
+
+Q (Query)  = your search query: "What is 'it' referring to?"
+K (Keys)   = index cards of every book: "animal: chapter 1", "street: chapter 2"
+V (Values) = actual book content
+
+Step 1: Score relevance
+  score(Q, K_animal)  = Q · K_animal  = 8.5  (high — "it" likely is the animal)
+  score(Q, K_street)  = Q · K_street  = 1.2  (low)
+  ...
+
+Step 2: Scale by √d_k (prevents scores from saturating softmax)
+  scores = scores / √d_k
+
+Step 3: Softmax → attention weights (sum to 1)
+  weights = softmax(scores) = [0.87, 0.08, 0.03, 0.02, ...]
+
+Step 4: Weighted sum of values
+  output = 0.87 × V_animal + 0.08 × V_street + ...
+         ← mostly "animal" information!
+
+Attention matrix (each row = how much token i attends to token j):
+
+        the  animal  street  it   tired
+  the  [0.3,  0.2,   0.1,  0.2,  0.2]
+animal [0.2,  0.4,   0.1,  0.2,  0.1]
+street [0.2,  0.1,   0.4,  0.1,  0.2]
+  it   [0.1,  0.6,   0.1,  0.1,  0.1]  ← "it" mostly attends to "animal"!
+tired  [0.2,  0.3,   0.1,  0.2,  0.2]
+```
+
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^T}{\sqrt{d_k}}\right) V$$
+
+> **Formula breakdown:**
+> - $Q \in \mathbb{R}^{n \times d_k}$ — query matrix ($n$ tokens, each projected to $d_k$ dims)
+> - $K \in \mathbb{R}^{n \times d_k}$ — key matrix (same shape as $Q$)
+> - $QK^T \in \mathbb{R}^{n \times n}$ — all pairs of dot products → attention scores
+> - $\sqrt{d_k}$ — scale factor: prevents dot products from growing too large as $d_k$ increases
+> - $\text{softmax}(\cdot)$ — normalizes scores to probabilities summing to 1
+> - $V \in \mathbb{R}^{n \times d_v}$ — value matrix
+> - Final output: weighted sum of values, where weights reflect relevance
 
 ```python
 import numpy as np
@@ -278,6 +340,30 @@ print(f"  Scaled dot={scaled_dot:.1f}  → softmax max={sm_scaled.max():.4f}  (n
 ## Intuition
 
 One attention head can learn one type of relationship at a time (subject-verb, adjective-noun). Multi-head runs $h$ heads in parallel, each learning different relationships, then concatenates results.
+
+```
+Multi-head attention with h=4 heads, d_model=512, d_k=128:
+
+Input X (batch, seq, 512)
+        │
+        ├──[W_Q1, W_K1, W_V1]──▶ Head 1 attention ──▶ (batch, seq, 128)
+        │                         (syntax relationships)
+        ├──[W_Q2, W_K2, W_V2]──▶ Head 2 attention ──▶ (batch, seq, 128)
+        │                         (semantic relationships)
+        ├──[W_Q3, W_K3, W_V3]──▶ Head 3 attention ──▶ (batch, seq, 128)
+        │                         (long-range dependencies)
+        └──[W_Q4, W_K4, W_V4]──▶ Head 4 attention ──▶ (batch, seq, 128)
+                                  (positional relations)
+                                          │
+                         Concat all heads: (batch, seq, 512)
+                                          │
+                                    [W_O (512×512)]
+                                          │
+                               Output: (batch, seq, 512)
+
+Each head looks for different patterns simultaneously.
+The concatenation + linear projection merges all perspectives.
+```
 
 $$\text{MultiHead}(Q,K,V) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h) W^O$$
 
