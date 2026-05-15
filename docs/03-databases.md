@@ -39,6 +39,29 @@ Understanding index internals (B+ tree, HNSW, IVF) separates engineers who can t
 | HNSW / IVF / PQ | Index algorithms | Choosing and tuning vector DBs |
 | ChromaDB / FAISS | Production APIs | RAG (Module 08) |
 
+### Which Database Do I Use?
+
+```
+What kind of data are you storing?
+             │
+    ┌────────┼────────────────┐
+    ▼        ▼                ▼
+Structured   Unstructured    Vectors
+(tables,     (documents,     (embeddings,
+ schemas)     flexible)       high-dim)
+    │             │               │
+    ▼             ▼               ▼
+  SQL DB       NoSQL DB        Vector DB
+(Postgres,    (MongoDB,       (ChromaDB,
+ SQLite,       Redis,          FAISS,
+ MySQL)        DynamoDB)       Pinecone)
+
+Use case examples:
+  SQL     → user accounts, orders, features, analytics
+  NoSQL   → session data, ML experiment metadata, JSON blobs
+  Vector  → semantic search, RAG, recommendation, image search
+```
+
 ---
 
 # 1. Relational Databases & SQL
@@ -464,6 +487,26 @@ Traditional databases match by **exact value**: `WHERE name = 'Alice'`. But how 
 
 Vector databases match by **meaning**. Every piece of content (text, image, audio) is converted to a vector (embedding). Similar content has vectors pointing in similar directions. Search finds vectors closest to the query vector.
 
+```
+How Vector Search Works:
+
+Step 1: Embed everything
+  "The cat sat"  ──[encoder]──▶  [0.2, 0.8, 0.1, ...]   (stored in DB)
+  "Dogs and cats" ──[encoder]──▶  [0.3, 0.7, 0.2, ...]   (stored in DB)
+  "Python loops"  ──[encoder]──▶  [0.9, 0.1, 0.8, ...]   (stored in DB)
+
+Step 2: Embed your query
+  "feline pets"   ──[encoder]──▶  [0.25, 0.75, 0.15, ...]  (query vector)
+
+Step 3: Find nearest neighbors (by cosine similarity or L2 distance)
+  cos("feline pets", "The cat sat")   = 0.97  ← most similar
+  cos("feline pets", "Dogs and cats") = 0.91
+  cos("feline pets", "Python loops")  = 0.12  ← unrelated
+
+Step 4: Return top-k results
+  → "The cat sat", "Dogs and cats"  (relevant!)
+```
+
 ## 3.1 Distance Metrics
 
 | Metric | Formula | Use case |
@@ -584,6 +627,25 @@ Approximate Nearest Neighbor (ANN) index. Instead of $O(N\cdot d)$ per query, ac
 2. Layer 0: dense graph (all connections), Layer 1: sparser, Layer 2: sparsest
 3. Search starts at the top layer, greedily descends toward query
 4. At bottom layer, explore local neighborhood to find best candidates
+
+```
+HNSW multi-layer graph structure:
+
+Layer 2 (sparsest, long-range):   A ─────────────── F
+                                       \           /
+Layer 1 (medium):              A ─── C ─── E ─── F
+                                   \   \   /
+Layer 0 (densest, precise):  A─B─C─D─E─F─G─H
+
+Query search (top-down greedy):
+  1. Enter at Layer 2, find rough neighborhood
+  2. Drop to Layer 1, narrow down
+  3. Drop to Layer 0, find exact nearest neighbors
+
+Result: visits only ~log(N) nodes instead of all N
+        Brute force: 1,000,000 comparisons for 1M vectors
+        HNSW:              ~100 comparisons  (10,000x faster!)
+```
 
 **Parameters:**
 - `M` — connections per node (higher = better recall, more memory)
