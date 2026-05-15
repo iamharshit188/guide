@@ -28,6 +28,45 @@ The Transformer is the foundation of BERT, GPT, T5, LLaMA, Claude, and essential
 | Full Transformer | Encoder-decoder | T5, translation |
 | Training | LR warmup, label smoothing | Stable LLM training |
 
+### Full Transformer Architecture
+
+```
+"Hello, how are you?" ─▶ [Tokenizer] ─▶ [1, 234, 15, 78, 90]
+                                                   │
+                                          [Token Embeddings]
+                                          [+ Positional Encoding]
+                                                   │
+                              ┌────────────────────┴────────────────────┐
+                              │           ENCODER (×N layers)           │
+                              │  ┌──────────────────────────────────┐   │
+                              │  │  Multi-Head Self-Attention        │   │
+                              │  │  + Residual + LayerNorm           │   │
+                              │  ├──────────────────────────────────┤   │
+                              │  │  Feed-Forward (4× hidden)         │   │
+                              │  │  + Residual + LayerNorm           │   │
+                              │  └──────────────────────────────────┘   │
+                              └─────────────────┬───────────────────────┘
+                                                │ encoder output (context)
+                              ┌─────────────────▼───────────────────────┐
+                              │           DECODER (×N layers)           │
+                              │  ┌──────────────────────────────────┐   │
+                              │  │  Masked Multi-Head Self-Attention │   │
+                              │  │  (can't see future tokens)        │   │
+                              │  ├──────────────────────────────────┤   │
+                              │  │  Cross-Attention                  │   │
+                              │  │  (Q from decoder, K/V from encoder│   │
+                              │  ├──────────────────────────────────┤   │
+                              │  │  Feed-Forward + Residual + LN     │   │
+                              │  └──────────────────────────────────┘   │
+                              └─────────────────┬───────────────────────┘
+                                                │
+                                        [Linear + Softmax]
+                                                │
+                                   "Bonjour, comment allez-vous?"
+
+BERT uses only Encoder. GPT uses only Decoder. T5 uses both.
+```
+
 ---
 
 # 1. BPE Tokenization
@@ -38,6 +77,27 @@ Split text into subword units. "tokenization" → ["token", "ization"]. Handles:
 - Unknown words: "ChatGPT" → ["Chat", "G", "PT"]
 - Different languages with shared subwords
 - Morphology: "running" → ["run", "##ning"]
+
+```
+Why not just split by words?
+
+Word-level:  "unhappiness" → ["unhappiness"]
+             Problem: what if "unhappiness" never appeared in training?
+             → "unknown token" (OOV problem)
+
+Char-level:  "unhappiness" → ["u","n","h","a","p","p","i","n","e","s","s"]
+             Problem: sequences become very long, lose word structure
+
+BPE:         "unhappiness" → ["un", "happy", "ness"]
+             ✓ handles new words   ✓ reuses known subwords   ✓ reasonable length
+
+BPE merge steps (training on a tiny corpus):
+  Iteration 1: count pairs → ('t','h') = 200 times → merge to "th"
+  Iteration 2: count pairs → ('th','e') = 150 times → merge to "the"
+  Iteration 3: count pairs → ('i','n') = 140 times → merge to "in"
+  ...
+  After 50,000 merges: vocabulary of ~50,000 subwords (GPT-2/3 vocab size)
+```
 
 ## Algorithm
 
@@ -230,6 +290,39 @@ print(f"Parameters: W1={ffn.W1.shape}, W2={ffn.W2.shape}")
 $$\text{EncoderBlock}(x) = \text{LayerNorm}(x + \text{MHA}(x)) \quad \text{then} \quad \text{LayerNorm}(\cdot + \text{FFN}(\cdot))$$
 
 The **residual connection** ($x + \text{sublayer}(x)$) is critical: it allows gradients to flow directly from output to input, enabling training of very deep networks.
+
+```
+Encoder block — detailed data flow:
+
+    x (input, e.g. shape [batch, seq, 512])
+    │
+    ├─────────────────────────────────┐  ← skip connection (residual)
+    │                                 │
+    ▼                                 │
+  Multi-Head Self-Attention           │
+  (all tokens attend to each other)   │
+    │                                 │
+    └───────────── + ─────────────────┘
+                   │
+              LayerNorm
+                   │
+    ┌──────────────┴──────────────────┐  ← another skip connection
+    │                                 │
+    ▼                                 │
+  Feed-Forward Network                │
+  Linear(512→2048) → ReLU             │
+  Linear(2048→512)                    │
+    │                                 │
+    └───────────── + ─────────────────┘
+                   │
+              LayerNorm
+                   │
+    x' (output, same shape as input)
+
+Why residual connections?
+  Without: gradient of layer 50 must pass through 50 multiplications → vanishes to 0
+  With:    gradient flows directly through skip path → no vanishing!
+```
 
 ```python
 def softmax(x, axis=-1):
