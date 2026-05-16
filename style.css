@@ -535,8 +535,8 @@ body.floating-mode #main {
 .lang-nav-icon svg {
   width: 14px;
   height: 14px;
-  stroke: currentColor;
-  fill: none;
+  fill: currentColor;
+  stroke: none;
   flex-shrink: 0;
 }
 #language-list li:hover .lang-nav-icon,
