@@ -1864,3 +1864,49 @@ Core recommendation:
 8. Ship projects continuously.
 
 A proper frontend engineer learns by building production-grade systems repeatedly.
+
+---
+
+# 51. Interview Q&A
+
+## Q1: What is the React Fiber reconciliation algorithm?
+
+**React Fiber** is the internal reconciliation engine introduced in React 16 that reimplements the virtual DOM diffing algorithm as an incremental, interruptible work loop. Instead of performing a synchronous depth-first tree walk, Fiber represents the component tree as a linked list of **fiber nodes** — one per component instance — where each node stores its type, props, state, and a pointer to parent, child, and sibling nodes. Work is split into units; after each unit, the scheduler checks whether higher-priority tasks (e.g., user input) need the thread. Low-priority renders (offscreen, deferred) can be interrupted and restarted. The reconciliation phase (comparing old and new trees to compute a changeset) is now asynchronous; the commit phase (applying DOM mutations) remains synchronous and cannot be interrupted. This architecture enables **Concurrent Mode** features like `useTransition` and `Suspense`.
+
+## Q2: Explain the JavaScript event loop — how do macrotasks and microtasks differ?
+
+The **event loop** is the mechanism by which JavaScript, a single-threaded runtime, handles asynchronous operations. The call stack executes synchronous code; when it empties, the event loop checks two queues in strict order. **Microtask queue** (higher priority): resolved Promise callbacks (`.then`, `.catch`), `queueMicrotask`, `MutationObserver` callbacks. After each task, the runtime drains the entire microtask queue before picking the next macrotask. **Macrotask queue** (lower priority): `setTimeout`, `setInterval`, I/O callbacks, `requestAnimationFrame`. Practical implication: a chain of resolved Promises will fully execute before any `setTimeout(fn, 0)` fires, even if the `setTimeout` was registered first. Stacking large microtask chains can starve the macrotask queue, blocking rendering and user input.
+
+## Q3: What is a closure in JavaScript? Give an ML-context example.
+
+A **closure** is a function that retains access to variables from its enclosing lexical scope after that scope has finished executing, because the function holds a reference to the scope's variable environment. The inner function and its captured variables form a "closed-over" unit. ML-context example: a learning-rate scheduler factory:
+
+```js
+function makeLRScheduler(initialLR, decayRate) {
+  let epoch = 0;                         // captured in closure
+  return function step() {
+    return initialLR * Math.pow(decayRate, epoch++);
+  };
+}
+const scheduler = makeLRScheduler(0.1, 0.95);
+scheduler(); // 0.1 (epoch 0)
+scheduler(); // 0.095 (epoch 1)
+```
+
+`epoch` persists across calls because `step` closes over the scope of `makeLRScheduler`, even though that outer call has returned. This is the same mechanism used in `useState` — React stores state outside the component function and the setter closure captures a reference to it.
+
+## Q4: How does `useEffect` handle cleanup? Why is it important for WebSocket connections?
+
+`useEffect` accepts an optional cleanup function returned from its effect callback. React calls the cleanup function before re-running the effect (when dependencies change) and when the component unmounts. For a WebSocket connection: the effect opens the socket and registers event handlers; the cleanup closes the socket and removes handlers. Without cleanup, each re-render with changed dependencies would open a new WebSocket while the previous one remains open — producing multiple active connections, duplicate message handlers, and memory leaks. In Strict Mode (development), React deliberately mounts components twice to surface missing cleanups, making uncleaned effects immediately visible.
+
+## Q5: What is Tailwind's JIT compiler and how does it differ from traditional CSS-in-JS?
+
+Tailwind's **JIT** (Just-In-Time) compiler scans source files for utility class strings at build time, generates only the CSS that is actually used, and writes the result to a static `.css` file. Traditional **CSS-in-JS** (e.g., styled-components, Emotion) generates styles at runtime in the browser: component styles are injected as `<style>` tags or CSS-in-JS cache entries during JavaScript execution. JIT Tailwind eliminates the runtime overhead — there is no style injection cost per component mount, no style recalculation in JS, and the final CSS bundle is a single small static file. CSS-in-JS enables fully dynamic styles (styles that depend on JavaScript variables at render time) and component-scoped isolation, but at the cost of JavaScript bundle size and runtime performance. Tailwind JIT supports arbitrary values (`w-[347px]`) and all utility variants without shipping unused CSS.
+
+## Q6: What is the virtual DOM and how does React's diffing algorithm work?
+
+The **virtual DOM** is an in-memory tree of plain JavaScript objects that mirrors the desired UI structure. When state changes, React creates a new virtual DOM tree and **diffs** it against the previous tree to compute the minimal set of real DOM mutations. React's diffing algorithm makes two heuristic assumptions to reduce $O(n^3)$ tree diffing to $O(n)$: (1) **Same type → update, different type → replace**: if a node's element type changes (e.g., `<div>` → `<span>`), React unmounts the old subtree entirely and mounts a new one; (2) **Keys identify list items**: when rendering arrays, the `key` prop allows React to match old and new children by identity, enabling efficient insert/delete/reorder detection. Without keys, React falls back to index-based matching, which produces unnecessary unmounts on reorders. The commit phase then applies the computed DOM mutations synchronously.
+
+## Q7: Explain React's `useMemo` and `useCallback` — when should you actually use them?
+
+`useMemo(fn, deps)` memoizes the **return value** of `fn`, recomputing only when `deps` change. `useCallback(fn, deps)` memoizes the **function reference** itself, returning the same function object across renders when `deps` are unchanged. Both avoid re-creating values on every render. They are worth using when: (1) the value is **computationally expensive** to derive (e.g., a matrix operation, large sort — `useMemo`); (2) the value is passed as a **prop to a `React.memo`-wrapped child** — without memoization, a new reference on every parent render defeats `React.memo`'s shallow-equality check and causes unnecessary child re-renders (`useMemo` or `useCallback`); (3) a function is listed as a `useEffect` dependency — without `useCallback`, the effect re-runs on every render. Do not apply them by default — both have overhead (cache storage, dependency comparison) that exceeds the savings for cheap computations or components that re-render rarely.
