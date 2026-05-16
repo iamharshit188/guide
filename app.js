@@ -725,6 +725,7 @@ async function openModule(file, label) {
       }
       renderMarkdown(await res.text());
       injectCheckpoints(file);
+      injectVisualizers(file);
       buildToc();
     } catch (err) {
       $("doc-rendered").innerHTML = `<div class="error-box"><strong>Error loading ${file}</strong><br>${err.message}</div>`;
@@ -2587,6 +2588,734 @@ function injectCheckpoints(file) {
     const block = buildCheckpointBlock(cp, saved[cp.id]);
     targetHeading.insertAdjacentElement("afterend", block);
   });
+}
+
+// ── Concept Visualizers ───────────────────────────────────────────
+
+const VIZ_REGISTRY = {
+  "01-math.md":         [{ afterHeading: "Gradient",   buildFn: buildVizGradient    }],
+  "02-ml-basics.md":    [{ afterHeading: "Bias",       buildFn: buildVizBiasVar     }],
+  "05-deep-learning.md":[{ afterHeading: "Activation", buildFn: buildVizActivations }],
+  "06-genai-core.md":   [{ afterHeading: "Attention",  buildFn: buildVizAttention   }],
+  "07-transformers.md": [{ afterHeading: "Embed",      buildFn: buildVizEmbedding   }],
+};
+
+function injectVisualizers(file) {
+  const specs = VIZ_REGISTRY[file];
+  if (!specs) return;
+  const container = $("doc-rendered");
+  if (!container) return;
+  specs.forEach(({ afterHeading, buildFn }) => {
+    const headings = container.querySelectorAll("h2, h3");
+    for (const h of headings) {
+      if (h.textContent.includes(afterHeading)) {
+        const wrap = document.createElement("div");
+        wrap.className = "viz-wrap";
+        h.insertAdjacentElement("afterend", wrap);
+        buildFn(wrap);
+        break;
+      }
+    }
+  });
+}
+
+// ── Shared canvas helper ──────────────────────────────────────────
+function createHiDpiCanvas(W, H) {
+  const dpr = window.devicePixelRatio || 1;
+  const canvas = document.createElement("canvas");
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width      = W + "px";
+  canvas.style.height     = H + "px";
+  canvas.style.borderRadius = "4px";
+  canvas.style.display    = "block";
+  canvas.style.maxWidth   = "100%";
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  return { canvas, ctx, W, H };
+}
+
+function isLight()    { return document.body.classList.contains("light-mode"); }
+function canvasBg()   { return isLight() ? "#f5f5f0" : "#0a0a0a"; }
+function gridColor()  { return isLight() ? "rgba(0,0,0,0.08)"   : "rgba(255,255,255,0.06)"; }
+function axisColor()  { return isLight() ? "rgba(0,0,0,0.25)"   : "rgba(255,255,255,0.2)";  }
+function labelColor() { return isLight() ? "rgba(0,0,0,0.55)"   : "rgba(255,255,255,0.45)"; }
+
+// ── VIZ-01: Gradient Descent ──────────────────────────────────────
+function buildVizGradient(container) {
+  const W = 400, H = 300;
+  const { canvas, ctx } = createHiDpiCanvas(W, H);
+
+  const title = document.createElement("div");
+  title.className    = "viz-title";
+  title.textContent  = "VIZ · 01 — GRADIENT DESCENT ON f(x,y) = x² + 2y²";
+
+  const controls = document.createElement("div");
+  controls.className = "viz-controls";
+
+  const playBtn = document.createElement("button");
+  playBtn.className   = "viz-btn active";
+  playBtn.textContent = "PAUSE";
+
+  const resetBtn = document.createElement("button");
+  resetBtn.className   = "viz-btn";
+  resetBtn.textContent = "RESET";
+
+  controls.appendChild(playBtn);
+  controls.appendChild(resetBtn);
+
+  const info = document.createElement("div");
+  info.className = "viz-info";
+
+  container.appendChild(title);
+  container.appendChild(canvas);
+  container.appendChild(controls);
+  container.appendChild(info);
+
+  const LR    = 0.15;
+  const STEPS = 30;
+  let path    = [];
+  let step    = 0;
+  let running = true;
+  let animId  = null;
+  let frameCount = 0;
+
+  function randomStart() {
+    return {
+      x: (Math.random() - 0.5) * 3.5,
+      y: (Math.random() - 0.5) * 2.5,
+    };
+  }
+
+  function reset() {
+    const s = randomStart();
+    path = [{ x: s.x, y: s.y }];
+    step = 0;
+    frameCount = 0;
+  }
+
+  function advance() {
+    if (step >= STEPS) return;
+    const cur = path[path.length - 1];
+    path.push({ x: cur.x - LR * 2 * cur.x, y: cur.y - LR * 4 * cur.y });
+    step++;
+  }
+
+  const pad  = 30;
+  const xMin = -3, xMax = 3, yMin = -2.5, yMax = 2.5;
+
+  function toScreen(fx, fy) {
+    const sx = pad + ((fx - xMin) / (xMax - xMin)) * (W - 2 * pad);
+    const sy = pad + (1 - (fy - yMin) / (yMax - yMin)) * (H - 2 * pad);
+    return [sx, sy];
+  }
+
+  function drawContours() {
+    const levels = [0.2, 0.5, 1, 2, 4, 7, 11];
+    const light  = isLight();
+    levels.forEach((lv, i) => {
+      const alpha = light ? 0.22 + i * 0.04 : 0.15 + i * 0.04;
+      ctx.strokeStyle = light
+        ? "rgba(0,0,0," + alpha + ")"
+        : "rgba(230,255,0," + alpha + ")";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      const rx = Math.sqrt(lv);
+      const ry = Math.sqrt(lv / 2);
+      for (let t = 0; t <= Math.PI * 2 + 0.01; t += 0.05) {
+        const [sx, sy] = toScreen(rx * Math.cos(t), ry * Math.sin(t));
+        t === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+    });
+  }
+
+  function drawAxes() {
+    ctx.strokeStyle = axisColor();
+    ctx.lineWidth   = 0.5;
+    const [ox, oy]  = toScreen(0, 0);
+    ctx.beginPath();
+    ctx.moveTo(ox, pad);   ctx.lineTo(ox, H - pad);
+    ctx.moveTo(pad, oy);   ctx.lineTo(W - pad, oy);
+    ctx.stroke();
+    ctx.fillStyle = labelColor();
+    ctx.font      = "10px 'JetBrains Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("x", W - pad + 10, oy + 4);
+    ctx.textAlign = "left";
+    ctx.fillText("y", ox + 4, pad - 6);
+  }
+
+  function drawPath() {
+    if (path.length < 2) return;
+    ctx.strokeStyle = "rgba(255,80,80,0.6)";
+    ctx.lineWidth   = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    path.forEach((pt, i) => {
+      const [sx, sy] = toScreen(pt.x, pt.y);
+      i === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+    path.forEach((pt, i) => {
+      const [sx, sy] = toScreen(pt.x, pt.y);
+      const alpha = 0.3 + 0.7 * (i / path.length);
+      ctx.fillStyle = "rgba(255,80,80," + alpha + ")";
+      ctx.beginPath();
+      ctx.arc(sx, sy, i === path.length - 1 ? 5 : 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  function draw() {
+    ctx.fillStyle = canvasBg();
+    ctx.fillRect(0, 0, W, H);
+    drawContours();
+    drawAxes();
+    drawPath();
+    const cur  = path[path.length - 1];
+    const loss = cur.x * cur.x + 2 * cur.y * cur.y;
+    info.textContent = "step " + step + "/" + STEPS + "  ·  x=" + cur.x.toFixed(3) + "  y=" + cur.y.toFixed(3) + "  ·  loss=" + loss.toFixed(4);
+  }
+
+  function animate() {
+    frameCount++;
+    if (running && frameCount % 8 === 0 && step < STEPS) advance();
+    draw();
+    animId = requestAnimationFrame(animate);
+  }
+
+  playBtn.addEventListener("click", () => {
+    running = !running;
+    playBtn.textContent = running ? "PAUSE" : "PLAY";
+    playBtn.classList.toggle("active", running);
+  });
+
+  resetBtn.addEventListener("click", () => {
+    reset();
+    if (!running) draw();
+  });
+
+  reset();
+  animate();
+
+  const obs = new MutationObserver(() => {
+    if (!container.isConnected) { cancelAnimationFrame(animId); obs.disconnect(); }
+  });
+  obs.observe(document.body, { childList: true, subtree: true });
+}
+
+// ── VIZ-02: Bias–Variance Tradeoff ───────────────────────────────
+function buildVizBiasVar(container) {
+  const W = 400, H = 220;
+  const { canvas, ctx } = createHiDpiCanvas(W, H);
+
+  const title = document.createElement("div");
+  title.className   = "viz-title";
+  title.textContent = "VIZ · 02 — BIAS–VARIANCE TRADEOFF  (drag the line)";
+
+  const info = document.createElement("div");
+  info.className = "viz-info";
+
+  container.appendChild(title);
+  container.appendChild(canvas);
+  container.appendChild(info);
+
+  const pad = { l: 44, r: 20, t: 20, b: 36 };
+  const cW  = W - pad.l - pad.r;
+  const cH  = H - pad.t - pad.b;
+  let currentX = 5;
+  let dragging  = false;
+
+  function evalAt(cx) {
+    const bias2    = 1.2 * Math.exp(-0.45 * cx) + 0.02;
+    const variance = 0.015 * Math.exp(0.52 * cx);
+    return { bias2, variance, total: bias2 + variance + 0.05 };
+  }
+
+  function toCanvasX(cx)   { return pad.l + ((cx - 1) / 9) * cW; }
+  function toCanvasY(vy)   { return pad.t + (1 - vy / 1.4) * cH; }
+  function fromCanvasX(px) { return 1 + ((px - pad.l) / cW) * 9; }
+
+  function getClientX(e) {
+    const rect = canvas.getBoundingClientRect();
+    return ((e.touches ? e.touches[0].clientX : e.clientX) - rect.left) * (W / rect.width);
+  }
+
+  function drawGrid() {
+    ctx.strokeStyle = gridColor();
+    ctx.lineWidth   = 0.5;
+    [0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2].forEach(v => {
+      ctx.beginPath();
+      ctx.moveTo(pad.l, toCanvasY(v)); ctx.lineTo(W - pad.r, toCanvasY(v));
+      ctx.stroke();
+    });
+  }
+
+  function drawAxes() {
+    ctx.strokeStyle = axisColor();
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H - pad.b);
+    ctx.moveTo(pad.l, H - pad.b); ctx.lineTo(W - pad.r, H - pad.b);
+    ctx.stroke();
+    ctx.fillStyle = labelColor();
+    ctx.font      = "9px 'JetBrains Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("Model Complexity →", pad.l + cW / 2, H - 6);
+    ctx.save();
+    ctx.translate(11, pad.t + cH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText("Error", 0, 0);
+    ctx.restore();
+    for (let cx = 1; cx <= 10; cx++) {
+      ctx.fillText(cx, toCanvasX(cx), H - pad.b + 12);
+    }
+  }
+
+  function drawCurve(pts, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth   = 2;
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+    ctx.stroke();
+  }
+
+  function makePts(fn) {
+    const pts = [];
+    for (let cx = 1; cx <= 10; cx += 0.1) {
+      pts.push([toCanvasX(cx), toCanvasY(fn(cx))]);
+    }
+    return pts;
+  }
+
+  function drawLegend() {
+    const items = [
+      { color: "#E6FF00", label: "Total Error" },
+      { color: "#4af",    label: "Variance"    },
+      { color: "#f84",    label: "Bias²"  },
+    ];
+    ctx.font = "9px 'JetBrains Mono', monospace";
+    items.forEach(({ color, label }, i) => {
+      ctx.fillStyle = color;
+      ctx.fillRect(pad.l + 8, pad.t + 8 + i * 14, 16, 2);
+      ctx.fillStyle = labelColor();
+      ctx.textAlign = "left";
+      ctx.fillText(label, pad.l + 30, pad.t + 11 + i * 14);
+    });
+  }
+
+  function draw() {
+    ctx.fillStyle = canvasBg();
+    ctx.fillRect(0, 0, W, H);
+    drawGrid();
+    drawAxes();
+    drawCurve(makePts(cx => evalAt(cx).bias2),    "#f84");
+    drawCurve(makePts(cx => evalAt(cx).variance), "#4af");
+    drawCurve(makePts(cx => evalAt(cx).total),    "#E6FF00");
+    drawLegend();
+
+    const lineX = toCanvasX(currentX);
+    ctx.strokeStyle = isLight() ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.5)";
+    ctx.lineWidth   = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(lineX, pad.t); ctx.lineTo(lineX, H - pad.b); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = isLight() ? "#000" : "#fff";
+    ctx.beginPath(); ctx.arc(lineX, H - pad.b, 5, 0, Math.PI * 2); ctx.fill();
+
+    const ev = evalAt(currentX);
+    info.textContent = "complexity=" + currentX.toFixed(1) + "  ·  bias²=" + ev.bias2.toFixed(3) + "  ·  var=" + ev.variance.toFixed(3) + "  ·  total=" + ev.total.toFixed(3);
+  }
+
+  canvas.style.cursor = "ew-resize";
+  canvas.addEventListener("mousedown",  () => { dragging = true;  });
+  canvas.addEventListener("touchstart", () => { dragging = true;  }, { passive: true });
+  window.addEventListener("mouseup",    () => { dragging = false; });
+  window.addEventListener("touchend",   () => { dragging = false; });
+
+  canvas.addEventListener("mousemove", e => {
+    if (!dragging) return;
+    currentX = Math.max(1, Math.min(10, fromCanvasX(getClientX(e))));
+    draw();
+  });
+  canvas.addEventListener("touchmove", e => {
+    if (!dragging) return;
+    currentX = Math.max(1, Math.min(10, fromCanvasX(getClientX(e))));
+    draw();
+    e.preventDefault();
+  }, { passive: false });
+
+  draw();
+}
+
+// ── VIZ-03: Attention Heatmap ─────────────────────────────────────
+function buildVizAttention(container) {
+  const WORDS = ["The", "cat", "sat", "on", "the", "mat"];
+  const N     = WORDS.length;
+  const W = 360, H = 360;
+  const { canvas, ctx } = createHiDpiCanvas(W, H);
+
+  const title = document.createElement("div");
+  title.className   = "viz-title";
+  title.textContent = "VIZ · 03 — ATTENTION HEATMAP  (click row to highlight)";
+
+  const info = document.createElement("div");
+  info.className    = "viz-info";
+  info.textContent  = "Click a row to see that token’s attention distribution";
+
+  container.appendChild(title);
+  container.appendChild(canvas);
+  container.appendChild(info);
+
+  // Fake attention matrix with seeded PRNG
+  function seededRand(seed) {
+    let s = seed;
+    return function() { s = (s * 1664525 + 1013904223) >>> 0; return s / 0xffffffff; };
+  }
+  const rand = seededRand(42);
+  const attn = Array.from({ length: N }, () => {
+    const row = Array.from({ length: N }, () => rand());
+    const sum = row.reduce((a, b) => a + b, 0);
+    return row.map(v => v / sum);
+  });
+
+  const LABEL_W = 44, LABEL_H = 44;
+  const cellW   = (W - LABEL_W) / N;
+  const cellH   = (H - LABEL_H) / N;
+  let selectedRow = null;
+
+  function cellColor(w, highlighted) {
+    if (highlighted) {
+      return "rgba(" + Math.round(20 + w * 210) + "," + Math.round(20 + w * 235) + ",20,1)";
+    }
+    if (isLight()) {
+      const t = Math.round(245 - w * 200);
+      return "rgba(" + t + "," + t + "," + Math.round(240 - w * 220) + ",1)";
+    }
+    const t = Math.round(15 + w * 80);
+    return "rgba(" + t + "," + t + "," + Math.round(20 + w * 40) + ",1)";
+  }
+
+  function draw() {
+    ctx.fillStyle = canvasBg();
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.font         = "10px 'JetBrains Mono', monospace";
+    ctx.textBaseline = "middle";
+
+    // Column labels
+    ctx.fillStyle = labelColor();
+    ctx.textAlign = "center";
+    WORDS.forEach((w, j) => {
+      ctx.fillText(w, LABEL_W + j * cellW + cellW / 2, LABEL_H / 2);
+    });
+
+    // Row labels
+    WORDS.forEach((w, i) => {
+      const hl = (i === selectedRow);
+      ctx.fillStyle = hl ? (isLight() ? "#000" : "#E6FF00") : labelColor();
+      ctx.font      = hl ? "bold 10px 'JetBrains Mono', monospace" : "10px 'JetBrains Mono', monospace";
+      ctx.textAlign = "right";
+      ctx.fillText(w, LABEL_W - 4, LABEL_H + i * cellH + cellH / 2);
+    });
+
+    // Cells
+    for (let i = 0; i < N; i++) {
+      const hl = (i === selectedRow);
+      for (let j = 0; j < N; j++) {
+        ctx.fillStyle = cellColor(attn[i][j], hl);
+        ctx.fillRect(LABEL_W + j * cellW, LABEL_H + i * cellH, cellW - 1, cellH - 1);
+
+        if (hl) {
+          ctx.fillStyle    = "rgba(0,0,0,0.8)";
+          ctx.font         = "9px 'JetBrains Mono', monospace";
+          ctx.textAlign    = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(attn[i][j].toFixed(2), LABEL_W + j * cellW + cellW / 2, LABEL_H + i * cellH + cellH / 2);
+        }
+      }
+    }
+
+    if (selectedRow !== null) {
+      ctx.strokeStyle = isLight() ? "rgba(0,0,0,0.6)" : "rgba(230,255,0,0.8)";
+      ctx.lineWidth   = 1.5;
+      ctx.strokeRect(LABEL_W, LABEL_H + selectedRow * cellH, N * cellW - 1, cellH - 1);
+    }
+  }
+
+  canvas.style.cursor = "pointer";
+  canvas.addEventListener("click", e => {
+    const rect  = canvas.getBoundingClientRect();
+    const scaleX = W / rect.width;
+    const scaleY = H / rect.height;
+    const cx = (e.clientX - rect.left) * scaleX;
+    const cy = (e.clientY - rect.top)  * scaleY;
+
+    if (cx < LABEL_W || cy < LABEL_H) { selectedRow = null; draw(); return; }
+    const row = Math.floor((cy - LABEL_H) / cellH);
+    if (row < 0 || row >= N) { selectedRow = null; }
+    else selectedRow = (selectedRow === row) ? null : row;
+
+    if (selectedRow !== null) {
+      info.textContent = "“" + WORDS[selectedRow] + "” attends to: " +
+        WORDS.map((w, j) => w + "(" + (attn[selectedRow][j] * 100).toFixed(0) + "%)").join(" · ");
+    } else {
+      info.textContent = "Click a row to see that token’s attention distribution";
+    }
+    draw();
+  });
+
+  draw();
+}
+
+// ── VIZ-04: Activation Functions ─────────────────────────────────
+function buildVizActivations(container) {
+  const W = 400, H = 250;
+  const { canvas, ctx } = createHiDpiCanvas(W, H);
+
+  const title = document.createElement("div");
+  title.className   = "viz-title";
+  title.textContent = "VIZ · 04 — ACTIVATION FUNCTIONS";
+
+  const controls = document.createElement("div");
+  controls.className = "viz-controls";
+
+  const FUNCS = [
+    { name: "ReLU",    color: "#E6FF00", fn: x => Math.max(0, x),                                                               active: true },
+    { name: "Sigmoid", color: "#4af",    fn: x => 1 / (1 + Math.exp(-x)),                                                       active: true },
+    { name: "Tanh",    color: "#4f4",    fn: x => Math.tanh(x),                                                                  active: true },
+    { name: "GELU",    color: "#f4f",    fn: x => 0.5 * x * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (x + 0.044715 * x * x * x))), active: true },
+  ];
+
+  FUNCS.forEach(f => {
+    const btn = document.createElement("button");
+    btn.className         = "viz-btn" + (f.active ? " active" : "");
+    btn.textContent       = f.name;
+    btn.style.borderColor = f.active ? f.color : "";
+    btn.style.color       = f.active ? f.color : "";
+    btn.addEventListener("click", () => {
+      f.active = !f.active;
+      btn.classList.toggle("active", f.active);
+      btn.style.borderColor = f.active ? f.color : "";
+      btn.style.color       = f.active ? f.color : "";
+      draw();
+    });
+    controls.appendChild(btn);
+  });
+
+  container.appendChild(title);
+  container.appendChild(canvas);
+  container.appendChild(controls);
+
+  const pad  = { l: 48, r: 20, t: 20, b: 32 };
+  const cW   = W - pad.l - pad.r;
+  const cH   = H - pad.t - pad.b;
+  const xMin = -4, xMax = 4, yMin = -1.5, yMax = 1.5;
+
+  function toSX(x) { return pad.l + ((x - xMin) / (xMax - xMin)) * cW; }
+  function toSY(y) { return pad.t + (1 - (y - yMin) / (yMax - yMin)) * cH; }
+
+  function drawGrid() {
+    ctx.strokeStyle = gridColor();
+    ctx.lineWidth   = 0.5;
+    for (let y = -1.5; y <= 1.5; y += 0.5) {
+      ctx.beginPath(); ctx.moveTo(pad.l, toSY(y)); ctx.lineTo(W - pad.r, toSY(y)); ctx.stroke();
+    }
+    for (let x = -4; x <= 4; x++) {
+      ctx.beginPath(); ctx.moveTo(toSX(x), pad.t); ctx.lineTo(toSX(x), H - pad.b); ctx.stroke();
+    }
+  }
+
+  function drawAxes() {
+    ctx.strokeStyle = axisColor();
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.moveTo(toSX(0), pad.t); ctx.lineTo(toSX(0), H - pad.b);
+    ctx.moveTo(pad.l, toSY(0)); ctx.lineTo(W - pad.r, toSY(0));
+    ctx.stroke();
+    ctx.fillStyle = labelColor();
+    ctx.font      = "9px 'JetBrains Mono', monospace";
+    ctx.textAlign = "center";
+    for (let x = -4; x <= 4; x += 2) ctx.fillText(x, toSX(x), H - pad.b + 12);
+    ctx.textAlign = "right";
+    [-1, 0, 1].forEach(y => ctx.fillText(y, pad.l - 4, toSY(y) + 3));
+  }
+
+  function draw() {
+    ctx.fillStyle = canvasBg();
+    ctx.fillRect(0, 0, W, H);
+    drawGrid();
+    drawAxes();
+    FUNCS.forEach(f => {
+      if (!f.active) return;
+      ctx.strokeStyle = f.color;
+      ctx.lineWidth   = 2;
+      ctx.beginPath();
+      let first = true;
+      for (let px = 0; px <= cW; px++) {
+        const x  = xMin + (px / cW) * (xMax - xMin);
+        const y  = Math.max(yMin, Math.min(yMax, f.fn(x)));
+        const sy = toSY(y);
+        first ? ctx.moveTo(toSX(x), sy) : ctx.lineTo(toSX(x), sy);
+        first = false;
+      }
+      ctx.stroke();
+    });
+  }
+
+  draw();
+}
+
+// ── VIZ-05: Token Embedding Space ────────────────────────────────
+function buildVizEmbedding(container) {
+  const W = 400, H = 300;
+  const { canvas, ctx } = createHiDpiCanvas(W, H);
+
+  const title = document.createElement("div");
+  title.className   = "viz-title";
+  title.textContent = "VIZ · 05 — TOKEN EMBEDDING SPACE (PCA-REDUCED)";
+
+  const info = document.createElement("div");
+  info.className   = "viz-info";
+  info.textContent = "Hover over a word to see nearest neighbours";
+
+  container.appendChild(title);
+  container.appendChild(canvas);
+  container.appendChild(info);
+
+  const WORDS = [
+    { word: "one",    x: -0.80, y: -0.60, cat: 0 },
+    { word: "two",    x: -0.70, y: -0.80, cat: 0 },
+    { word: "three",  x: -0.60, y: -0.50, cat: 0 },
+    { word: "four",   x: -0.85, y: -0.72, cat: 0 },
+    { word: "cat",    x:  0.55, y:  0.70, cat: 1 },
+    { word: "dog",    x:  0.70, y:  0.55, cat: 1 },
+    { word: "bird",   x:  0.60, y:  0.82, cat: 1 },
+    { word: "fish",   x:  0.82, y:  0.65, cat: 1 },
+    { word: "red",    x: -0.20, y:  0.30, cat: 2 },
+    { word: "blue",   x: -0.35, y:  0.45, cat: 2 },
+    { word: "green",  x: -0.15, y:  0.55, cat: 2 },
+    { word: "yellow", x: -0.40, y:  0.35, cat: 2 },
+  ];
+
+  const COLORS     = ["#E6FF00", "#4af", "#f84"];
+  const CAT_LABELS = ["numbers", "animals", "colors"];
+
+  const pad  = 40;
+  const xMin = -1.1, xMax = 1.1, yMin = -1.1, yMax = 1.1;
+
+  function toSX(x) { return pad + ((x - xMin) / (xMax - xMin)) * (W - 2 * pad); }
+  function toSY(y) { return pad + (1 - (y - yMin) / (yMax - yMin)) * (H - 2 * pad); }
+  function dist(a, b) { return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2); }
+
+  function nearestNeighbors(pt, k) {
+    return WORDS.filter(w => w !== pt)
+      .sort((a, b) => dist(pt, a) - dist(pt, b))
+      .slice(0, k)
+      .map(w => w.word);
+  }
+
+  let hoveredIdx = null;
+
+  function draw() {
+    ctx.fillStyle = canvasBg();
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = gridColor();
+    ctx.lineWidth   = 0.5;
+    [-0.8, -0.4, 0, 0.4, 0.8].forEach(v => {
+      ctx.beginPath(); ctx.moveTo(toSX(v), pad); ctx.lineTo(toSX(v), H - pad); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(pad, toSY(v)); ctx.lineTo(W - pad, toSY(v)); ctx.stroke();
+    });
+
+    // Legend
+    ctx.font = "9px 'JetBrains Mono', monospace";
+    CAT_LABELS.forEach((l, i) => {
+      ctx.fillStyle = COLORS[i];
+      ctx.beginPath(); ctx.arc(12, 12 + i * 14, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = labelColor();
+      ctx.textAlign = "left";
+      ctx.fillText(l, 20, 15 + i * 14);
+    });
+
+    // Neighbor connections
+    if (hoveredIdx !== null) {
+      const pt = WORDS[hoveredIdx];
+      nearestNeighbors(pt, 2).forEach(nw => {
+        const nb = WORDS.find(w => w.word === nw);
+        if (!nb) return;
+        ctx.strokeStyle = "rgba(230,255,0,0.35)";
+        ctx.lineWidth   = 1.5;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(toSX(pt.x), toSY(pt.y));
+        ctx.lineTo(toSX(nb.x), toSY(nb.y));
+        ctx.stroke();
+        ctx.setLineDash([]);
+      });
+    }
+
+    // Dots + labels
+    WORDS.forEach((pt, i) => {
+      const sx = toSX(pt.x), sy = toSY(pt.y);
+      const hl = (i === hoveredIdx);
+      const r  = hl ? 7 : 5;
+      ctx.fillStyle   = COLORS[pt.cat];
+      ctx.globalAlpha = hl ? 1 : 0.75;
+      ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+
+      if (hl) {
+        ctx.strokeStyle = COLORS[pt.cat];
+        ctx.lineWidth   = 1.5;
+        ctx.globalAlpha = 0.4;
+        ctx.beginPath(); ctx.arc(sx, sy, r + 4, 0, Math.PI * 2); ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      ctx.fillStyle = hl ? COLORS[pt.cat] : labelColor();
+      ctx.font      = hl ? "bold 10px 'JetBrains Mono', monospace" : "9px 'JetBrains Mono', monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(pt.word, sx, sy - r - 4);
+    });
+  }
+
+  canvas.style.cursor = "crosshair";
+  canvas.addEventListener("mousemove", e => {
+    const rect   = canvas.getBoundingClientRect();
+    const scaleX = W / rect.width;
+    const scaleY = H / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top)  * scaleY;
+
+    let closestIdx = null, closestDist = Infinity;
+    WORDS.forEach((pt, i) => {
+      const d = Math.sqrt((toSX(pt.x) - mx) ** 2 + (toSY(pt.y) - my) ** 2);
+      if (d < 20 && d < closestDist) { closestDist = d; closestIdx = i; }
+    });
+
+    if (closestIdx !== hoveredIdx) {
+      hoveredIdx = closestIdx;
+      if (hoveredIdx !== null) {
+        const pt = WORDS[hoveredIdx];
+        const nn = nearestNeighbors(pt, 2);
+        info.textContent = "“" + pt.word + "” — nearest: " + nn.join(", ") + "  (category: " + CAT_LABELS[pt.cat] + ")";
+      } else {
+        info.textContent = "Hover over a word to see nearest neighbours";
+      }
+      draw();
+    }
+  });
+
+  canvas.addEventListener("mouseleave", () => {
+    hoveredIdx = null;
+    info.textContent = "Hover over a word to see nearest neighbours";
+    draw();
+  });
+
+  draw();
 }
 
 // ── Init ─────────────────────────────────────────────────────────

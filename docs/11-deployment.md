@@ -1026,6 +1026,34 @@ Blue-green: run old model (blue) and new model (green) simultaneously. Route 100
 **Q: What metrics would you monitor for an ML API in production?**
 Infrastructure: CPU/GPU utilization, memory, request queue depth. Model: prediction latency (p50/p95/p99), throughput (QPS), error rate. Data quality: feature drift (PSI), null rates, out-of-range values. Business: model accuracy (if labels available), prediction distribution shift.
 
+## Q1: What is INT8 quantization and what accuracy tradeoff does it make?
+
+**INT8 quantization** maps floating-point weight and activation tensors to signed 8-bit integers using a linear scale factor: $x_q = \text{clip}\!\left(\text{round}(x / s), -128, 127\right)$ where the scale $s = \max(|x|) / 127$. This reduces memory footprint by $4\times$ vs float32 and enables integer SIMD/tensor-core instructions that are $2$–$4\times$ faster on modern hardware. The accuracy tradeoff arises from quantization error — the rounding noise acts as additive perturbation to activations. For most CNN and Transformer inference tasks, post-training INT8 quantization (PTQ) causes $< 1\%$ accuracy degradation on standard benchmarks; outlier activations in large LLMs can cause larger degradation, addressed by techniques like LLM.int8() which keeps outlier channels in float16.
+
+## Q2: Explain the ONNX export process. What ops are unsupported?
+
+**ONNX** (Open Neural Network Exchange) is an IR (intermediate representation) for neural network computation graphs. Exporting traces or scripting the model, recording all tensor operations as a graph of standard ONNX operators (opset). PyTorch's `torch.onnx.export` runs a sample forward pass and records the computation symbolically. Unsupported ops arise in three categories: (1) **Python control flow** — `if` statements that branch on tensor values cannot be statically traced (use `torch.jit.script` or rewrite with `torch.where`); (2) **Custom CUDA kernels** — no ONNX equivalent; must register a custom op or replace with standard ops; (3) **Dynamic shapes** — ONNX graphs are static by default; use `dynamic_axes` to mark variable-length dimensions. The resulting `.onnx` file runs on ONNX Runtime, TensorRT, or OpenVINO without the original framework.
+
+## Q3: What is A/B testing in ML serving and how do you measure significance?
+
+**A/B testing** routes a random split of traffic — typically 90% to model A (control) and 10% to model B (treatment) — and collects outcome labels (click, purchase, rating) to compare model quality on live users. Statistical significance is measured with a two-proportion z-test or t-test on the metric of interest: $z = \frac{\hat{p}_B - \hat{p}_A}{\sqrt{\hat{p}(1-\hat{p})(1/n_A + 1/n_B)}}$ where $\hat{p}$ is the pooled proportion. Reject the null hypothesis (no difference) if $|z| > 1.96$ for $\alpha = 0.05$. The required sample size to detect a minimum detectable effect $\delta$ at power $1 - \beta$ is $n \approx 2(z_{1-\alpha/2} + z_{1-\beta})^2 \hat{p}(1-\hat{p}) / \delta^2$. Pre-specify the metric and duration before launching to avoid $p$-hacking.
+
+## Q4: How does canary deployment differ from blue-green deployment?
+
+**Blue-green** maintains two identical production environments; the current version (blue) serves all traffic while the new version (green) is deployed and tested in isolation. Cutover is instantaneous — flip the load balancer from blue to green — and rollback is equally fast (flip back). It requires $2\times$ infrastructure at switchover time. **Canary deployment** gradually shifts a small fraction of live traffic to the new version — e.g., 1% → 5% → 25% → 100% — monitoring error rates, latency, and business metrics at each stage. Failure is detected early with limited user impact; rollback reverses the traffic split. Canary is preferred for ML models because it allows statistical comparison on real traffic distributions before full rollout, catching data distribution mismatches that offline validation misses.
+
+## Q5: What is model drift and how do you detect it in production?
+
+**Model drift** is the degradation of model performance over time due to changes in the data distribution. **Covariate drift** ($P(X)$ changes while $P(Y|X)$ is stable) and **concept drift** ($P(Y|X)$ itself changes) are the two primary forms. Detection methods: **Population Stability Index** $\text{PSI} = \sum_i (p_i - q_i)\ln(p_i/q_i)$ on input feature distributions (threshold: $> 0.2$ signals significant drift); **Kolmogorov-Smirnov test** on individual feature CDFs; **prediction distribution monitoring** (watch for shift in the output class probabilities); **shadow labeling** (collect ground-truth labels on a sample and directly measure accuracy degradation). Set up automated alerts on PSI and schedule periodic retraining or continuous learning pipelines triggered by drift detection.
+
+## Q6: Explain the difference between latency P50, P95, P99. Why does P99 matter?
+
+Latency percentiles describe the distribution of response times across requests. **P50** (median): half of requests complete faster — represents the typical user experience. **P95**: 95% of requests complete faster — captures "slow but not exceptional" tail behavior; 1 in 20 users experiences this or worse. **P99**: 99% complete faster — the rare but severe tail; 1 in 100 users. P99 matters for three reasons: (1) at scale, 1% of 1M daily requests is 10,000 users experiencing severe slowness; (2) microservice chains multiply tail probabilities — a system with 10 P99=100ms services has an end-to-end P99 much worse than 100ms; (3) SLA commitments are typically specified at P99 because they protect the worst-case user experience, not the average.
+
+## Q7: What is batching in inference serving and how does it affect throughput vs latency?
+
+**Batching** groups multiple independent requests and processes them together in a single forward pass. GPU utilization is maximized when the tensor operations are large enough to saturate compute units; batching increases tensor sizes, amortizing the fixed overhead of kernel launches and memory transfers across $B$ requests. Throughput (requests/second) increases roughly linearly with batch size up to the compute saturation point. Latency (seconds/request) increases with batch size because each request must wait for the batch to fill before processing begins — the wait time is bounded by a maximum batch timeout (e.g., 10ms). **Dynamic batching** sets a maximum batch size $B_{\max}$ and a maximum wait time $t_{\max}$; a request is dispatched when either threshold is hit, balancing throughput gains against latency degradation.
+
 ---
 
 ## 8. Cheat Sheet

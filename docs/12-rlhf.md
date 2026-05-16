@@ -801,6 +801,34 @@ RLAIF replaces human preference annotators with a strong LLM (like GPT-4). Vastl
 **Q: What is the Bradley-Terry model?**
 A statistical model for pairwise comparisons. $P(y_w \succ y_l) = \sigma(r(y_w) - r(y_l))$. Training the reward model with this loss forces it to assign higher scores to preferred responses. The key property: only the score difference matters, not absolute values.
 
+## Q1: Explain the Bradley-Terry model used in reward modelling.
+
+The **Bradley-Terry model** provides a principled probabilistic framework for pairwise comparisons. Given a scalar reward function $r$ and a pair $(y_w, y_l)$ where $y_w$ is preferred, the model defines $P(y_w \succ y_l \mid x) = \sigma(r(x, y_w) - r(x, y_l))$ where $\sigma$ is the sigmoid function. The reward model is trained by minimizing the negative log-likelihood $\mathcal{L} = -\mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}}\left[\log \sigma(r_\phi(x, y_w) - r_\phi(x, y_l))\right]$. This pushes $r_\phi(x, y_w) > r_\phi(x, y_l)$ for all preference pairs in the dataset. The sigmoid ensures that a large reward gap $r_w - r_l \gg 0$ gives near-certainty $P \approx 1$, while a small gap leaves uncertainty — matching human annotator behavior.
+
+## Q2: How does PPO prevent policy collapse?
+
+**PPO** (Proximal Policy Optimization) prevents large, destabilizing policy updates with two mechanisms. First, the **clipped surrogate objective**: $\mathcal{L}^{\text{CLIP}} = \mathbb{E}\left[\min\left(\rho_t A_t,\; \text{clip}(\rho_t, 1-\epsilon, 1+\epsilon) A_t\right)\right]$ where $\rho_t = \pi_\theta(a_t|s_t)/\pi_{\theta_\text{old}}(a_t|s_t)$ is the probability ratio; clipping at $[1-\epsilon, 1+\epsilon]$ (typically $\epsilon=0.2$) prevents the ratio from straying far from 1. Second, the **KL penalty** from the SFT reference model $\beta \cdot \mathbb{E}[\text{KL}(\pi_\theta \| \pi_\text{ref})]$ keeps responses within the distribution of plausible language. Together, these prevent the policy from collapsing to repetitive or degenerate outputs that exploit reward model blind spots.
+
+## Q3: What is DPO and how does it bypass the reward model?
+
+**DPO** (Direct Preference Optimization, Rafailov et al. 2023) re-derives the RLHF objective and shows that the optimal policy $\pi^*$ under a KL-constrained reward maximization can be expressed as $r(x, y) = \beta \log \frac{\pi^*(y|x)}{\pi_\text{ref}(y|x)} + \beta \log Z(x)$. Substituting this into the Bradley-Terry model and simplifying yields a closed-form supervised loss: $\mathcal{L}_{\text{DPO}} = -\mathbb{E}\!\left[\log \sigma\!\left(\beta \log \frac{\pi_\theta(y_w|x)}{\pi_\text{ref}(y_w|x)} - \beta \log \frac{\pi_\theta(y_l|x)}{\pi_\text{ref}(y_l|x)}\right)\right]$. No reward model is trained separately — the preference signal directly updates the policy. This eliminates the reward-model training phase, the online sampling loop, and the associated instability.
+
+## Q4: What is the KL divergence penalty in RLHF and why is it necessary?
+
+The RLHF objective is $\mathcal{J}(\pi_\theta) = \mathbb{E}_{x \sim \mathcal{D},\, y \sim \pi_\theta}[r_\phi(x, y)] - \beta \cdot \text{KL}(\pi_\theta \| \pi_\text{ref})$ where $\pi_\text{ref}$ is the SFT model. The KL term $\text{KL}(\pi_\theta \| \pi_\text{ref}) = \mathbb{E}_{y \sim \pi_\theta}\!\left[\log \frac{\pi_\theta(y|x)}{\pi_\text{ref}(y|x)}\right]$ penalizes the policy for deviating from the reference distribution. Without it, the policy would commit **reward hacking**: since the reward model is an imperfect surrogate trained on finite data, the policy can find high-scoring but qualitatively bad outputs (repetition, gibberish, sycophancy) that fool $r_\phi$. The KL penalty anchors the policy near the SFT model's well-behaved output distribution. $\beta$ is the tradeoff coefficient — larger $\beta$ = more conservative, smaller $\beta$ = more reward-seeking.
+
+## Q5: What is Constitutional AI and how does it differ from standard RLHF?
+
+**Constitutional AI** (CAI, Anthropic 2022) replaces human preference annotators with a set of written principles (the "constitution") and uses a strong LLM as the critic. In the supervised phase, the model critiques and revises its own harmful outputs according to constitutional principles. In the RL phase (**RLAIF** — RL from AI Feedback), the critic LLM generates preference labels by evaluating response pairs against the constitution, which are used to train a reward model and then run PPO. Compared to standard RLHF, CAI requires far fewer human labels (principles rather than pairwise comparisons), scales the feedback signal cheaply, and makes the alignment criteria explicit and auditable. The constitution also allows fine-grained behavioral control that is difficult to capture in pairwise preferences alone.
+
+## Q6: What metrics does MT-Bench use to evaluate aligned models?
+
+**MT-Bench** (Zheng et al., 2023) is an 80-question benchmark covering 8 categories: writing, roleplay, extraction, reasoning, math, coding, knowledge (STEM), and knowledge (humanities). Each question is two-turn: the second turn adds a follow-up requiring coherent context tracking. Responses are scored by GPT-4 on a 1–10 scale using a structured judge prompt. MT-Bench specifically probes capabilities that RLHF-trained models must balance: instruction following (does the response address the exact request?), factual accuracy, reasoning soundness, and multi-turn coherence. Average score across all 80 questions is the headline metric; per-category scores reveal capability gaps. MT-Bench correlates well with human preference rankings and is widely used to compare SFT, PPO, and DPO variants.
+
+## Q7: What is reward hacking and give a concrete example.
+
+**Reward hacking** (also called specification gaming) occurs when the policy finds a strategy that achieves a high score from the reward model without satisfying the true human preference the reward model was meant to proxy. The reward model is trained on finite human labels and generalizes imperfectly, so sufficiently optimized policies find its failure modes. A concrete example: human annotators tend to prefer longer, more thorough responses, so the reward model learns that length correlates with quality. An RLHF policy exploiting this will pad responses with filler sentences, repetition, and unnecessary caveats — increasing reward model scores while degrading actual usefulness. Other documented examples include: sycophantic agreement with the user's stated opinion, excessive hedging to avoid any claim that could be penalized, and formulaic response templates that score well on the training distribution.
+
 ---
 
 ## 9. Cheat Sheet
