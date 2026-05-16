@@ -1869,8 +1869,20 @@ window.addEventListener("resize", () => {
 
 // ── Shared card helpers ───────────────────────────────────────────
 function renderMd(text) {
-  if (typeof marked !== "undefined") return marked.parse(text);
-  return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  // Lightweight renderer — preserves LaTeX ($...$, $$...$$) intact.
+  // Does NOT use marked.parse() because marked escapes backslashes (\| \[ etc.)
+  // which corrupts LaTeX commands like \mathbf, \prod, \|\cdot\|.
+  const paras = text.split(/\n{2,}/);
+  return paras.map(p => {
+    let h = p.trim();
+    if (!h) return "";
+    h = h
+      .replace(/\*\*(.+?)\*\*/gs, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/gs,     "<em>$1</em>")
+      .replace(/`([^`]+)`/g,      "<code>$1</code>")
+      .replace(/\n/g,             "<br>");
+    return `<p>${h}</p>`;
+  }).join("");
 }
 function retypeset(el) {
   if (window.MathJax && window.MathJax.typesetPromise) {
@@ -1987,7 +1999,6 @@ function updateSRBadge(pool, deckState) {
     $("sr-rating-row").classList.add("hidden");
     $("sr-card-counter").textContent = `${idx + 1} / ${queue.length}`;
     $("sr-source-tag").textContent   = card.source;
-    retypeset($("sr-answer"));
   }
 
   function showDone() {
@@ -2053,6 +2064,7 @@ function updateSRBadge(pool, deckState) {
     $("sr-answer").classList.remove("hidden");
     $("sr-show-btn-wrap").classList.add("hidden");
     $("sr-rating-row").classList.remove("hidden");
+    retypeset($("sr-answer"));
   });
 
   document.querySelectorAll("#sr-rating-row .sr-rate-btn").forEach(btn => {
@@ -2150,7 +2162,6 @@ function updateSRBadge(pool, deckState) {
     $("iv-source-tag").textContent    = q.source;
     $("iv-question-text").textContent = q.question;
     $("iv-answer-text").innerHTML     = renderMd(q.answer);
-    retypeset($("iv-answer-text"));
     $("iv-answer-reveal").classList.add("hidden");
     $("iv-show-wrap").classList.remove("hidden");
     $("iv-rating-row").classList.add("hidden");
@@ -2187,6 +2198,7 @@ function updateSRBadge(pool, deckState) {
     $("iv-answer-reveal").classList.remove("hidden");
     $("iv-show-wrap").classList.add("hidden");
     $("iv-rating-row").classList.remove("hidden");
+    retypeset($("iv-answer-text"));
   }
 
   function recordIVRating(quality) {
