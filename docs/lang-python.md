@@ -3296,3 +3296,1537 @@ if __name__ == "__main__":
 ```
 
 **Complexity:** O(n * m) time where n is rows and m is columns. O(n * m) space to store all rows. Handles quoted fields containing commas or newlines within quotes.
+
+---
+
+## Section 21 — Python for ML & AI: Everything You Need
+
+This section covers all Python knowledge required to work effectively in ML/AI/data science — from numerical foundations through production deployment patterns. Every subsection includes runnable code, not pseudocode.
+
+---
+
+### 21.1 NumPy — The Foundation
+
+NumPy provides the n-dimensional array (`ndarray`) that underpins every ML framework. Understanding it at the memory level prevents shape bugs and performance bottlenecks.
+
+#### Array Creation and Dtypes
+
+```python
+import numpy as np
+
+# Creation from Python structures
+a = np.array([1, 2, 3])                    # int64 on 64-bit systems
+b = np.array([1.0, 2.0, 3.0])             # float64
+c = np.array([1, 2, 3], dtype=np.float32) # explicit dtype — matches PyTorch default
+
+# Factory functions
+zeros   = np.zeros((3, 4))                 # shape (3,4), dtype float64
+ones    = np.ones((2, 3), dtype=np.int8)
+eye     = np.eye(4)                        # 4×4 identity
+linsp   = np.linspace(0, 1, 100)          # 100 evenly spaced from 0 to 1
+arange  = np.arange(0, 10, 2)            # [0,2,4,6,8]
+empty   = np.empty((3, 3))               # uninitialized — fast but values garbage
+
+# Dtype inspection and casting
+print(a.dtype, a.itemsize, a.nbytes)      # int64  8  24
+a32 = a.astype(np.float32)               # explicit cast — copy
+```
+
+#### Shape, Reshape, Transpose
+
+```python
+rng = np.random.default_rng(42)          # always seed for reproducibility
+x = rng.standard_normal((4, 6))         # shape (4, 6)
+
+print(x.shape)   # (4, 6)
+print(x.ndim)    # 2
+print(x.size)    # 24
+
+# Reshape — total elements must match
+x_r = x.reshape(2, 12)      # (2, 12)
+x_r = x.reshape(24)         # (24,)  — 1D
+x_r = x.reshape(4, -1)      # (4, 6) — infer last dim
+x_r = x.reshape(-1, 3)      # (8, 3)
+
+# Transpose
+x_T = x.T                   # (6, 4) — view, not copy for C-contiguous
+x_T2 = x.transpose(1, 0)   # same
+
+# Adding/removing dimensions
+x_3d = x[:, :, np.newaxis]  # (4, 6, 1) — needed for broadcasting
+x_3d = x[..., np.newaxis]   # same, ... matches all leading dims
+x_sq = x_3d.squeeze()       # (4, 6) — remove all size-1 dims
+```
+
+#### Broadcasting Rules
+
+Broadcasting lets NumPy operate on arrays of different shapes without copying data. Two shapes are compatible if, aligned from the right, each dimension pair is either equal or one of them is 1.
+
+```python
+# Compatible — broadcast works
+a = np.ones((4, 1))   # (4, 1)
+b = np.ones((1, 6))   # (1, 6)
+c = a + b             # (4, 6) — a broadcasts along cols, b along rows
+
+# Subtract column mean from each column: (N, D) - (D,) → (N, D)
+X = rng.standard_normal((100, 10))
+X_centered = X - X.mean(axis=0)   # mean shape (10,) broadcasts over 100 rows
+
+# Outer product via broadcasting
+u = np.array([1, 2, 3])       # (3,)
+v = np.array([10, 20])        # (2,)
+outer = u[:, np.newaxis] * v[np.newaxis, :]  # (3, 2)
+
+# FAILS — shapes (3, 4) and (2,) incompatible: 4 != 2 and neither is 1
+try:
+    fail = np.ones((3, 4)) + np.ones((2,))
+except ValueError as e:
+    print(e)   # operands could not be broadcast together with shapes (3,4) (2,)
+```
+
+| Left shape | Right shape | Result shape | Reason |
+|---|---|---|---|
+| `(4, 6)` | `(6,)` | `(4, 6)` | `(6,)` → `(1,6)` → `(4,6)` |
+| `(4, 1)` | `(1, 6)` | `(4, 6)` | both dims expand |
+| `(3,)` | `(3,)` | `(3,)` | equal |
+| `(3, 4)` | `(2,)` | **error** | 4≠2, neither is 1 |
+| `(5, 1, 3)` | `(4, 3)` | `(5, 4, 3)` | middle dim expands |
+
+#### Vectorized Operations vs Python Loops
+
+```python
+import time
+
+N = 1_000_000
+rng = np.random.default_rng(42)
+x = rng.standard_normal(N)
+
+# Python loop — avoid this
+t0 = time.perf_counter()
+result_loop = [xi**2 for xi in x]
+t_loop = time.perf_counter() - t0
+
+# NumPy vectorized
+t0 = time.perf_counter()
+result_vec = x**2
+t_vec = time.perf_counter() - t0
+
+print(f"Loop: {t_loop:.3f}s   NumPy: {t_vec:.4f}s   Speedup: {t_loop/t_vec:.0f}x")
+# typical: Loop: 0.180s   NumPy: 0.003s   Speedup: 60x
+```
+
+Why: NumPy calls compiled C/Fortran code (BLAS/LAPACK) and operates on contiguous memory blocks. Python loops have per-iteration interpreter overhead (~100ns/iter) plus object boxing/unboxing for floats.
+
+#### Indexing: Basic, Boolean, Fancy
+
+```python
+x = np.arange(12).reshape(3, 4)
+# array([[ 0,  1,  2,  3],
+#        [ 4,  5,  6,  7],
+#        [ 8,  9, 10, 11]])
+
+# Basic — slices return views (no copy)
+print(x[1, :])        # row 1: [4 5 6 7]
+print(x[:, 2])        # col 2: [2 6 10]
+print(x[0:2, 1:3])   # submatrix (2,2): [[1,2],[5,6]]
+
+# Boolean — always returns copy
+mask = x > 5
+print(x[mask])        # [6 7 8 9 10 11] — 1D result
+x[x % 2 == 0] = -1   # in-place conditional assignment
+
+# Fancy indexing — integer arrays, always returns copy
+rows = np.array([0, 2])
+cols = np.array([1, 3])
+print(x[rows, cols])    # elements (0,1) and (2,3): [1, 11]
+print(x[rows])          # rows 0 and 2: shape (2, 4)
+print(x[rows[:, None], cols])  # 2×2 submatrix at all combinations
+```
+
+#### Linear Algebra
+
+```python
+A = rng.standard_normal((4, 4))
+b = rng.standard_normal(4)
+
+# Matrix multiply (prefer @ operator)
+C = A @ A.T                          # (4,4) — positive semi-definite
+dot = np.dot(A, A.T)                 # identical to @
+
+# Solve linear system Ax = b
+x = np.linalg.solve(A, b)           # more stable than inv(A) @ b
+
+# Inverse — use only when you need the matrix itself
+A_inv = np.linalg.inv(A)
+
+# Eigendecomposition: A = Q diag(λ) Q⁻¹
+eigenvalues, eigenvectors = np.linalg.eig(A)       # may be complex for non-symmetric
+eigenvalues_s, eigenvectors_s = np.linalg.eigh(C)  # guaranteed real for symmetric
+
+# SVD: A = U S V^T  (shapes: (m,m), (min(m,n),), (n,n))
+U, s, Vt = np.linalg.svd(A, full_matrices=True)
+U, s, Vt = np.linalg.svd(A, full_matrices=False)   # economy SVD — usually preferred
+A_reconstructed = U * s @ Vt        # broadcasting: multiply each col of U by s_i
+
+# Rank, determinant, norms
+rank = np.linalg.matrix_rank(A)
+det  = np.linalg.det(A)
+frob = np.linalg.norm(A, 'fro')     # Frobenius
+l2   = np.linalg.norm(b)            # Euclidean for vectors
+
+# PCA via SVD (manual — matches sklearn result)
+X = rng.standard_normal((100, 5))
+X_c = X - X.mean(axis=0)
+U, s, Vt = np.linalg.svd(X_c, full_matrices=False)
+X_pca = X_c @ Vt[:2].T              # project to top-2 components
+```
+
+#### Memory Layout: C vs Fortran Contiguous
+
+```python
+A = np.ones((1000, 1000))
+print(A.flags['C_CONTIGUOUS'])    # True — row-major (C order)
+print(A.flags['F_CONTIGUOUS'])    # False
+
+A_F = np.asfortranarray(A)        # column-major (Fortran order)
+print(A_F.flags['F_CONTIGUOUS'])  # True
+
+# Why it matters: BLAS (used by np.dot / @) is optimized for column-major.
+# For matrix multiply C = A @ B, if A is F-contiguous NumPy can call BLAS
+# without transposing internally. For row iteration, C-contiguous is faster.
+
+# After transpose, x.T is F-contiguous (no data copy)
+x = np.ones((3, 4))              # C-contiguous
+print(x.T.flags['F_CONTIGUOUS']) # True — same buffer, different strides
+print(x.T.flags['C_CONTIGUOUS']) # False
+
+# Force a contiguous copy when passing to C extensions
+x_T_contig = np.ascontiguousarray(x.T)  # C-contiguous copy of transposed
+```
+
+---
+
+### 21.2 Pandas — Data Wrangling
+
+#### Series and DataFrame
+
+```python
+import pandas as pd
+import numpy as np
+
+# Series: 1D with index
+s = pd.Series([10, 20, 30], index=['a', 'b', 'c'])
+print(s['b'])       # 20 — label access
+print(s.iloc[1])    # 20 — positional access
+
+# DataFrame: 2D heterogeneous table
+df = pd.DataFrame({
+    'age':    [25, 32, 28, 45],
+    'salary': [50000, 80000, 60000, 120000],
+    'dept':   ['eng', 'eng', 'mkt', 'eng'],
+})
+print(df.dtypes)   # age int64, salary int64, dept object
+print(df.shape)    # (4, 3)
+print(df.info())   # memory usage, non-null counts
+```
+
+#### Loading Data
+
+```python
+# CSV with dtype specification (avoids object columns for known types)
+df = pd.read_csv('data.csv', dtype={'id': np.int32, 'score': np.float32},
+                 parse_dates=['timestamp'], index_col='id')
+
+# JSON (records or lines format)
+df = pd.read_json('data.jsonl', lines=True)
+
+# Inspect after load — always do this
+print(df.head())
+print(df.dtypes)
+print(df.isna().sum())   # missing count per column
+print(df.describe())     # percentiles for numeric cols
+```
+
+#### Selection: loc vs iloc vs []
+
+```python
+df = pd.DataFrame({'A': [1,2,3], 'B': [4,5,6]}, index=['x','y','z'])
+
+# [] — column selection (label only for columns)
+df['A']            # Series for column A
+df[['A','B']]      # DataFrame with subset columns
+
+# loc — label-based: rows and columns by label
+df.loc['x']                # row with index label 'x'
+df.loc['x':'y', 'A':'B']  # label-inclusive slice (both ends included!)
+df.loc[df['A'] > 1, 'B']  # boolean row mask + column label
+
+# iloc — position-based: rows and columns by integer position
+df.iloc[0]                  # first row
+df.iloc[0:2, 0:1]          # positional slice (end exclusive)
+df.iloc[[0, 2], :]          # rows 0 and 2
+```
+
+**SettingWithCopyWarning**: occurs when you set values on a slice that may be a view.
+
+```python
+# WRONG — may silently not update original df
+subset = df[df['A'] > 1]
+subset['B'] = 99              # SettingWithCopyWarning
+
+# CORRECT — use .loc on the original DataFrame
+df.loc[df['A'] > 1, 'B'] = 99
+
+# Or use .copy() explicitly when you want a detached copy
+subset = df[df['A'] > 1].copy()
+subset['B'] = 99              # no warning — subset is independent
+```
+
+#### GroupBy: Split-Apply-Combine
+
+```python
+df = pd.DataFrame({
+    'dept':   ['eng','eng','mkt','mkt','eng'],
+    'salary': [80000, 90000, 60000, 70000, 85000],
+    'level':  ['mid','senior','junior','mid','senior'],
+})
+
+# agg — compute one or more aggregations per group
+df.groupby('dept')['salary'].agg(['mean', 'max', 'count'])
+
+# Multiple columns in groupby
+df.groupby(['dept', 'level'])['salary'].mean()
+
+# transform — returns same-length Series aligned to original df
+df['dept_avg'] = df.groupby('dept')['salary'].transform('mean')
+# useful for computing "salary relative to dept average"
+df['rel_salary'] = df['salary'] / df['dept_avg']
+
+# apply — arbitrary function, most flexible, also slowest
+def top_earner(group):
+    return group.nlargest(1, 'salary')
+
+top = df.groupby('dept').apply(top_earner, include_groups=False)
+```
+
+| Method | Output shape | Speed | Use when |
+|---|---|---|---|
+| `agg` | one row per group | fast | summary statistics |
+| `transform` | same as input | fast | broadcast group stats back |
+| `apply` | arbitrary | slow | complex per-group logic |
+
+#### Merge and Join
+
+```python
+users   = pd.DataFrame({'id': [1,2,3], 'name': ['Ana','Bob','Cal']})
+orders  = pd.DataFrame({'user_id': [1,1,2,4], 'amount': [100,200,150,50]})
+
+# inner join — only matching keys
+pd.merge(users, orders, left_on='id', right_on='user_id', how='inner')
+# rows: 3 (user 3 dropped — no orders; user 4 dropped — no user record)
+
+# left join — keep all left rows
+pd.merge(users, orders, left_on='id', right_on='user_id', how='left')
+# user 3 appears with NaN amount
+
+# suffixes for colliding column names
+a = pd.DataFrame({'key': [1], 'val': [10]})
+b = pd.DataFrame({'key': [1], 'val': [20]})
+pd.merge(a, b, on='key', suffixes=('_a', '_b'))
+# columns: key, val_a, val_b
+```
+
+#### Missing Data
+
+```python
+df = pd.DataFrame({'A': [1, np.nan, 3], 'B': ['x', 'y', None]})
+
+df.isna()               # boolean mask
+df.isna().sum()         # count per column
+df.dropna()             # drop rows with ANY NaN
+df.dropna(subset=['A']) # drop only if NaN in col A
+
+# Fill strategies
+df['A'].fillna(df['A'].mean())       # mean imputation (numeric)
+df['A'].fillna(method='ffill')       # forward fill (time series)
+df['B'].fillna('unknown')            # category fill (string)
+df['A'].fillna(df.groupby('cat')['A'].transform('median'))  # group median
+```
+
+#### apply vs Vectorized Operations
+
+```python
+# SLOW — apply with Python function, one row at a time
+df['result'] = df['salary'].apply(lambda x: x * 1.1 if x > 70000 else x)
+
+# FAST — vectorized with np.where
+df['result'] = np.where(df['salary'] > 70000, df['salary'] * 1.1, df['salary'])
+
+# SLOW — string apply
+df['upper'] = df['name'].apply(str.upper)
+
+# FAST — str accessor (vectorized string methods)
+df['upper'] = df['name'].str.upper()
+
+# Rule: use apply only when no vectorized equivalent exists
+```
+
+#### Memory Optimization
+
+```python
+df = pd.read_csv('large_file.csv')
+print(df.memory_usage(deep=True).sum() / 1e6, 'MB')
+
+# Downcast numeric
+df['age']    = pd.to_numeric(df['age'],    downcast='integer')  # int64 → int8/16
+df['score']  = pd.to_numeric(df['score'],  downcast='float')    # float64 → float32
+
+# Category type for low-cardinality strings (crucial for groupby performance)
+df['dept'] = df['dept'].astype('category')
+# Stores as integer codes + mapping dict — often 10-50× smaller
+
+print(df.memory_usage(deep=True).sum() / 1e6, 'MB')  # compare
+```
+
+---
+
+### 21.3 Matplotlib & Seaborn — Visualization for ML
+
+#### Figure/Axes Architecture
+
+Always use `fig, ax = plt.subplots()`. The pyplot state machine (`plt.plot()`) becomes unmanageable with multiple subplots and is unsuitable for functions that return figures.
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Correct pattern
+fig, ax = plt.subplots(figsize=(8, 5))
+ax.plot([1, 2, 3], [4, 5, 6], label='series 1')
+ax.set_xlabel('Epoch')
+ax.set_ylabel('Loss')
+ax.set_title('Training Loss')
+ax.legend()
+fig.savefig('loss.png', dpi=150, bbox_inches='tight')
+plt.close(fig)   # free memory — critical in loops
+
+# Multiple subplots
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+axes[0].plot(...)
+axes[1].hist(...)
+fig.tight_layout()
+fig.savefig('comparison.png', dpi=150, bbox_inches='tight')
+plt.close(fig)
+```
+
+**Never use `plt.show()`** in scripts or production code — it blocks execution and fails in headless environments. Save to file.
+
+#### ML-Specific Plot Recipes
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+# --- Loss curve ---
+def plot_loss_curves(train_losses, val_losses, path='loss.png'):
+    fig, ax = plt.subplots(figsize=(8, 5))
+    epochs = range(1, len(train_losses) + 1)
+    ax.plot(epochs, train_losses, label='Train loss')
+    ax.plot(epochs, val_losses,   label='Val loss', linestyle='--')
+    ax.set_xlabel('Epoch')
+    ax.set_ylabel('Loss')
+    ax.legend()
+    fig.savefig(path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+
+# --- Confusion matrix heatmap ---
+def plot_confusion_matrix(cm, class_names, path='cm.png'):
+    fig, ax = plt.subplots(figsize=(6, 5))
+    im = ax.imshow(cm, cmap='Blues')
+    fig.colorbar(im, ax=ax)
+    ax.set_xticks(range(len(class_names)))
+    ax.set_yticks(range(len(class_names)))
+    ax.set_xticklabels(class_names, rotation=45, ha='right')
+    ax.set_yticklabels(class_names)
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            ax.text(j, i, str(cm[i, j]), ha='center', va='center',
+                    color='white' if cm[i, j] > cm.max()/2 else 'black')
+    ax.set_ylabel('True')
+    ax.set_xlabel('Predicted')
+    fig.savefig(path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+
+# --- ROC curve ---
+def plot_roc(fpr, tpr, auc_score, path='roc.png'):
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.plot(fpr, tpr, label=f'AUC = {auc_score:.3f}')
+    ax.plot([0,1], [0,1], 'k--', label='Random')
+    ax.set_xlabel('FPR')
+    ax.set_ylabel('TPR')
+    ax.legend()
+    fig.savefig(path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+
+# --- Feature importance bar ---
+def plot_feature_importance(names, importances, path='feat_imp.png'):
+    idx = np.argsort(importances)[::-1]
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.bar(range(len(names)), importances[idx])
+    ax.set_xticks(range(len(names)))
+    ax.set_xticklabels([names[i] for i in idx], rotation=45, ha='right')
+    ax.set_ylabel('Importance')
+    fig.savefig(path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+
+# --- Scatter with class labels ---
+def plot_scatter_labels(X, y, path='scatter.png'):
+    fig, ax = plt.subplots(figsize=(7, 6))
+    for label in np.unique(y):
+        mask = y == label
+        ax.scatter(X[mask, 0], X[mask, 1], label=f'class {label}', alpha=0.7, s=20)
+    ax.legend()
+    fig.savefig(path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+```
+
+#### Seaborn for ML
+
+```python
+import seaborn as sns
+
+# Pairplot — quick multivariate EDA for small datasets (< ~10 cols)
+fig = sns.pairplot(df, hue='target', diag_kind='kde')
+fig.savefig('pairplot.png', dpi=150, bbox_inches='tight')
+plt.close()
+
+# Heatmap — correlation matrix
+corr = df.corr(numeric_only=True)
+fig, ax = plt.subplots(figsize=(10, 8))
+sns.heatmap(corr, annot=True, fmt='.2f', cmap='coolwarm',
+            center=0, square=True, ax=ax)
+fig.savefig('corr.png', dpi=150, bbox_inches='tight')
+plt.close(fig)
+
+# Boxplot — distribution per class for outlier detection
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.boxplot(data=df, x='dept', y='salary', ax=ax)
+fig.savefig('box.png', dpi=150, bbox_inches='tight')
+plt.close(fig)
+```
+
+| Plot | Best for |
+|---|---|
+| `pairplot` | Quick EDA on <10 feature dataset |
+| `heatmap` | Correlation or confusion matrix |
+| `boxplot` | Distribution comparison across categories |
+| `violinplot` | Distribution shape (vs just quartiles) |
+| `histplot` | Single feature distribution |
+
+---
+
+### 21.4 Scikit-Learn Patterns
+
+#### Pipeline
+
+```python
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.linear_model import LogisticRegression
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier
+
+# Simple pipeline — fit/transform in one object
+pipe = make_pipeline(
+    StandardScaler(),
+    LogisticRegression(max_iter=1000)
+)
+pipe.fit(X_train, y_train)
+preds = pipe.predict(X_test)
+proba = pipe.predict_proba(X_test)
+```
+
+#### ColumnTransformer
+
+```python
+import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+
+num_cols = ['age', 'salary']
+cat_cols = ['dept', 'level']
+
+num_pipe = Pipeline([
+    ('impute', SimpleImputer(strategy='median')),
+    ('scale',  StandardScaler()),
+])
+cat_pipe = Pipeline([
+    ('impute', SimpleImputer(strategy='most_frequent')),
+    ('encode', OneHotEncoder(handle_unknown='ignore', sparse_output=False)),
+])
+
+preprocessor = ColumnTransformer([
+    ('num', num_pipe, num_cols),
+    ('cat', cat_pipe, cat_cols),
+])
+
+full_pipe = Pipeline([
+    ('preprocess', preprocessor),
+    ('model',      RandomForestClassifier(n_estimators=100, random_state=42)),
+])
+
+full_pipe.fit(X_train, y_train)
+```
+
+#### Cross-Validation and GridSearchCV
+
+```python
+from sklearn.model_selection import (cross_val_score, StratifiedKFold,
+                                      GridSearchCV, cross_validate)
+
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+# Simple CV score
+scores = cross_val_score(full_pipe, X, y, cv=cv, scoring='roc_auc', n_jobs=-1)
+print(f"AUC: {scores.mean():.3f} ± {scores.std():.3f}")
+
+# Multiple metrics at once
+results = cross_validate(full_pipe, X, y, cv=cv,
+                          scoring=['accuracy','roc_auc','f1_weighted'],
+                          return_train_score=True, n_jobs=-1)
+
+# Hyperparameter search — nested parameter names use __
+param_grid = {
+    'model__n_estimators':   [100, 300],
+    'model__max_depth':      [None, 5, 10],
+    'preprocess__num__scale': [StandardScaler()],
+}
+gs = GridSearchCV(full_pipe, param_grid, cv=cv,
+                  scoring='roc_auc', n_jobs=-1, verbose=1)
+gs.fit(X_train, y_train)
+print(gs.best_params_, gs.best_score_)
+```
+
+#### Custom Transformers
+
+```python
+from sklearn.base import BaseEstimator, TransformerMixin
+import numpy as np
+
+class LogTransformer(BaseEstimator, TransformerMixin):
+    """Log1p transform for right-skewed positive features."""
+
+    def __init__(self, offset=1.0):
+        self.offset = offset          # store all __init__ args as attributes
+
+    def fit(self, X, y=None):
+        # stateless transform — nothing to learn
+        return self                   # always return self
+
+    def transform(self, X):
+        return np.log1p(X + self.offset - 1)
+
+    # fit_transform is inherited from TransformerMixin — calls fit then transform
+
+class ClipTransformer(BaseEstimator, TransformerMixin):
+    """Clip outliers at fitted percentiles."""
+
+    def __init__(self, low=1, high=99):
+        self.low  = low
+        self.high = high
+
+    def fit(self, X, y=None):
+        self.low_  = np.percentile(X, self.low,  axis=0)
+        self.high_ = np.percentile(X, self.high, axis=0)
+        # convention: fitted attributes end with _ (sklearn standard)
+        return self
+
+    def transform(self, X):
+        return np.clip(X, self.low_, self.high_)
+```
+
+**Data leakage rule**: call `fit` or `fit_transform` only on training data. The scaler's mean/std must come from training data only. Pipelines handle this automatically when you call `pipe.fit(X_train, y_train)` — each step sees only transformed training data.
+
+#### Model Persistence
+
+```python
+import joblib
+
+# Save
+joblib.dump(full_pipe, 'model.joblib')
+
+# Load
+pipe_loaded = joblib.load('model.joblib')
+preds = pipe_loaded.predict(X_test)
+
+# Why joblib over pickle for sklearn:
+# - joblib uses memory-mapped arrays for numpy arrays inside models
+# - ~10× faster for large fitted objects (e.g., RandomForest with many trees)
+# - pickle works but is slower and uses more memory during load
+```
+
+---
+
+### 21.5 PyTorch Essentials for ML
+
+#### Tensor Creation and Device Management
+
+```python
+import torch
+import numpy as np
+
+# Creation
+x = torch.tensor([1.0, 2.0, 3.0])              # from list, infers float32
+x = torch.tensor(np.array([1, 2, 3]), dtype=torch.float32)
+x = torch.zeros(3, 4)
+x = torch.randn(3, 4)                           # N(0,1)
+x = torch.arange(10, dtype=torch.float32)
+
+# Device management
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+x = x.to(device)
+x = x.cuda()     # equivalent if GPU available
+x = x.cpu()      # back to CPU (needed before numpy conversion)
+
+# NumPy bridge — shares memory if CPU tensor
+arr = x.cpu().numpy()           # tensor → numpy (no copy if contiguous)
+x2  = torch.from_numpy(arr)    # numpy → tensor (shares memory)
+```
+
+#### Autograd
+
+```python
+# requires_grad=True — PyTorch tracks all operations on this tensor
+w = torch.randn(3, requires_grad=True)
+b = torch.zeros(1, requires_grad=True)
+
+x = torch.tensor([1.0, 2.0, 3.0])
+y_true = torch.tensor(6.0)
+
+# Forward pass — builds computation graph
+y_pred = (w * x).sum() + b
+loss   = (y_pred - y_true)**2
+
+# Backward — compute gradients via chain rule
+loss.backward()
+print(w.grad)   # d(loss)/d(w)
+print(b.grad)   # d(loss)/d(b)
+
+# Gradient accumulation — grads accumulate by default, must zero before next step
+w.grad.zero_()  # in-place zero (trailing _ = in-place in PyTorch convention)
+
+# Disable gradient tracking for inference or non-differentiable code
+with torch.no_grad():
+    y_pred = (w * x).sum() + b   # no graph built — faster, less memory
+
+# torch.no_grad() is equivalent to:
+x.detach()   # returns tensor that shares data but is detached from graph
+```
+
+#### nn.Module
+
+```python
+import torch.nn as nn
+
+class MLP(nn.Module):
+    def __init__(self, in_dim, hidden_dim, out_dim, dropout=0.3):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, out_dim),
+        )
+
+    def forward(self, x):
+        return self.net(x)   # (batch, out_dim)
+
+model = MLP(128, 256, 10).to(device)
+
+# Introspection
+print(sum(p.numel() for p in model.parameters()))          # total params
+print(sum(p.numel() for p in model.parameters() if p.requires_grad))
+
+# State dict — for saving/loading
+state = model.state_dict()              # OrderedDict of tensors
+model.load_state_dict(state)            # restore
+torch.save(state, 'model.pt')
+state = torch.load('model.pt', map_location=device)
+model.load_state_dict(state)
+```
+
+#### Training Loop Template
+
+```python
+import torch.optim as optim
+
+model     = MLP(128, 256, 10).to(device)
+optimizer = optim.AdamW(model.parameters(), lr=3e-4, weight_decay=1e-2)
+scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=50)
+criterion = nn.CrossEntropyLoss()       # expects logits (raw scores)
+
+for epoch in range(num_epochs):
+    # --- Train ---
+    model.train()    # enables dropout, batchnorm update
+    train_loss = 0.0
+    for X_batch, y_batch in train_loader:
+        X_batch = X_batch.to(device)
+        y_batch = y_batch.to(device)
+
+        optimizer.zero_grad()          # 1. clear gradients
+        logits = model(X_batch)        # 2. forward
+        loss   = criterion(logits, y_batch)  # 3. compute loss
+        loss.backward()                # 4. backward
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # optional
+        optimizer.step()               # 5. update weights
+        train_loss += loss.item()
+
+    scheduler.step()
+
+    # --- Eval ---
+    model.eval()     # disables dropout, uses running stats for batchnorm
+    val_loss = 0.0
+    correct  = 0
+    with torch.no_grad():
+        for X_batch, y_batch in val_loader:
+            X_batch = X_batch.to(device)
+            y_batch = y_batch.to(device)
+            logits   = model(X_batch)
+            val_loss += criterion(logits, y_batch).item()
+            correct  += (logits.argmax(1) == y_batch).sum().item()
+
+    print(f"Epoch {epoch+1}: train={train_loss/len(train_loader):.4f}  "
+          f"val={val_loss/len(val_loader):.4f}  acc={correct/len(val_ds):.3f}")
+```
+
+#### Dataset and DataLoader
+
+```python
+from torch.utils.data import Dataset, DataLoader, random_split
+
+class TabularDataset(Dataset):
+    def __init__(self, X: np.ndarray, y: np.ndarray):
+        self.X = torch.tensor(X, dtype=torch.float32)
+        self.y = torch.tensor(y, dtype=torch.long)   # long for CrossEntropyLoss
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx]
+
+ds = TabularDataset(X_array, y_array)
+train_ds, val_ds = random_split(ds, [0.8, 0.2],
+                                 generator=torch.Generator().manual_seed(42))
+
+train_loader = DataLoader(train_ds, batch_size=64, shuffle=True,
+                           num_workers=4, pin_memory=True)
+val_loader   = DataLoader(val_ds,   batch_size=256, shuffle=False,
+                           num_workers=4, pin_memory=True)
+# num_workers > 0: parallel data loading (CPU)
+# pin_memory=True: faster CPU→GPU transfer
+```
+
+**Common GPU/CPU mismatch bugs:**
+
+```python
+# Bug 1: model on GPU, data on CPU
+model = model.to('cuda')
+for X, y in loader:
+    out = model(X)          # RuntimeError: Expected all tensors to be on the same device
+    # Fix: X = X.to(device), y = y.to(device)
+
+# Bug 2: loss is on GPU, converting to Python float requires .item()
+loss_val = loss.item()      # correct — pulls scalar to CPU
+loss_val = float(loss)      # also works but keeps tensor context longer
+
+# Bug 3: numpy conversion without moving to CPU
+arr = tensor.cuda().numpy()  # RuntimeError: can't convert CUDA tensor to numpy
+arr = tensor.cpu().numpy()   # correct
+```
+
+---
+
+### 21.6 HuggingFace Transformers Essentials
+
+#### AutoTokenizer and AutoModel
+
+```python
+from transformers import AutoTokenizer, AutoModel
+import torch
+
+model_name = 'bert-base-uncased'
+
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model     = AutoModel.from_pretrained(model_name)
+model.eval()
+
+texts = ["The cat sat on the mat.", "Deep learning is powerful."]
+```
+
+#### Tokenizer Output
+
+```python
+encoding = tokenizer(
+    texts,
+    padding='max_length',
+    truncation=True,
+    max_length=128,
+    return_tensors='pt',    # 'pt' for PyTorch, 'np' for NumPy, 'tf' for TensorFlow
+)
+
+print(encoding.keys())
+# dict_keys(['input_ids', 'token_type_ids', 'attention_mask'])
+
+print(encoding['input_ids'].shape)       # (2, 128)
+print(encoding['attention_mask'].shape)  # (2, 128) — 1 for real tokens, 0 for padding
+
+# Decode back to inspect
+print(tokenizer.convert_ids_to_tokens(encoding['input_ids'][0].tolist()[:10]))
+# ['[CLS]', 'the', 'cat', 'sat', 'on', 'the', 'mat', '.', '[SEP]', '[PAD]']
+```
+
+#### Extracting Embeddings
+
+```python
+with torch.no_grad():
+    outputs = model(**encoding)
+
+# outputs.last_hidden_state: (batch, seq_len, hidden_size) — per-token embeddings
+token_embeddings = outputs.last_hidden_state   # (2, 128, 768) for BERT-base
+
+# [CLS] embedding — used by BERT for classification tasks
+cls_embedding = token_embeddings[:, 0, :]      # (2, 768)
+
+# Mean pooling — often better for sentence similarity
+# Must mask out padding tokens
+mask  = encoding['attention_mask'].unsqueeze(-1).float()   # (2, 128, 1)
+summed = (token_embeddings * mask).sum(dim=1)              # (2, 768)
+counts = mask.sum(dim=1).clamp(min=1e-9)                   # (2, 1)
+mean_pooled = summed / counts                              # (2, 768)
+```
+
+#### Pipeline Shortcut
+
+```python
+from transformers import pipeline
+
+# Text classification (sentiment)
+clf = pipeline('text-classification', model='distilbert-base-uncased-finetuned-sst-2-english')
+print(clf(["I love this!", "This is terrible."]))
+
+# Text generation
+gen = pipeline('text-generation', model='gpt2', max_new_tokens=50)
+print(gen("The future of AI is"))
+
+# Feature extraction (embeddings)
+feat = pipeline('feature-extraction', model='bert-base-uncased', return_tensors=True)
+embeddings = feat("Hello world")   # list of arrays
+```
+
+#### Saving and Loading Fine-tuned Models
+
+```python
+# After fine-tuning
+output_dir = './my-finetuned-bert'
+model.save_pretrained(output_dir)       # saves config.json + pytorch_model.bin (or shards)
+tokenizer.save_pretrained(output_dir)   # saves tokenizer files
+
+# Load later — identical API
+model     = AutoModel.from_pretrained(output_dir)
+tokenizer = AutoTokenizer.from_pretrained(output_dir)
+
+# from_pretrained vs from_config
+# from_pretrained: loads weights + config (for inference or fine-tuning from checkpoint)
+# from_config:     loads architecture only, random weights (for training from scratch)
+from transformers import AutoConfig
+config = AutoConfig.from_pretrained('bert-base-uncased')
+config.hidden_size = 512              # modify architecture
+model_scratch = AutoModel.from_config(config)   # random weights, modified arch
+```
+
+---
+
+### 21.7 Environment & Dependency Management
+
+#### venv vs conda vs uv
+
+```bash
+# venv — stdlib, minimal, fast
+python3.14 -m venv .venv
+source .venv/bin/activate
+pip install numpy pandas torch
+
+# conda — manages Python itself + non-Python deps (e.g., CUDA libs)
+conda create -n myenv python=3.11
+conda activate myenv
+conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
+
+# uv — Rust-based, 10-100× faster than pip, drop-in replacement
+uv venv .venv
+source .venv/bin/activate
+uv pip install numpy pandas torch
+```
+
+| Tool | Speed | Python version mgmt | Non-Python deps | Lockfile |
+|---|---|---|---|---|
+| venv+pip | slow | no | no | pip-tools/pip freeze |
+| conda | medium | yes | yes (CUDA, MKL) | conda lock |
+| uv | very fast | yes (uv python) | no | uv.lock |
+
+#### requirements.txt vs pyproject.toml
+
+```toml
+# pyproject.toml — modern standard (PEP 517/518/621)
+[project]
+name = "my-ml-project"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "scikit-learn>=1.3",
+    "torch>=2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "black", "ruff"]
+```
+
+```
+# requirements.txt — still used for deployment, pip install -r
+numpy>=1.24
+pandas>=2.0
+scikit-learn>=1.3
+torch>=2.0
+```
+
+#### CUDA Version Compatibility
+
+PyTorch wheels are compiled against specific CUDA versions. Installing `pip install torch` gets CPU-only or CUDA-unspecified build.
+
+```bash
+# Check CUDA version
+nvcc --version
+nvidia-smi   # shows driver and max CUDA version supported
+
+# Install PyTorch for specific CUDA (get command from https://pytorch.org/get-started)
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121  # CUDA 12.1
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118  # CUDA 11.8
+pip install torch torchvision torchaudio  # CPU-only default
+
+# Verify GPU is accessible
+python3 -c "import torch; print(torch.cuda.is_available(), torch.version.cuda)"
+```
+
+#### .env Files for API Keys
+
+```bash
+# .env  (never commit this file)
+OPENAI_API_KEY=sk-...
+HF_TOKEN=hf_...
+WANDB_API_KEY=...
+```
+
+```python
+# In code
+from dotenv import load_dotenv
+import os
+
+load_dotenv()   # reads .env into environment variables
+api_key = os.getenv('OPENAI_API_KEY')
+assert api_key, "OPENAI_API_KEY not set"
+
+# Always add .env to .gitignore
+```
+
+```
+# .gitignore entries
+.env
+*.pkl
+*.pt
+*.pth
+__pycache__/
+.venv/
+```
+
+#### Editable Installs
+
+```bash
+# Install your own package in editable mode (changes reflected immediately)
+pip install -e .
+# or with uv:
+uv pip install -e .
+
+# Requires pyproject.toml or setup.py at repo root
+# Makes `import my_package` work from anywhere in the venv
+```
+
+---
+
+### 21.8 Debugging ML Code
+
+#### pdb and breakpoint()
+
+```python
+# Python 3.7+: built-in breakpoint() — no import needed
+def train_step(model, batch):
+    X, y = batch
+    breakpoint()     # drops into pdb here
+    # pdb commands: n (next), s (step into), c (continue), p expr (print), q (quit)
+    # l (list source), w (where/stack trace), pp tensor.shape
+
+# Programmatic: useful in data loading loops
+import pdb
+for i, batch in enumerate(loader):
+    if batch[0].shape[0] != expected_batch_size:
+        pdb.set_trace()    # inspect batch when something is wrong
+```
+
+#### Shape Debugging Pattern
+
+```python
+# During development, print shape after every operation
+def forward(self, x):
+    print(f"input:   {x.shape}")          # (batch, seq, d_model)
+    x = self.attn(x)
+    print(f"after attn: {x.shape}")
+    x = self.ff(x)
+    print(f"after ff:   {x.shape}")
+    return x
+
+# Use asserts to encode your understanding — they catch bugs early
+def forward(self, x, mask=None):
+    B, T, D = x.shape
+    assert D == self.d_model, f"Expected d_model={self.d_model}, got {D}"
+    q = self.W_q(x)           # (B, T, D)
+    assert q.shape == (B, T, self.d_model), f"q shape wrong: {q.shape}"
+    return q
+```
+
+#### Reproducibility Checklist
+
+```python
+import random
+import numpy as np
+import torch
+import os
+
+def set_seed(seed: int = 42):
+    random.seed(seed)
+    np.random.seed(seed)             # legacy API — still used by some libs
+    rng = np.random.default_rng(seed)  # modern API
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    # CUDA determinism — slower but fully reproducible
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark     = False
+    os.environ['PYTHONHASHSEED']       = str(seed)
+
+set_seed(42)
+```
+
+#### Common ML Bugs
+
+```python
+# Bug 1: Wrong loss reduction — mean vs sum gives different gradient scales
+loss = nn.CrossEntropyLoss(reduction='mean')  # correct default
+loss = nn.CrossEntropyLoss(reduction='sum')   # gradients scale with batch size
+
+# Bug 2: Wrong label dtype for CrossEntropyLoss
+y = torch.tensor([0, 1, 2], dtype=torch.long)    # correct
+y = torch.tensor([0, 1, 2], dtype=torch.float)   # wrong — raises RuntimeError
+
+# Bug 3: Gradient not zeroed — accumulates across batches
+optimizer.zero_grad()    # must call before loss.backward()
+# Exception: intentional gradient accumulation for large effective batch sizes:
+accumulation_steps = 4
+for i, (X, y) in enumerate(loader):
+    loss = criterion(model(X), y) / accumulation_steps
+    loss.backward()
+    if (i + 1) % accumulation_steps == 0:
+        optimizer.step()
+        optimizer.zero_grad()
+
+# Bug 4: In-place operation breaks autograd
+x = torch.randn(3, requires_grad=True)
+y = x.relu_()    # in-place relu — modifies x before grad computation, may error
+y = x.relu()     # correct — creates new tensor
+
+# Bug 5: model.eval() not called at inference — dropout active, random outputs
+model.eval()
+with torch.no_grad():
+    preds = model(X_test)
+```
+
+---
+
+### 21.9 Performance Patterns
+
+#### Profiling
+
+```python
+import cProfile
+import pstats
+
+# cProfile — function-level timing
+profiler = cProfile.Profile()
+profiler.enable()
+# ... code to profile ...
+profiler.disable()
+stats = pstats.Stats(profiler)
+stats.sort_stats('cumulative')
+stats.print_stats(20)    # top 20 functions by cumulative time
+
+# line_profiler — line-by-line (pip install line_profiler)
+# Add @profile decorator, then: kernprof -l -v script.py
+
+# PyTorch profiler
+from torch.profiler import profile, record_function, ProfilerActivity
+
+with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+             record_shapes=True) as prof:
+    with record_function("model_inference"):
+        model(X_batch.to(device))
+
+print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
+```
+
+#### Vectorize First
+
+```python
+import numpy as np
+
+data = np.random.default_rng(42).standard_normal(1_000_000)
+
+# SLOW — Python loop
+result = [x**2 + 2*x + 1 for x in data]
+
+# FAST — vectorized
+result = data**2 + 2*data + 1
+
+# SLOW — loop over DataFrame rows
+for i, row in df.iterrows():
+    df.at[i, 'new_col'] = row['a'] * row['b']
+
+# FAST — vectorized column operation
+df['new_col'] = df['a'] * df['b']
+```
+
+#### Generators vs List Comprehensions
+
+```python
+# List comprehension — builds entire list in memory
+squares = [x**2 for x in range(10_000_000)]   # ~80MB
+
+# Generator expression — lazy, O(1) memory
+squares = (x**2 for x in range(10_000_000))   # iterator, values on demand
+
+# Use generators for large datasets, pipelines, when you only need one-pass
+def stream_batches(file_path, batch_size=64):
+    """Yield batches from large file without loading all into memory."""
+    batch = []
+    with open(file_path) as f:
+        for line in f:
+            batch.append(line.strip())
+            if len(batch) == batch_size:
+                yield batch
+                batch = []
+    if batch:
+        yield batch
+```
+
+#### functools.lru_cache
+
+```python
+from functools import lru_cache
+
+# Cache tokenization results — tokenizing the same text multiple times is wasteful
+@lru_cache(maxsize=10_000)
+def tokenize_cached(text: str, max_length: int = 128):
+    return tuple(tokenizer.encode(text, max_length=max_length, truncation=True))
+    # Note: lru_cache requires hashable arguments — use tuple not list as return
+
+# Cache expensive config parsing
+@lru_cache(maxsize=None)  # unbounded cache
+def load_config(path: str):
+    with open(path) as f:
+        return json.load(f)
+```
+
+#### Multiprocessing vs Threading for ML
+
+```python
+from multiprocessing import Pool
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+
+# GIL (Global Interpreter Lock): only one Python thread runs bytecode at a time.
+# Threading does NOT parallelize CPU-bound Python code.
+
+# CPU-bound (data preprocessing, feature computation) → multiprocessing
+def preprocess_record(record):
+    # heavy computation
+    return result
+
+with Pool(processes=8) as pool:
+    results = pool.map(preprocess_record, records)
+
+# I/O-bound (downloading files, reading from disk, API calls) → threading
+def download_file(url):
+    import requests
+    return requests.get(url).content
+
+with ThreadPoolExecutor(max_workers=16) as executor:
+    futures  = [executor.submit(download_file, url) for url in urls]
+    contents = [f.result() for f in futures]
+
+# DataLoader with num_workers uses multiprocessing internally
+# → always use num_workers >= 2 for GPU training to avoid CPU bottleneck
+```
+
+#### Batch Processing vs Streaming
+
+```python
+# Batch — load everything into memory, faster random access
+X, y = load_all_data()   # fits in RAM
+loader = DataLoader(TensorDataset(X, y), batch_size=64)
+
+# Streaming — generator, constant memory, sequential only
+def data_generator(file_path, batch_size=64):
+    X_batch, y_batch = [], []
+    with open(file_path) as f:
+        for line in f:
+            record = json.loads(line)
+            X_batch.append(record['features'])
+            y_batch.append(record['label'])
+            if len(X_batch) == batch_size:
+                yield np.array(X_batch), np.array(y_batch)
+                X_batch, y_batch = [], []
+
+# Use streaming when: dataset > available RAM, data arrives continuously (online ML)
+# Use batch when: dataset fits in memory, need multiple epochs, need shuffling
+```
+
+---
+
+### 21.10 Interview Code Patterns in ML
+
+These are the most frequently asked "implement from scratch" questions in ML engineering interviews. Know them cold.
+
+#### Numerically Stable Softmax
+
+Naive `exp(x) / sum(exp(x))` overflows for large $x$. Subtract the max first — mathematically identical, numerically stable.
+
+$$\text{softmax}(x_i) = \frac{e^{x_i - \max(x)}}{\sum_j e^{x_j - \max(x)}}$$
+
+```python
+import numpy as np
+
+def softmax(x: np.ndarray) -> np.ndarray:
+    """Numerically stable softmax. Works on last axis."""
+    x = x - x.max(axis=-1, keepdims=True)   # shift by max — prevents overflow
+    exp_x = np.exp(x)
+    return exp_x / exp_x.sum(axis=-1, keepdims=True)
+
+# Test
+logits = np.array([[1000.0, 1001.0, 1002.0],   # would overflow without shift
+                   [1.0, 2.0, 3.0]])
+probs = softmax(logits)
+print(probs.sum(axis=1))    # [1.0, 1.0] — sums to 1
+
+# Batch version (same function works via axis=-1)
+batch_logits = np.random.randn(32, 10)
+batch_probs  = softmax(batch_logits)
+assert np.allclose(batch_probs.sum(axis=1), 1.0)
+```
+
+#### Cosine Similarity from Scratch
+
+$$\cos(\mathbf{u}, \mathbf{v}) = \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\|_2 \|\mathbf{v}\|_2}$$
+
+```python
+import numpy as np
+
+def cosine_similarity(u: np.ndarray, v: np.ndarray) -> float:
+    """Cosine similarity between two 1D vectors."""
+    dot   = np.dot(u, v)
+    norm  = np.linalg.norm(u) * np.linalg.norm(v)
+    if norm < 1e-10:
+        return 0.0
+    return dot / norm
+
+def cosine_similarity_matrix(A: np.ndarray, B: np.ndarray) -> np.ndarray:
+    """
+    Pairwise cosine similarities.
+    A: (m, d), B: (n, d) → returns (m, n)
+    """
+    # Normalize each row to unit norm
+    A_norm = A / (np.linalg.norm(A, axis=1, keepdims=True) + 1e-10)
+    B_norm = B / (np.linalg.norm(B, axis=1, keepdims=True) + 1e-10)
+    return A_norm @ B_norm.T   # (m, n)
+
+# Test
+u = np.array([1.0, 0.0, 0.0])
+v = np.array([1.0, 0.0, 0.0])
+print(cosine_similarity(u, v))   # 1.0 — identical
+
+w = np.array([0.0, 1.0, 0.0])
+print(cosine_similarity(u, w))   # 0.0 — orthogonal
+```
+
+#### K-Nearest Neighbors Search with NumPy
+
+```python
+import numpy as np
+
+def knn_search(query: np.ndarray, database: np.ndarray, k: int) -> tuple:
+    """
+    Find k nearest neighbors of query in database using L2 distance.
+    query:    (d,)
+    database: (N, d)
+    returns:  (indices of shape (k,), distances of shape (k,))
+    """
+    # Squared L2: ||q - x||^2 = ||q||^2 + ||x||^2 - 2 q·x
+    # Vectorized computation avoids loop over N
+    diff = database - query           # (N, d) broadcasting
+    dists_sq = (diff**2).sum(axis=1)  # (N,)
+    idx = np.argpartition(dists_sq, k)[:k]   # O(N) partial sort — faster than full sort
+    idx = idx[np.argsort(dists_sq[idx])]     # sort the k candidates
+    return idx, np.sqrt(dists_sq[idx])
+
+def knn_batch(queries: np.ndarray, database: np.ndarray, k: int) -> np.ndarray:
+    """
+    Batch KNN. queries: (Q, d), database: (N, d) → indices (Q, k)
+    Uses cosine-similarity trick for efficiency.
+    """
+    # ||q - x||^2 = ||q||^2 + ||x||^2 - 2 q·x^T
+    q_sq = (queries**2).sum(axis=1, keepdims=True)   # (Q, 1)
+    d_sq = (database**2).sum(axis=1, keepdims=True).T  # (1, N)
+    cross = queries @ database.T                       # (Q, N)
+    dists_sq = q_sq + d_sq - 2 * cross               # (Q, N)
+    return np.argpartition(dists_sq, k, axis=1)[:, :k]
+
+# Test
+rng = np.random.default_rng(42)
+db  = rng.standard_normal((1000, 64))
+q   = rng.standard_normal(64)
+idx, dists = knn_search(q, db, k=5)
+print(idx, dists)
+```
+
+#### One-Hot Encoding without sklearn
+
+```python
+import numpy as np
+
+def one_hot(y: np.ndarray, num_classes: int = None) -> np.ndarray:
+    """
+    y: integer array of shape (N,), values in [0, num_classes)
+    returns: (N, num_classes) float array
+    """
+    y = np.asarray(y)
+    if num_classes is None:
+        num_classes = y.max() + 1
+    out = np.zeros((len(y), num_classes), dtype=np.float32)
+    out[np.arange(len(y)), y] = 1.0
+    return out
+
+# Test
+labels = np.array([0, 2, 1, 2, 0])
+ohe    = one_hot(labels, num_classes=3)
+print(ohe)
+# [[1. 0. 0.]
+#  [0. 0. 1.]
+#  [0. 1. 0.]
+#  [0. 0. 1.]
+#  [1. 0. 0.]]
+assert ohe.sum(axis=1).tolist() == [1.0]*5
+```
+
+#### Train/Val/Test Split without sklearn
+
+```python
+import numpy as np
+
+def train_val_test_split(X, y, val_ratio=0.15, test_ratio=0.15, seed=42):
+    """
+    Stratified split: preserves class proportions in each split.
+    Returns (X_train, X_val, X_test, y_train, y_val, y_test)
+    """
+    rng = np.random.default_rng(seed)
+    assert len(X) == len(y)
+
+    X_train, X_val, X_test = [], [], []
+    y_train, y_val, y_test = [], [], []
+
+    for cls in np.unique(y):
+        idx = np.where(y == cls)[0]
+        rng.shuffle(idx)
+        n   = len(idx)
+        n_test = int(n * test_ratio)
+        n_val  = int(n * val_ratio)
+        X_test.extend(X[idx[:n_test]])
+        y_test.extend(y[idx[:n_test]])
+        X_val.extend(X[idx[n_test:n_test + n_val]])
+        y_val.extend(y[idx[n_test:n_test + n_val]])
+        X_train.extend(X[idx[n_test + n_val:]])
+        y_train.extend(y[idx[n_test + n_val:]])
+
+    return (np.array(X_train), np.array(X_val), np.array(X_test),
+            np.array(y_train), np.array(y_val), np.array(y_test))
+
+# Test
+rng = np.random.default_rng(42)
+X = rng.standard_normal((100, 5))
+y = np.array([0]*50 + [1]*50)
+
+X_tr, X_v, X_te, y_tr, y_v, y_te = train_val_test_split(X, y)
+print(X_tr.shape, X_v.shape, X_te.shape)   # (70, 5) (15, 5) (15, 5)
+
+# Verify class balance
+for split, ys in [('train', y_tr), ('val', y_v), ('test', y_te)]:
+    ratio = ys.mean()
+    print(f"{split}: class-1 ratio = {ratio:.2f}")   # should be ~0.50
+```
+
+#### Summary: Implement-from-Scratch Checklist
+
+| Question | Key technique |
+|---|---|
+| Softmax | Subtract max before exp |
+| Cosine similarity | Normalize then dot product |
+| KNN search | `np.argpartition` for O(N) partial sort |
+| One-hot encoding | Index assignment `out[arange(N), y] = 1` |
+| Stratified split | Per-class shuffle + proportional slice |
+| Cross-entropy loss | `-(y * log(p+eps)).sum(axis=1).mean()` |
+| Batch norm (forward) | `(x - mean) / (std + eps) * gamma + beta` |
+| Attention | `softmax(QK^T / sqrt(d_k)) V` |
+
+```python
+# Cross-entropy from scratch (bonus)
+def cross_entropy_loss(logits: np.ndarray, targets: np.ndarray) -> float:
+    """
+    logits:  (N, C) raw scores
+    targets: (N,)  integer class labels
+    returns: scalar mean loss
+    """
+    probs   = softmax(logits)                         # (N, C)
+    N       = len(targets)
+    log_p   = np.log(probs[np.arange(N), targets] + 1e-10)  # log prob of true class
+    return -log_p.mean()
+
+# Manual attention (scaled dot-product)
+def scaled_dot_product_attention(Q, K, V, mask=None):
+    """
+    Q: (B, T_q, d_k)  K: (B, T_k, d_k)  V: (B, T_k, d_v)
+    returns: (B, T_q, d_v)
+    """
+    d_k = Q.shape[-1]
+    scores = Q @ K.transpose(0, 2, 1) / np.sqrt(d_k)   # (B, T_q, T_k)
+    if mask is not None:
+        scores = np.where(mask, scores, -1e9)
+    weights = softmax(scores)                           # (B, T_q, T_k)
+    return weights @ V                                  # (B, T_q, d_v)
+```
