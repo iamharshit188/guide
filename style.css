@@ -1694,7 +1694,6 @@ body.light-mode #dock {
 
 body.light-mode .dock-item         { color: rgba(0,0,0,0.45); }
 body.light-mode .dock-item:hover   { color: rgba(0,0,0,0.85); background: rgba(0,0,0,0.05); }
-body.light-mode .dock-item.active-dock { color: #333; background: rgba(0,0,0,0.06); }
 body.light-mode .dock-item.dock-danger { color: rgba(220,30,30,0.5); }
 body.light-mode .dock-item.dock-danger:hover { color: #CC2222; background: rgba(220,30,30,0.06); }
 body.light-mode .dock-sep          { background: rgba(0,0,0,0.10); }
@@ -1980,16 +1979,16 @@ body.light-mode #dock {
 }
 
 body.light-mode .dock-item.active-dock {
-  background: #000000;
-  color: #E6FF00;
-  border: 2px solid transparent;
+  background: rgba(0,0,0,0.08);
+  color: rgba(0,0,0,0.85);
+  border: 2px solid rgba(0,0,0,0.18);
   border-radius: 10px;
 }
 
 body.light-mode .dock-item:hover {
-  background: #E6FF00;
-  color: #000000;
-  border: 2px solid #000;
+  background: rgba(0,0,0,0.07);
+  color: rgba(0,0,0,0.85);
+  border: 2px solid transparent;
 }
 
 
@@ -3133,7 +3132,11 @@ body.light-mode .iv-timer-bar-track { background: rgba(0,0,0,0.1); }
 
 body.light-mode .sr-answer { border-top: 1px solid rgba(0,0,0,0.15); }
 
-body.light-mode .dock-badge { border: 1px solid rgba(0,0,0,0.15); color: #000; background: var(--yellow); }
+body.light-mode .dock-badge {
+  background: #111;
+  color: #fff;
+  border: none;
+}
 
 body.light-mode .iv-start-btn {
   background: var(--yellow);
