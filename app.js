@@ -1867,6 +1867,400 @@ window.addEventListener("resize", () => {
   }
 });
 
+// ── Spaced Repetition (SM-2) ──────────────────────────────────────
+const SR_LS_KEY = "aiml_sr_deck";
+
+function parseMdQA(md, sourceLabel) {
+  const cards      = [];
+  const headingRe  = /^##\s+Q\d+:\s*(.+)$/gm;
+  let match;
+  const positions  = [];
+
+  while ((match = headingRe.exec(md)) !== null) {
+    positions.push({ question: match[1].trim(), index: match.index, end: match.index + match[0].length });
+  }
+
+  for (let i = 0; i < positions.length; i++) {
+    const q    = positions[i].question;
+    const from = positions[i].end + 1;
+    const to   = i + 1 < positions.length ? positions[i + 1].index : md.length;
+    let answerBlock = md.slice(from, to).trim();
+    answerBlock = answerBlock.replace(/^---[\s\S]*/m, "").trim();
+    if (!answerBlock) continue;
+    cards.push({ id: `${sourceLabel}::${i}`, question: q, answer: answerBlock, source: sourceLabel });
+  }
+  return cards;
+}
+
+let srCardPool = null;
+
+async function loadSRCardPool() {
+  if (srCardPool) return srCardPool;
+  srCardPool = [];
+  for (const mod of MODULE_META) {
+    try {
+      const res = await fetch(`docs/${mod.file}`);
+      if (!res.ok) continue;
+      const text  = await res.text();
+      const label = mod.tag + " " + mod.label.split(" ")[0].toUpperCase();
+      srCardPool.push(...parseMdQA(text, label));
+    } catch (_) {}
+  }
+  return srCardPool;
+}
+
+function loadSRDeckState() {
+  try { return JSON.parse(localStorage.getItem(SR_LS_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveSRDeckState(s) { localStorage.setItem(SR_LS_KEY, JSON.stringify(s)); }
+
+function todayStr() { return new Date().toISOString().split("T")[0]; }
+
+function sm2Update(cardState, quality) {
+  let { interval = 0, reps = 0, ef = 2.5 } = cardState;
+
+  if (quality < 3) {
+    reps     = 0;
+    interval = 1;
+  } else {
+    ef = ef + 0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02);
+    if (ef < 1.3) ef = 1.3;
+    if (reps === 0)      interval = 1;
+    else if (reps === 1) interval = 6;
+    else                 interval = Math.round(interval * ef);
+    reps += 1;
+  }
+
+  const next = new Date();
+  next.setDate(next.getDate() + interval);
+  return { interval, reps, ef, nextReview: next.toISOString().split("T")[0] };
+}
+
+function getDueCards(pool, deckState) {
+  const today = todayStr();
+  return pool.filter(card => {
+    const cs = deckState[card.id];
+    return !cs || cs.nextReview <= today;
+  });
+}
+
+function updateSRBadge(pool, deckState) {
+  const badge = $("dock-cards-badge");
+  if (!badge) return;
+  const due = getDueCards(pool, deckState).length;
+  if (due > 0) {
+    badge.textContent = due > 99 ? "99+" : String(due);
+    badge.classList.remove("hidden");
+  } else {
+    badge.classList.add("hidden");
+  }
+}
+
+(function setupSR() {
+  const modal   = $("sr-modal");
+  const dockBtn = $("dock-cards");
+  if (!modal || !dockBtn) return;
+
+  let queue        = [];
+  let queueIdx     = 0;
+  let deckState    = {};
+  let sessionStats = { easy: 0, good: 0, hard: 0, missed: 0 };
+
+  function showCard(idx) {
+    const card = queue[idx];
+    $("sr-question").textContent = card.question;
+    $("sr-answer").textContent   = card.answer;
+    $("sr-answer").classList.add("hidden");
+    $("sr-show-btn-wrap").classList.remove("hidden");
+    $("sr-rating-row").classList.add("hidden");
+    $("sr-card-counter").textContent = `${idx + 1} / ${queue.length}`;
+    $("sr-source-tag").textContent   = card.source;
+  }
+
+  function showDone() {
+    $("sr-card-view").classList.add("hidden");
+    $("sr-done").classList.remove("hidden");
+    $("sr-done-stats").textContent =
+      `Easy: ${sessionStats.easy}  ·  Good: ${sessionStats.good}  ·  Hard: ${sessionStats.hard}  ·  Missed: ${sessionStats.missed}`;
+    const hasMissed = queue.some(c => deckState[c.id] && deckState[c.id]._lastQ < 3);
+    $("sr-restart").classList.toggle("hidden", !hasMissed);
+  }
+
+  async function openSR() {
+    const pool  = await loadSRCardPool();
+    deckState   = loadSRDeckState();
+    queue       = getDueCards(pool, deckState);
+    queueIdx    = 0;
+    sessionStats = { easy: 0, good: 0, hard: 0, missed: 0 };
+
+    $("sr-empty").classList.add("hidden");
+    $("sr-card-view").classList.add("hidden");
+    $("sr-done").classList.add("hidden");
+    $("sr-queue-label").textContent = queue.length > 0 ? `${queue.length} due today` : "";
+
+    if (queue.length === 0) {
+      $("sr-empty").classList.remove("hidden");
+    } else {
+      $("sr-card-view").classList.remove("hidden");
+      showCard(0);
+    }
+    modal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeSR() {
+    modal.classList.add("hidden");
+    document.body.style.overflow = "";
+    loadSRCardPool().then(pool => updateSRBadge(pool, loadSRDeckState()));
+  }
+
+  function rateCard(quality) {
+    const card    = queue[queueIdx];
+    const cs      = deckState[card.id] || {};
+    const updated = sm2Update(cs, quality);
+    updated._lastQ = quality;
+    deckState[card.id] = updated;
+    saveSRDeckState(deckState);
+
+    if (quality === 5) sessionStats.easy++;
+    else if (quality === 4) sessionStats.good++;
+    else if (quality === 2) sessionStats.hard++;
+    else sessionStats.missed++;
+
+    queueIdx++;
+    if (queueIdx >= queue.length) showDone();
+    else showCard(queueIdx);
+  }
+
+  dockBtn.addEventListener("click", openSR);
+  $("sr-close").addEventListener("click", closeSR);
+  modal.addEventListener("click", e => { if (e.target === modal) closeSR(); });
+
+  $("sr-show-answer").addEventListener("click", () => {
+    $("sr-answer").classList.remove("hidden");
+    $("sr-show-btn-wrap").classList.add("hidden");
+    $("sr-rating-row").classList.remove("hidden");
+  });
+
+  document.querySelectorAll("#sr-rating-row .sr-rate-btn").forEach(btn => {
+    btn.addEventListener("click", () => rateCard(Number(btn.dataset.q)));
+  });
+
+  $("sr-restart").addEventListener("click", () => {
+    queue    = queue.filter(c => deckState[c.id] && deckState[c.id]._lastQ < 3);
+    queueIdx = 0;
+    sessionStats = { easy: 0, good: 0, hard: 0, missed: 0 };
+    $("sr-done").classList.add("hidden");
+    if (queue.length === 0) {
+      $("sr-empty").classList.remove("hidden");
+    } else {
+      $("sr-card-view").classList.remove("hidden");
+      showCard(0);
+    }
+  });
+
+  document.addEventListener("keydown", e => {
+    if (modal.classList.contains("hidden")) return;
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+    const ansHidden = $("sr-answer").classList.contains("hidden");
+    if ((e.key === " " || e.key === "Spacebar") && ansHidden && !$("sr-card-view").classList.contains("hidden")) {
+      e.preventDefault();
+      $("sr-show-answer").click();
+    } else if (!ansHidden) {
+      if (e.key === "1") { e.preventDefault(); rateCard(5); }
+      else if (e.key === "2") { e.preventDefault(); rateCard(4); }
+      else if (e.key === "3") { e.preventDefault(); rateCard(2); }
+      else if (e.key === "4") { e.preventDefault(); rateCard(1); }
+    }
+    if (e.key === "Escape") { e.stopPropagation(); closeSR(); }
+  });
+
+  loadSRCardPool().then(pool => updateSRBadge(pool, loadSRDeckState()));
+})();
+
+
+// ── Interview Simulator ────────────────────────────────────────────
+(function setupInterviewSim() {
+  const modal   = $("interview-modal");
+  const dockBtn = $("dock-interview");
+  if (!modal || !dockBtn) return;
+
+  let ivPool        = [];
+  let ivDeckState   = {};
+  let ivQuestions   = [];
+  let ivIdx         = 0;
+  let ivCount       = 10;
+  let ivTimer       = null;
+  let ivSecondsLeft = 60;
+  let ivResults     = [];
+  let ivAnswerShown = false;
+
+  const screens = {
+    setup:    $("iv-setup"),
+    question: $("iv-question"),
+    summary:  $("iv-summary"),
+  };
+
+  function showScreen(name) {
+    Object.values(screens).forEach(s => s.classList.add("hidden"));
+    screens[name].classList.remove("hidden");
+  }
+
+  async function openIV() {
+    ivPool      = await loadSRCardPool();
+    ivDeckState = loadSRDeckState();
+    showScreen("setup");
+    modal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeIV() {
+    clearInterval(ivTimer);
+    modal.classList.add("hidden");
+    document.body.style.overflow = "";
+  }
+
+  function startSession() {
+    if (ivPool.length === 0) return;
+    const shuffled  = [...ivPool].sort(() => Math.random() - 0.5);
+    ivQuestions     = shuffled.slice(0, Math.min(ivCount, shuffled.length));
+    ivIdx     = 0;
+    ivResults = [];
+    showQuestion(0);
+    showScreen("question");
+  }
+
+  function showQuestion(idx) {
+    const q = ivQuestions[idx];
+    ivAnswerShown = false;
+    $("iv-q-counter").textContent     = `${idx + 1} / ${ivQuestions.length}`;
+    $("iv-source-tag").textContent    = q.source;
+    $("iv-question-text").textContent = q.question;
+    $("iv-answer-text").textContent   = q.answer;
+    $("iv-answer-reveal").classList.add("hidden");
+    $("iv-show-wrap").classList.remove("hidden");
+    $("iv-rating-row").classList.add("hidden");
+    startTimer();
+  }
+
+  function startTimer() {
+    clearInterval(ivTimer);
+    ivSecondsLeft = 60;
+    renderTimer(60);
+    ivTimer = setInterval(() => {
+      ivSecondsLeft--;
+      renderTimer(ivSecondsLeft);
+      if (ivSecondsLeft <= 0) {
+        clearInterval(ivTimer);
+        if (!ivAnswerShown) showIVAnswer();
+      }
+    }, 1000);
+  }
+
+  function renderTimer(secs) {
+    const bar   = $("iv-timer-bar");
+    const numEl = $("iv-timer-num");
+    bar.style.width   = (secs / 60 * 100) + "%";
+    numEl.textContent = secs;
+    const danger = secs <= 10;
+    bar.classList.toggle("danger", danger);
+    numEl.classList.toggle("danger", danger);
+  }
+
+  function showIVAnswer() {
+    ivAnswerShown = true;
+    clearInterval(ivTimer);
+    $("iv-answer-reveal").classList.remove("hidden");
+    $("iv-show-wrap").classList.add("hidden");
+    $("iv-rating-row").classList.remove("hidden");
+  }
+
+  function recordIVRating(quality) {
+    const card    = ivQuestions[ivIdx];
+    const cs      = ivDeckState[card.id] || {};
+    const updated = sm2Update(cs, quality);
+    updated._lastQ = quality;
+    ivDeckState[card.id] = updated;
+    saveSRDeckState(ivDeckState);
+
+    ivResults.push({ card, quality });
+    ivIdx++;
+    if (ivIdx >= ivQuestions.length) showSummary();
+    else showQuestion(ivIdx);
+  }
+
+  function showSummary() {
+    clearInterval(ivTimer);
+    const easy   = ivResults.filter(r => r.quality === 5).length;
+    const hard   = ivResults.filter(r => r.quality === 2).length;
+    const missed = ivResults.filter(r => r.quality === 1).length;
+    $("iv-score-grid").innerHTML = `
+      <div class="iv-score-cell easy">
+        <div class="iv-score-num">${easy}</div>
+        <div class="iv-score-label">Easy</div>
+      </div>
+      <div class="iv-score-cell hard">
+        <div class="iv-score-num">${hard}</div>
+        <div class="iv-score-label">Hard</div>
+      </div>
+      <div class="iv-score-cell miss">
+        <div class="iv-score-num">${missed}</div>
+        <div class="iv-score-label">Missed</div>
+      </div>
+    `;
+    showScreen("summary");
+    loadSRCardPool().then(pool => updateSRBadge(pool, loadSRDeckState()));
+  }
+
+  document.querySelectorAll(".iv-count-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".iv-count-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      ivCount = Number(btn.dataset.n);
+    });
+  });
+
+  dockBtn.addEventListener("click", openIV);
+  $("iv-close-setup").addEventListener("click", closeIV);
+  $("iv-close-q").addEventListener("click", closeIV);
+  $("iv-close-summary").addEventListener("click", closeIV);
+  modal.addEventListener("click", e => { if (e.target === modal) closeIV(); });
+
+  $("iv-start-btn").addEventListener("click", startSession);
+  $("iv-show-answer").addEventListener("click", showIVAnswer);
+
+  document.querySelectorAll("#iv-rating-row .sr-rate-btn").forEach(btn => {
+    btn.addEventListener("click", () => recordIVRating(Number(btn.dataset.q)));
+  });
+
+  $("iv-again-btn").addEventListener("click", () => showScreen("setup"));
+
+  document.addEventListener("keydown", e => {
+    if (modal.classList.contains("hidden")) return;
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+    const onSetup    = !screens.setup.classList.contains("hidden");
+    const onQuestion = !screens.question.classList.contains("hidden");
+
+    if (onSetup && e.key === "Enter") { e.preventDefault(); startSession(); return; }
+
+    if (onQuestion) {
+      if ((e.key === " " || e.key === "Spacebar") && !ivAnswerShown) {
+        e.preventDefault();
+        showIVAnswer();
+      } else if (ivAnswerShown) {
+        if (e.key === "1") { e.preventDefault(); recordIVRating(5); }
+        else if (e.key === "2") { e.preventDefault(); recordIVRating(2); }
+        else if (e.key === "3") { e.preventDefault(); recordIVRating(1); }
+      }
+    }
+
+    if (e.key === "Escape") { e.stopPropagation(); closeIV(); }
+  });
+})();
+
+
 // ── Init ─────────────────────────────────────────────────────────
 function init() {
   // Apply saved theme before any content renders
