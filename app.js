@@ -1056,6 +1056,8 @@ document.querySelectorAll(".welcome-tab").forEach(tab => {
     if (panelId === "projects-panel")  buildProjectsGrid();
     if (panelId === "languages-panel") buildLanguagesGrid();
     if (panelId === "code-panel")      buildCodeGrid();
+    if (panelId === "graph-panel")     buildDepGraph();
+    if (panelId !== "graph-panel")     teardownDepGraph();
   });
 });
 
@@ -1677,6 +1679,193 @@ int main() {
 
   return { open, close, syncTheme };
 })();
+
+// ── Dependency Graph ──────────────────────────────────────────────
+let _depGraphBuilt = false;
+
+function buildDepGraph() {
+  const svgEl = document.getElementById("dep-graph");
+  if (!svgEl) return;
+
+  // Clear any prior render
+  svgEl.innerHTML = "";
+  _depGraphBuilt = false;
+
+  if (typeof d3 === "undefined") return;
+
+  const nodes = MODULE_META.map(m => ({
+    id:        m.tag,
+    label:     _depGraphShortLabel(m.label),
+    fullLabel: m.label,
+    file:      m.file,
+    done:      state.progress[m.file] === "done",
+  }));
+
+  const links = [
+    { source: "01", target: "02" },
+    { source: "01", target: "05" },
+    { source: "02", target: "03" },
+    { source: "02", target: "04" },
+    { source: "02", target: "05" },
+    { source: "05", target: "06" },
+    { source: "06", target: "07" },
+    { source: "07", target: "08" },
+    { source: "07", target: "09" },
+    { source: "07", target: "10" },
+    { source: "07", target: "12" },
+    { source: "07", target: "13" },
+    { source: "08", target: "10" },
+    { source: "09", target: "12" },
+    { source: "05", target: "11" },
+    { source: "11", target: "14" },
+    { source: "10", target: "14" },
+  ];
+
+  const panel  = document.getElementById("graph-panel");
+  const W      = panel.clientWidth  - 64 || 800;
+  const H      = Math.max(panel.clientHeight - 48, 480);
+  const R      = 22;
+
+  const svg = d3.select(svgEl)
+    .attr("width",  W)
+    .attr("height", H)
+    .attr("viewBox", `0 0 ${W} ${H}`);
+
+  // Arrow marker
+  svg.append("defs").append("marker")
+    .attr("id",          "dep-arrow")
+    .attr("viewBox",     "0 -5 10 10")
+    .attr("refX",        R + 10)
+    .attr("refY",        0)
+    .attr("markerWidth", 6)
+    .attr("markerHeight", 6)
+    .attr("orient",      "auto")
+    .append("path")
+      .attr("d",    "M0,-5L10,0L0,5")
+      .attr("class", "dep-graph-arrow");
+
+  const sim = d3.forceSimulation(nodes)
+    .force("link",   d3.forceLink(links).id(d => d.id).distance(90))
+    .force("charge", d3.forceManyBody().strength(-300))
+    .force("center", d3.forceCenter(W / 2, H / 2))
+    .force("x",      d3.forceX(W / 2).strength(0.04))
+    .force("y",      d3.forceY(H / 2).strength(0.04));
+
+  const link = svg.append("g")
+    .selectAll("line")
+    .data(links)
+    .join("line")
+      .attr("class",         "dep-graph-link")
+      .attr("marker-end",    "url(#dep-arrow)");
+
+  const node = svg.append("g")
+    .selectAll("g")
+    .data(nodes)
+    .join("g")
+      .attr("class", d => "dep-graph-node" + (d.done ? " completed" : ""))
+      .attr("tabindex", "0")
+      .attr("aria-label", d => `Module ${d.id}: ${d.fullLabel}`)
+      .call(d3.drag()
+        .on("start", (event, d) => {
+          if (!event.active) sim.alphaTarget(0.3).restart();
+          d.fx = d.x; d.fy = d.y;
+        })
+        .on("drag", (event, d) => { d.fx = event.x; d.fy = event.y; })
+        .on("end",  (event, d) => {
+          if (!event.active) sim.alphaTarget(0);
+          d.fx = null; d.fy = null;
+        }));
+
+  node.append("circle").attr("r", R);
+
+  node.append("text")
+    .attr("class", "node-tag")
+    .attr("dy", "0.35em")
+    .text(d => d.id);
+
+  node.append("text")
+    .attr("class", "node-label")
+    .attr("dy", R + 14)
+    .text(d => d.label);
+
+  // Tooltip
+  const tooltip = document.createElement("div");
+  tooltip.className = "dep-graph-tooltip";
+  document.body.appendChild(tooltip);
+
+  node.on("mouseenter", (event, d) => {
+    tooltip.textContent  = `${d.id} — ${d.fullLabel}`;
+    tooltip.style.opacity = "1";
+    _posTooltip(event);
+  })
+  .on("mousemove", _posTooltip)
+  .on("mouseleave", () => { tooltip.style.opacity = "0"; })
+  .on("click", (event, d) => {
+    const mod = MODULE_META.find(m => m.tag === d.id);
+    if (mod) openModule(mod.file, mod.label);
+  })
+  .on("keydown", (event, d) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      const mod = MODULE_META.find(m => m.tag === d.id);
+      if (mod) openModule(mod.file, mod.label);
+    }
+  });
+
+  function _posTooltip(event) {
+    tooltip.style.left = (event.clientX + 14) + "px";
+    tooltip.style.top  = (event.clientY - 28) + "px";
+  }
+
+  sim.on("tick", () => {
+    link
+      .attr("x1", d => Math.max(R, Math.min(W - R, d.source.x)))
+      .attr("y1", d => Math.max(R, Math.min(H - R, d.source.y)))
+      .attr("x2", d => Math.max(R, Math.min(W - R, d.target.x)))
+      .attr("y2", d => Math.max(R, Math.min(H - R, d.target.y)));
+    node.attr("transform", d =>
+      `translate(${Math.max(R, Math.min(W - R, d.x))},${Math.max(R, Math.min(H - R, d.y))})`
+    );
+  });
+
+  // Clean up tooltip when switching away
+  svgEl._depTooltip = tooltip;
+  _depGraphBuilt = true;
+}
+
+function _depGraphShortLabel(fullLabel) {
+  const map = {
+    "Math for ML":               "Math",
+    "ML Basics → Advanced":      "ML Basics",
+    "Databases & Vector DBs":    "Databases",
+    "Backend with Flask":        "Backend",
+    "Deep Learning":             "Deep Learning",
+    "GenAI Core":                "GenAI Core",
+    "Transformers from Scratch": "Transformers",
+    "RAG Systems":               "RAG",
+    "Fine-Tuning & LoRA":        "Fine-Tuning",
+    "LLM Agents & Tool Use":     "Agents",
+    "Deployment & Production":   "Deployment",
+    "RLHF & Alignment":          "RLHF",
+    "Multimodal Models":         "Multimodal",
+    "Frontend (React+Tailwind)": "Frontend",
+  };
+  return map[fullLabel] || fullLabel;
+}
+
+function teardownDepGraph() {
+  const svgEl = document.getElementById("dep-graph");
+  if (svgEl && svgEl._depTooltip) {
+    svgEl._depTooltip.remove();
+    svgEl._depTooltip = null;
+  }
+}
+
+window.addEventListener("resize", () => {
+  if (_depGraphBuilt && !document.getElementById("graph-panel").classList.contains("hidden")) {
+    buildDepGraph();
+  }
+});
 
 // ── Init ─────────────────────────────────────────────────────────
 function init() {

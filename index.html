@@ -9,6 +9,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 
   <link id="hljs-theme" rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/onedark.min.css" />
@@ -187,6 +188,9 @@
           <button class="welcome-tab" role="tab" aria-selected="false" data-panel="code-panel">
             <span class="wtab-num">60+</span> Code Files
           </button>
+          <button class="welcome-tab" role="tab" aria-selected="false" data-panel="graph-panel">
+            <span class="wtab-num">14</span> Graph
+          </button>
         </div>
 
         <!-- Panels -->
@@ -204,6 +208,10 @@
 
         <div id="code-panel" class="welcome-panel hidden" role="tabpanel">
           <div id="code-by-module" aria-label="Code files grouped by module"></div>
+        </div>
+
+        <div id="graph-panel" class="welcome-panel hidden" role="tabpanel">
+          <svg id="dep-graph" aria-label="Module dependency graph"></svg>
         </div>
 
       </div>

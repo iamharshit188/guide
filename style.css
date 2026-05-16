@@ -2409,6 +2409,121 @@ body.light-mode #dock-streak .dock-icon-wrap svg {
   color: #b8cc00;
 }
 
+/* ── Dependency Graph ──────────────────────────────────────── */
+#graph-panel {
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  height: 100%;
+}
+
+#dep-graph {
+  width: 100%;
+  flex: 1;
+  min-height: 480px;
+  display: block;
+}
+
+.dep-graph-link {
+  stroke: rgba(255,255,255,0.18);
+  stroke-width: 1.5px;
+  fill: none;
+}
+
+body.light-mode .dep-graph-link {
+  stroke: rgba(0,0,0,0.2);
+}
+
+.dep-graph-node circle {
+  stroke: #E6FF00;
+  stroke-width: 2px;
+  fill: #1c1c1c;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+body.light-mode .dep-graph-node circle {
+  fill: #ffffff;
+}
+
+.dep-graph-node.completed circle {
+  fill: #E6FF00;
+  stroke: #E6FF00;
+}
+
+.dep-graph-node:hover circle {
+  filter: brightness(1.3);
+}
+
+.dep-graph-node text {
+  fill: rgba(255,255,255,0.65);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+  user-select: none;
+}
+
+.dep-graph-node.completed text.node-tag {
+  fill: #000000;
+}
+
+body.light-mode .dep-graph-node text {
+  fill: rgba(0,0,0,0.55);
+}
+
+body.light-mode .dep-graph-node.completed text.node-tag {
+  fill: #000000;
+}
+
+.dep-graph-node text.node-label {
+  font-size: 9px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  fill: rgba(255,255,255,0.45);
+}
+
+body.light-mode .dep-graph-node text.node-label {
+  fill: rgba(0,0,0,0.45);
+}
+
+.dep-graph-node.completed text.node-label {
+  fill: rgba(0,0,0,0.6);
+}
+
+.dep-graph-tooltip {
+  position: fixed;
+  background: #111;
+  color: #E6FF00;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(230,255,0,0.3);
+  pointer-events: none;
+  z-index: 1000;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+body.light-mode .dep-graph-tooltip {
+  background: #111;
+  color: #E6FF00;
+}
+
+.dep-graph-arrow {
+  fill: rgba(255,255,255,0.22);
+}
+
+body.light-mode .dep-graph-arrow {
+  fill: rgba(0,0,0,0.25);
+}
+
 body.light-mode .logo-tag { color: #000000; }
 
 /* ── Dock Badge (due-card count) ─────────────────────────────── */
