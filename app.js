@@ -1056,8 +1056,6 @@ document.querySelectorAll(".welcome-tab").forEach(tab => {
     if (panelId === "projects-panel")  buildProjectsGrid();
     if (panelId === "languages-panel") buildLanguagesGrid();
     if (panelId === "code-panel")      buildCodeGrid();
-    if (panelId === "graph-panel")     buildDepGraph();
-    if (panelId !== "graph-panel")     teardownDepGraph();
   });
 });
 
@@ -1721,9 +1719,9 @@ function buildDepGraph() {
     { source: "10", target: "14" },
   ];
 
-  const panel  = document.getElementById("graph-panel");
-  const W      = panel.clientWidth  - 64 || 800;
-  const H      = Math.max(panel.clientHeight - 48, 480);
+  const wrap   = document.getElementById("hero-graph-wrap");
+  const W      = (wrap ? wrap.clientWidth : 340) || 340;
+  const H      = 280;
   const R      = 22;
 
   const svg = d3.select(svgEl)
@@ -1862,7 +1860,8 @@ function teardownDepGraph() {
 }
 
 window.addEventListener("resize", () => {
-  if (_depGraphBuilt && !document.getElementById("graph-panel").classList.contains("hidden")) {
+  if (_depGraphBuilt && document.getElementById("welcome-screen") &&
+      !document.getElementById("welcome-screen").classList.contains("hidden")) {
     buildDepGraph();
   }
 });
@@ -2316,6 +2315,7 @@ function init() {
   updateGreeting();
   updateStreak();
   buildHeatmap();
+  buildDepGraph();
 
   if (window.location.hash) {
     const hashFile  = window.location.hash.slice(1);

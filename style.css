@@ -756,8 +756,44 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
 }
 
 /* Welcome Headline */
+#hero-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+}
+
 #welcome-headline {
+  flex: 1;
+  min-width: 0;
   padding: 28px 0 32px;
+}
+
+#hero-graph-wrap {
+  flex: 0 0 340px;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 0 24px;
+  gap: 10px;
+}
+
+#hero-graph-title {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  color: rgba(255,255,255,0.25);
+  text-transform: uppercase;
+}
+
+#dep-graph {
+  width: 100%;
+  height: 280px;
+  display: block;
+}
+
+@media (max-width: 900px) {
+  #hero-body { flex-direction: column; gap: 0; }
+  #hero-graph-wrap { flex: none; width: 100%; padding-top: 0; }
+  #dep-graph { height: 220px; }
 }
 
 .welcome-tag {
@@ -1631,6 +1667,7 @@ body.light-mode .module-group-header     { color: #999; border-bottom-color: rgb
 /* Content area */
 body.light-mode #content-area   { background: #F5F5F3; }
 body.light-mode #welcome-hero   { background: #F5F5F3; border-bottom-color: rgba(0,0,0,0.08); }
+body.light-mode #hero-graph-title { color: rgba(0,0,0,0.25); }
 body.light-mode #welcome-tabs   { background: #F5F5F3; border-bottom-color: rgba(0,0,0,0.08); }
 body.light-mode .welcome-tab    { color: #999; }
 body.light-mode .welcome-tab.active { color: #111; border-bottom-color: #111; }
@@ -2409,20 +2446,6 @@ body.light-mode #dock-streak .dock-icon-wrap svg {
 }
 
 /* ── Dependency Graph ──────────────────────────────────────── */
-#graph-panel {
-  padding: 24px 32px;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  height: 100%;
-}
-
-#dep-graph {
-  width: 100%;
-  flex: 1;
-  min-height: 480px;
-  display: block;
-}
 
 .dep-graph-link {
   stroke: rgba(255,255,255,0.18);
