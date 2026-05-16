@@ -166,17 +166,12 @@
               <div class="welcome-tag">PLACEMENT PREP</div>
               <h2 id="welcome-title">AI/ML/GenAI/Backend<br>Learning Platform</h2>
               <p id="welcome-sub">14 modules &nbsp;·&nbsp; 42 projects &nbsp;·&nbsp; 4 languages &nbsp;·&nbsp; Math to Multimodal. Select a module to begin.</p>
-
-              <div id="study-heatmap-wrap">
-                <div id="study-heatmap-label">Past year activity</div>
-                <div id="study-heatmap" aria-label="Study activity heatmap"></div>
-                <div id="study-heatmap-tooltip" aria-hidden="true"></div>
-              </div>
             </div>
 
-            <div id="hero-graph-wrap" aria-label="Module dependency graph">
-              <div id="hero-graph-title">MODULE ROADMAP</div>
-              <svg id="dep-graph" aria-label="Module dependency graph"></svg>
+            <div id="hero-streak-wrap">
+              <div id="study-heatmap-label">Past year activity</div>
+              <div id="study-heatmap" aria-label="Study activity heatmap"></div>
+              <div id="study-heatmap-tooltip" aria-hidden="true"></div>
             </div>
           </div>
         </div>
@@ -194,6 +189,9 @@
           </button>
           <button class="welcome-tab" role="tab" aria-selected="false" data-panel="code-panel">
             <span class="wtab-num">60+</span> Code Files
+          </button>
+          <button class="welcome-tab" role="tab" aria-selected="false" data-panel="graph-panel">
+            <span class="wtab-num">14</span> Graph
           </button>
         </div>
 
@@ -214,6 +212,9 @@
           <div id="code-by-module" aria-label="Code files grouped by module"></div>
         </div>
 
+        <div id="graph-panel" class="welcome-panel hidden" role="tabpanel">
+          <svg id="dep-graph" aria-label="Module dependency graph"></svg>
+        </div>
 
       </div>
 
