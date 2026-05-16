@@ -10,6 +10,8 @@
 
 ---
 
+> **Python prerequisite:** This module uses Python, NumPy, and ML libraries throughout. If you need a foundation or refresher, visit the **Languages → Python** guide and read **Section 21 — Python for ML & AI** before starting.
+
 ## Prerequisites & Overview
 
 **Prerequisites:** Modules 01–02 (matrix ops, partial derivatives, chain rule, gradient descent). NumPy only — all scripts run without PyTorch.

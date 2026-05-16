@@ -21,6 +21,8 @@ The cost problem: GPT-2 has 1.5B params × 4 bytes = 6 GB just for weights. Trai
 
 ---
 
+> **Python prerequisite:** This module uses Python, NumPy, and ML libraries throughout. If you need a foundation or refresher, visit the **Languages → Python** guide and read **Section 21 — Python for ML & AI** before starting.
+
 ## 1. Full Fine-Tuning Mechanics
 
 ### What Actually Changes During Fine-Tuning

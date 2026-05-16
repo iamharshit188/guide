@@ -41,6 +41,8 @@ by training on 400 million (image, caption) pairs from the internet.
 
 ---
 
+> **Python prerequisite:** This module uses Python, NumPy, and ML libraries throughout. If you need a foundation or refresher, visit the **Languages → Python** guide and read **Section 21 — Python for ML & AI** before starting.
+
 ## 1. Vision Transformers (ViT)
 
 ### The Key Idea: Treat Image Patches as Tokens

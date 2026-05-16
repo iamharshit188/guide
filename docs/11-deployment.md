@@ -36,6 +36,8 @@ Key steps: serialize → containerize → serve → monitor → iterate
 
 ---
 
+> **Python prerequisite:** This module uses Python, NumPy, and ML libraries throughout. If you need a foundation or refresher, visit the **Languages → Python** guide and read **Section 21 — Python for ML & AI** before starting.
+
 ## 1. Model Serialization
 
 ### Why Serialization Matters
