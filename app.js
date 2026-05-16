@@ -1039,6 +1039,7 @@ function goHome() {
     buildLanguagesGrid();
     buildCodeGrid();
     updateGreeting();
+    hideToc();
   });
 }
 

@@ -930,6 +930,34 @@ Initial retrieval (BM25/dense) optimizes for recall — get all potentially rele
 3. Validate model output against expected format
 4. Monitor for unusual outputs (flag anything claiming to be system/assistant)
 
+## Q1: What is the difference between sparse (BM25) and dense retrieval? When does each win?
+
+**Sparse retrieval** (BM25) scores documents by lexical overlap using term frequency and inverse document frequency, producing sparse vectors where most entries are zero. **Dense retrieval** encodes queries and documents into continuous embedding vectors and ranks by cosine similarity. BM25 wins on out-of-domain queries, exact keyword matching (product codes, names, acronyms), and zero-shot settings without fine-tuning data. Dense retrieval wins when synonymy and paraphrase matter — "car" vs "automobile", or when query intent differs from surface tokens. The BM25 score for term $t$ in document $d$ is $\text{IDF}(t) \cdot \frac{f(t,d) \cdot (k_1+1)}{f(t,d) + k_1(1 - b + b \cdot |d|/\text{avgdl})}$ where $k_1 \approx 1.5$ and $b \approx 0.75$.
+
+## Q2: Explain the Reciprocal Rank Fusion (RRF) formula for hybrid search.
+
+Given ranked lists from multiple retrievers, RRF assigns each document a score $\text{RRF}(d) = \sum_{r \in R} \frac{1}{k + \text{rank}_r(d)}$ where $k = 60$ is a stability constant and $\text{rank}_r(d)$ is the 1-indexed position of document $d$ in retriever $r$'s list. The constant $k$ prevents a rank-1 result from dominating; empirically $k=60$ is robust across datasets. Documents missing from a list get no contribution from that ranker. RRF is score-scale agnostic — it doesn't require normalizing BM25 and cosine similarities to the same range, making it more reliable than weighted score fusion.
+
+## Q3: What is chunking strategy and how does chunk size affect retrieval quality?
+
+**Chunking** is the process of splitting source documents into retrievable units before indexing. Chunk size controls the precision-recall tradeoff: small chunks ($\approx 128$ tokens) retrieve precise passages but lose surrounding context needed for a coherent answer; large chunks ($\approx 512$ tokens) retain context but dilute the embedding signal with off-topic content. Sentence-aware splitting respects grammatical boundaries and outperforms fixed-size on most benchmarks. Overlapping chunks (10–20% overlap) reduce boundary artifacts where an answer spans two adjacent chunks. For production: 256-token chunks with 32-token overlap is a reliable baseline; tune with RAGAS context precision on a sample eval set.
+
+## Q4: How does ColBERT differ from bi-encoder retrieval?
+
+A **bi-encoder** encodes query and document independently into single vectors and scores with one dot product: $s(q, d) = \mathbf{q}^\top \mathbf{d}$. **ColBERT** (Contextualized Late Interaction over BERT) retains token-level embeddings for both query and document, then scores with a MaxSim operation: $s(q, d) = \sum_{i \in q} \max_{j \in d} \mathbf{q}_i^\top \mathbf{d}_j$. This late interaction captures fine-grained term-level alignment, matching bi-encoder indexing efficiency (document vectors precomputed offline) while recovering most of cross-encoder accuracy. The cost is storage: ColBERT stores $L \times d$ floats per document instead of $d$ floats, roughly $128\times$ more index space.
+
+## Q5: What is the RAGAS framework and which metrics does it measure?
+
+**RAGAS** (Retrieval Augmented Generation Assessment) is an evaluation framework that scores RAG pipelines without requiring human labels, using an LLM as judge. It measures four metrics: **Context Precision** — what fraction of retrieved chunks are actually relevant to the question; **Context Recall** — what fraction of ground-truth answer facts appear in the retrieved context; **Faithfulness** — what fraction of the generated answer's claims are entailed by the context (measures hallucination); **Answer Relevance** — how well the answer addresses the question, scored by embedding similarity between the question and reverse-engineered questions from the answer. Together they diagnose whether failures are in retrieval or generation.
+
+## Q6: Why does naive RAG fail on multi-hop questions and how does corrective RAG address it?
+
+Naive RAG issues a single retrieval call: embed the question, fetch top-$k$ chunks, generate. Multi-hop questions require chaining evidence — "Who founded the company that acquired DeepMind?" needs (1) retrieve DeepMind's acquirer, (2) retrieve that company's founder. A single retrieval round cannot satisfy both steps simultaneously. **Corrective RAG** (CRAG) adds a retrieval evaluator that grades retrieved chunks; if relevance is low it triggers a web search or reformulates the query. More general solutions include **iterative retrieval** (retrieve → generate sub-answer → use sub-answer as new query) and **RAG-Fusion** which decomposes the question into sub-queries, retrieves for each, and merges with RRF.
+
+## Q7: What is the lost-in-the-middle problem in RAG?
+
+LLMs exhibit **positional bias**: they attend most strongly to tokens at the beginning and end of the context window, degrading on information buried in the middle. Liu et al. (2023) showed that retrieval-augmented generation accuracy peaks when the relevant document is first or last in the context and drops by 10–20 percentage points when placed at the middle position. This means retrieving more chunks does not monotonically improve performance — a top-20 context can underperform top-5 if the answer lands in positions 10–15. Mitigations include reranking to always place the highest-scoring chunk first, lost-in-the-middle-aware reordering (high-score → low-score → high-score sandwich), and using models with explicit long-context training.
+
 ---
 
 ## 9. Cheat Sheet

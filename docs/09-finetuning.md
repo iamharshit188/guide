@@ -853,6 +853,34 @@ Catastrophic forgetting: fine-tuning on task A overwrites weights needed for tas
 - **TruthfulQA**: measures tendency to generate factually false statements
 - Task-specific eval on held-out test sets
 
+## Q1: Derive why LoRA works — what is the low-rank decomposition assumption?
+
+The key assumption is the **Intrinsic Dimensionality Hypothesis**: the optimal weight update $\Delta W^* \in \mathbb{R}^{d \times k}$ for a fine-tuning task lies in a low-dimensional subspace, i.e., $\text{rank}(\Delta W^*) \ll \min(d, k)$. LoRA parameterizes $\Delta W = BA$ where $B \in \mathbb{R}^{d \times r}$ and $A \in \mathbb{R}^{r \times k}$ with $r \ll \min(d, k)$. The forward pass becomes $h = Wx + \frac{\alpha}{r} BAx$, keeping $W$ frozen. $B$ is initialized to zero so $\Delta W = 0$ at the start, preserving the pretrained model's behavior. The rank-$r$ product $BA$ can represent any rank-$r$ matrix, so as long as the true $\Delta W^*$ has low rank, LoRA can recover it exactly with far fewer parameters than full fine-tuning.
+
+## Q2: What is QLoRA and how does NF4 quantization enable it?
+
+**QLoRA** (Quantized LoRA) fine-tunes a 4-bit quantized base model while keeping LoRA adapters in full precision (bfloat16). **NF4** (Normal Float 4-bit) is a data type designed for normally distributed weights: it places quantization levels at the quantiles of $\mathcal{N}(0,1)$, minimizing quantization error for Gaussian-distributed neural network weights compared to uniform INT4. The base model is stored in NF4, reducing memory by $\approx 8\times$ vs float32; during the forward pass, NF4 weights are dequantized to bfloat16 on-the-fly. Gradients flow only through the LoRA adapters (full precision), never through the frozen quantized weights. This allows a 7B parameter model to fine-tune on a single 24 GB GPU.
+
+## Q3: How do you construct a training dataset for instruction fine-tuning?
+
+An instruction fine-tuning dataset consists of (instruction, input, output) triples in a structured format such as Alpaca-style (`### Instruction:\n{}\n### Response:\n{}`) or ChatML. Data sources include: human-written demonstrations (highest quality, expensive), self-instruct generation (use a strong LLM to generate instruction-response pairs from seed tasks), and distillation from GPT-4. Quality filtering is critical — filter by length, deduplication (MinHash LSH), reward model scoring, and human review of a sample. The training loss is computed only on response tokens (loss masking), so the model learns to generate answers, not repeat the prompt.
+
+## Q4: What is catastrophic forgetting and how does LoRA mitigate it?
+
+**Catastrophic forgetting** occurs when gradient updates for a new task overwrite the weight values that encode knowledge for previously learned tasks, because standard SGD has no mechanism to preserve old information. LoRA mitigates this structurally: the base weights $W$ are frozen throughout training — no gradient flows into them. Only the adapter matrices $A$ and $B$ are updated. To discard the adaptation, set $B = 0$; to switch between tasks, swap adapter checkpoints without touching the base model. Multiple task-specific adapters can coexist on a single base model, each encoding a different fine-tuning without interfering with each other.
+
+## Q5: Explain perplexity as an evaluation metric for fine-tuned models.
+
+**Perplexity** is the exponentiated average negative log-likelihood of a held-out corpus: $\text{PPL} = \exp\!\left(-\frac{1}{N}\sum_{i=1}^N \log p_\theta(x_i \mid x_{<i})\right)$. Lower perplexity means the model assigns higher probability to the true token sequence — it's "less surprised" by the data. For instruction-tuned models, perplexity is computed on the response tokens only (after loss masking). Perplexity is fast and deterministic but correlates poorly with human preference for chat models — a model can have low perplexity while producing verbose, sycophantic, or unhelpful responses. Use it as a regression check (ensure PPL didn't spike after fine-tuning) rather than a primary quality metric.
+
+## Q6: What is the difference between full fine-tuning, adapter tuning, and LoRA?
+
+**Full fine-tuning** updates all model parameters with standard gradient descent — highest capacity and quality, but requires storing and updating all optimizer states ($\approx 3\times$ model size for Adam). **Adapter tuning** (Houlsby et al.) inserts small bottleneck MLP modules between Transformer sublayers; only adapter weights are trained ($\approx 1$–$3\%$ of params), but adapters add sequential compute at inference time. **LoRA** reparameterizes weight updates as low-rank products $\Delta W = BA$ without adding new modules; adapters can be merged into the base weights at inference ($W_{\text{new}} = W + \frac{\alpha}{r}BA$) yielding zero inference overhead. LoRA typically matches full fine-tuning quality at $0.1$–$1\%$ of trainable parameters with no inference penalty.
+
+## Q7: How do you choose the LoRA rank $r$ and $\alpha$?
+
+The rank $r$ controls the expressivity of the adapter: higher $r$ means more trainable parameters and a larger subspace for $\Delta W$. Empirical guidance: $r \in \{4, 8\}$ for simple classification or style tasks; $r \in \{16, 32, 64\}$ for complex instruction following or domain adaptation. $\alpha$ is a scaling hyperparameter; the effective update magnitude is $\frac{\alpha}{r} \cdot \|BA\|$. Setting $\alpha = r$ gives unit scaling; setting $\alpha = 2r$ doubles the effective learning rate for adapter weights relative to the optimizer's base LR. A common heuristic is $\alpha = 2r$ with a lower base learning rate (e.g., $2 \times 10^{-4}$), or $\alpha = r$ with a higher base LR. Tune $r$ first with a coarse sweep, then adjust $\alpha$ to control convergence speed.
+
 ---
 
 ## 8. Cheat Sheet
