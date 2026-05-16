@@ -2667,6 +2667,10 @@ body.light-mode .logo-tag { color: #000000; }
   color: rgba(255,255,255,0.7);
   line-height: 1.65;
 }
+.sr-answer p { margin: 0 0 10px; }
+.sr-answer p:last-child { margin-bottom: 0; }
+.sr-answer strong { color: #fff; font-weight: 700; }
+.sr-answer code { font-family: var(--font-mono); font-size: 12px; background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; }
 .sr-answer.hidden { display: none; }
 
 .sr-show-btn-wrap {
@@ -2995,6 +2999,10 @@ body.light-mode .logo-tag { color: #000000; }
   color: rgba(255,255,255,0.7);
   line-height: 1.65;
 }
+.iv-answer-text p { margin: 0 0 10px; }
+.iv-answer-text p:last-child { margin-bottom: 0; }
+.iv-answer-text strong { color: #fff; font-weight: 700; }
+.iv-answer-text code { font-family: var(--font-mono); font-size: 12px; background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; }
 
 /* IV summary */
 .iv-summary-icon {
@@ -3046,46 +3054,97 @@ body.light-mode .logo-tag { color: #000000; }
 .iv-score-cell.hard .iv-score-num { color: #FF6B00; }
 .iv-score-cell.miss .iv-score-num { color: #FF1744; }
 
-/* Light mode overrides */
+/* Light mode overrides — Neo-brutalism palette */
 body.light-mode #sr-modal,
-body.light-mode #interview-modal { background: rgba(0,0,0,0.75); }
+body.light-mode #interview-modal { background: rgba(0,0,0,0.6); }
 
 body.light-mode .sr-container,
 body.light-mode .iv-screen {
-  background: #EEEEED;
-  border-color: rgba(0,0,0,0.15);
+  background: #FFF5E1;
+  border: 3px solid #000;
+  box-shadow: 6px 6px 0px #000;
 }
 
 body.light-mode .sr-card,
-body.light-mode .iv-answer-reveal,
-body.light-mode .iv-score-cell { background: #e0e0de; border-color: rgba(0,0,0,0.1); }
+body.light-mode .iv-answer-reveal {
+  background: #fff;
+  border: 2px solid #000;
+  box-shadow: 3px 3px 0px #000;
+}
+
+body.light-mode .iv-score-cell {
+  background: #fff;
+  border: 2px solid #000;
+  box-shadow: 3px 3px 0px #000;
+}
 
 body.light-mode .sr-question,
 body.light-mode .iv-question-text,
 body.light-mode .iv-setup-title,
-body.light-mode .sr-empty-title { color: #111; }
+body.light-mode .sr-empty-title { color: #000; }
 
 body.light-mode .sr-answer,
-body.light-mode .iv-answer-text { color: rgba(0,0,0,0.65); }
+body.light-mode .iv-answer-text { color: rgba(0,0,0,0.75); }
+
+body.light-mode .sr-answer p,
+body.light-mode .iv-answer-text p { color: rgba(0,0,0,0.75); }
+
+body.light-mode .sr-answer strong,
+body.light-mode .iv-answer-text strong { color: #000; }
+
+body.light-mode .sr-answer code,
+body.light-mode .iv-answer-text code {
+  background: rgba(0,0,0,0.07);
+  color: #000;
+  border: 1px solid rgba(0,0,0,0.12);
+}
 
 body.light-mode .sr-queue-label,
 body.light-mode .sr-card-counter,
 body.light-mode .iv-q-counter,
 body.light-mode .sr-empty-sub,
-body.light-mode .iv-setup-sub { color: rgba(0,0,0,0.4); }
+body.light-mode .iv-setup-sub { color: rgba(0,0,0,0.45); }
 
-body.light-mode .sr-close-btn { color: rgba(0,0,0,0.4); }
-body.light-mode .sr-close-btn:hover { color: #000; background: rgba(0,0,0,0.07); }
+body.light-mode .sr-close-btn { color: rgba(0,0,0,0.5); border: 1px solid transparent; }
+body.light-mode .sr-close-btn:hover { color: #000; background: rgba(0,0,0,0.08); border-color: #000; }
+
+body.light-mode .sr-show-btn {
+  background: var(--yellow);
+  border: 2px solid #000;
+  color: #000;
+  box-shadow: 3px 3px 0px #000;
+}
+body.light-mode .sr-show-btn:hover { background: #000; color: var(--yellow); }
+body.light-mode .sr-show-btn kbd {
+  background: rgba(0,0,0,0.12);
+  color: rgba(0,0,0,0.55);
+  border-color: rgba(0,0,0,0.2);
+}
 
 body.light-mode .iv-count-btn {
-  border-color: rgba(0,0,0,0.2);
-  color: rgba(0,0,0,0.5);
+  border: 2px solid #000;
+  color: rgba(0,0,0,0.6);
+  background: transparent;
 }
-body.light-mode .iv-count-btn:hover { border-color: #888; color: #333; }
-body.light-mode .iv-count-btn.active { border-color: var(--yellow); color: #000; background: var(--yellow); }
+body.light-mode .iv-count-btn:hover { color: #000; box-shadow: 2px 2px 0px #000; }
+body.light-mode .iv-count-btn.active { border-color: #000; color: #000; background: var(--yellow); box-shadow: 3px 3px 0px #000; }
 
 body.light-mode .iv-timer-bar-track { background: rgba(0,0,0,0.1); }
 
-body.light-mode .sr-answer { border-top-color: rgba(0,0,0,0.1); }
+body.light-mode .sr-answer { border-top: 1px solid rgba(0,0,0,0.15); }
 
-body.light-mode .dock-badge { border: 1px solid rgba(0,0,0,0.1); }
+body.light-mode .dock-badge { border: 1px solid rgba(0,0,0,0.15); color: #000; background: var(--yellow); }
+
+body.light-mode .iv-start-btn {
+  background: var(--yellow);
+  border: 3px solid #000;
+  color: #000;
+  box-shadow: 4px 4px 0px #000;
+}
+body.light-mode .iv-start-btn:hover { background: #000; color: var(--yellow); box-shadow: none; }
+
+body.light-mode .sr-done-stats,
+body.light-mode .iv-summary-sub { color: rgba(0,0,0,0.6); }
+
+body.light-mode .sr-done-title,
+body.light-mode .iv-summary-title { color: #000; }

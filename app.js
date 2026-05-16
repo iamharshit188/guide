@@ -1867,6 +1867,17 @@ window.addEventListener("resize", () => {
   }
 });
 
+// ── Shared card helpers ───────────────────────────────────────────
+function renderMd(text) {
+  if (typeof marked !== "undefined") return marked.parse(text);
+  return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+}
+function retypeset(el) {
+  if (window.MathJax && window.MathJax.typesetPromise) {
+    window.MathJax.typesetPromise([el]).catch(() => {});
+  }
+}
+
 // ── Spaced Repetition (SM-2) ──────────────────────────────────────
 const SR_LS_KEY = "aiml_sr_deck";
 
@@ -1969,13 +1980,14 @@ function updateSRBadge(pool, deckState) {
 
   function showCard(idx) {
     const card = queue[idx];
-    $("sr-question").textContent = card.question;
-    $("sr-answer").textContent   = card.answer;
+    $("sr-question").textContent    = card.question;
+    $("sr-answer").innerHTML        = renderMd(card.answer);
     $("sr-answer").classList.add("hidden");
     $("sr-show-btn-wrap").classList.remove("hidden");
     $("sr-rating-row").classList.add("hidden");
     $("sr-card-counter").textContent = `${idx + 1} / ${queue.length}`;
     $("sr-source-tag").textContent   = card.source;
+    retypeset($("sr-answer"));
   }
 
   function showDone() {
@@ -2137,7 +2149,8 @@ function updateSRBadge(pool, deckState) {
     $("iv-q-counter").textContent     = `${idx + 1} / ${ivQuestions.length}`;
     $("iv-source-tag").textContent    = q.source;
     $("iv-question-text").textContent = q.question;
-    $("iv-answer-text").textContent   = q.answer;
+    $("iv-answer-text").innerHTML     = renderMd(q.answer);
+    retypeset($("iv-answer-text"));
     $("iv-answer-reveal").classList.add("hidden");
     $("iv-show-wrap").classList.remove("hidden");
     $("iv-rating-row").classList.add("hidden");
