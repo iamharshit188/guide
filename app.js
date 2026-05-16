@@ -279,6 +279,8 @@ function applyTheme(light) {
     const lbl = dockTheme.querySelector(".dock-label");
     if (lbl) lbl.textContent = light ? "Dark Mode" : "Light Mode";
   }
+
+  if (typeof Playground !== "undefined") Playground.syncTheme(light);
 }
 
 function toggleTheme() {
@@ -701,6 +703,8 @@ async function openModule(file, label) {
     li.classList.remove("active"));
 
   $("breadcrumb").textContent = label;
+  const runBtn = $("btn-run-playground");
+  if (runBtn) runBtn.classList.add("hidden");
 
   const isDone = state.progress[file] === "done";
   const btn    = $("btn-complete");
@@ -740,6 +744,8 @@ async function openProject(file, label) {
     li.classList.remove("active"));
 
   $("breadcrumb").textContent = "PROJECT — " + label;
+  const pgRunBtn = $("btn-run-playground");
+  if (pgRunBtn) pgRunBtn.classList.add("hidden");
 
   const isDone = state.projectsProgress[file] === "done";
   const btn    = $("btn-complete");
@@ -777,6 +783,14 @@ async function openCode(file, label) {
 
   $("breadcrumb").textContent = "CODE — " + label;
   $("btn-complete").classList.add("hidden");
+
+  // Show "Run" button for runnable file types
+  const runBtn = $("btn-run-playground");
+  if (runBtn) {
+    const ext = file.split(".").pop().toLowerCase();
+    const runnable = ext === "py" || ext === "js" || ext === "cpp";
+    runBtn.classList.toggle("hidden", !runnable);
+  }
 
   fadeContent(async () => {
     $("welcome-screen").classList.add("hidden");
@@ -936,6 +950,8 @@ function goHome() {
     $("doc-view").classList.add("hidden");
     $("welcome-screen").classList.remove("hidden");
     $("btn-complete").classList.add("hidden");
+    const homeRunBtn = $("btn-run-playground");
+    if (homeRunBtn) homeRunBtn.classList.add("hidden");
     buildWelcomeGrid();
     buildProjectsGrid();
     buildLanguagesGrid();
@@ -1286,6 +1302,381 @@ const fuse = new Fuse(searchItems, {
   threshold: 0.4,
   includeScore: true,
 });
+
+// ── Code Playground ──────────────────────────────────────────────
+const Playground = (function () {
+  let monacoEditor   = null;
+  let monacoLoaded   = false;
+  let monacoLoading  = false;
+  let pyodide        = null;
+  let pyodideLoading = false;
+  let currentLang    = "python";
+  let currentFileRef = null; // last code file fetched into playground
+
+  const TEMPLATES = {
+    python: `import sys
+
+def main():
+    try:
+        import numpy as np
+        rng = np.random.default_rng(42)
+        data = rng.normal(0, 1, 10)
+        print("numpy demo: 10 samples from N(0,1)")
+        for i, v in enumerate(data):
+            print(f"  [{i}] {v:.4f}")
+        print(f"mean={data.mean():.4f}  std={data.std():.4f}")
+    except ImportError:
+        print("numpy not available; showing x^2 table")
+        for x in [i * 0.5 for i in range(10)]:
+            print(f"  {x:.1f} -> {x**2:.2f}")
+
+if __name__ == "__main__":
+    main()
+`,
+    javascript: `function main() {
+  const data = Array.from({ length: 10 }, (_, i) => i + 1);
+  const squares = data.map(x => x * x);
+  const sum = squares.reduce((a, b) => a + b, 0);
+
+  console.log("Squares of 1..10:");
+  squares.forEach((v, i) => console.log(\`  [\${i}] \${data[i]}^2 = \${v}\`));
+  console.log(\`Sum of squares: \${sum}\`);
+  console.log("Stats:", JSON.stringify({ count: data.length, sum, mean: sum / data.length }, null, 2));
+}
+
+main();
+`,
+    cpp: `#include <iostream>
+#include <vector>
+#include <numeric>
+
+int main() {
+    std::vector<int> v = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    std::cout << "Vector: ";
+    for (int x : v) std::cout << x << " ";
+    std::cout << std::endl;
+
+    int sum = std::accumulate(v.begin(), v.end(), 0);
+    double mean = static_cast<double>(sum) / v.size();
+    std::cout << "Sum:  " << sum << std::endl;
+    std::cout << "Mean: " << mean << std::endl;
+    return 0;
+}
+`,
+  };
+
+  // ── Monaco loader ──────────────────────────────────────────────
+  function loadMonaco(callback) {
+    if (monacoLoaded) { callback(); return; }
+    if (monacoLoading) { setTimeout(() => loadMonaco(callback), 150); return; }
+    monacoLoading = true;
+
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js";
+    script.onload = () => {
+      window.require.config({ paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs" } });
+      window.require(["vs/editor/editor.main"], () => {
+        monacoLoaded = true;
+        monacoLoading = false;
+        callback();
+      });
+    };
+    script.onerror = () => {
+      monacoLoading = false;
+      appendConsole("Failed to load Monaco editor.", "err");
+    };
+    document.head.appendChild(script);
+  }
+
+  // ── Pyodide loader ─────────────────────────────────────────────
+  async function initPyodide() {
+    if (pyodide) return pyodide;
+    if (pyodideLoading) {
+      while (pyodideLoading) await new Promise(r => setTimeout(r, 200));
+      return pyodide;
+    }
+    pyodideLoading = true;
+    const runtimeMsg = $("playground-loading-runtime");
+    if (runtimeMsg) runtimeMsg.classList.remove("hidden");
+
+    if (!window.loadPyodide) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = "https://cdn.jsdelivr.net/pyodide/v0.27.5/full/pyodide.js";
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    pyodide = await window.loadPyodide({
+      indexURL: "https://cdn.jsdelivr.net/pyodide/v0.27.5/full/",
+    });
+    pyodideLoading = false;
+    if (runtimeMsg) runtimeMsg.classList.add("hidden");
+    return pyodide;
+  }
+
+  // ── Console helpers ────────────────────────────────────────────
+  function appendConsole(text, type) {
+    const el = $("playground-console");
+    if (!el) return;
+    const line = document.createElement("div");
+    line.className = type === "err"  ? "pg-err-line"
+                   : type === "info" ? "pg-info-line"
+                   : "pg-out-line";
+    line.textContent = text;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function clearConsole() {
+    const el = $("playground-console");
+    if (el) el.innerHTML = "";
+    setStatus("");
+  }
+
+  function setStatus(msg, cls) {
+    const el = $("pg-status");
+    if (!el) return;
+    el.textContent = msg;
+    el.className   = cls || "";
+  }
+
+  // ── Monaco language ID ─────────────────────────────────────────
+  function monacoLang(lang) {
+    return lang === "python" ? "python" : lang === "javascript" ? "javascript" : "cpp";
+  }
+
+  // ── Create / update Monaco editor ─────────────────────────────
+  function initEditor(code) {
+    const container = $("monaco-container");
+    const theme     = state.lightMode ? "vs" : "vs-dark";
+
+    if (monacoEditor) {
+      const model = monacoEditor.getModel();
+      if (model) window.monaco.editor.setModelLanguage(model, monacoLang(currentLang));
+      monacoEditor.setValue(code);
+      window.monaco.editor.setTheme(theme);
+      return;
+    }
+
+    monacoEditor = window.monaco.editor.create(container, {
+      value: code,
+      language: monacoLang(currentLang),
+      theme,
+      fontSize: 13,
+      fontFamily: "'JetBrains Mono', monospace",
+      lineNumbers: "on",
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      wordWrap: "on",
+      automaticLayout: true,
+      padding: { top: 16, bottom: 16 },
+    });
+  }
+
+  // ── Run Python ─────────────────────────────────────────────────
+  async function runPython(code) {
+    setStatus("Loading…", "running");
+    $("pg-run-btn").disabled = true;
+    try {
+      const py = await initPyodide();
+      setStatus("Running…", "running");
+
+      const lines = [];
+      py.setStdout({ batched: s => lines.push({ t: "out", s }) });
+      py.setStderr({ batched: s => lines.push({ t: "err", s }) });
+
+      await py.runPythonAsync(code);
+      for (const { t, s } of lines) {
+        // split on newlines so each line is its own element
+        s.split("\n").forEach(l => { if (l !== "") appendConsole(l, t); });
+      }
+      setStatus("Done", "done");
+    } catch (err) {
+      String(err).split("\n").forEach(l => appendConsole(l, "err"));
+      setStatus("Error", "error");
+    } finally {
+      $("pg-run-btn").disabled = false;
+    }
+  }
+
+  // ── Run JavaScript ─────────────────────────────────────────────
+  function runJavaScript(code) {
+    setStatus("Running…", "running");
+    $("pg-run-btn").disabled = true;
+
+    const origLog   = console.log;
+    const origError = console.error;
+    const origWarn  = console.warn;
+    const origInfo  = console.info;
+
+    const capture = isErr => (...args) => {
+      const line = args.map(a => typeof a === "object" ? JSON.stringify(a, null, 2) : String(a)).join(" ");
+      appendConsole(line, isErr ? "err" : "out");
+    };
+    console.log   = capture(false);
+    console.error = capture(true);
+    console.warn  = capture(false);
+    console.info  = capture(false);
+
+    try {
+      // eslint-disable-next-line no-new-func
+      new Function(code)();
+      setStatus("Done", "done");
+    } catch (err) {
+      appendConsole(String(err), "err");
+      setStatus("Error", "error");
+    } finally {
+      console.log   = origLog;
+      console.error = origError;
+      console.warn  = origWarn;
+      console.info  = origInfo;
+      $("pg-run-btn").disabled = false;
+    }
+  }
+
+  // ── Run C++ via Wandbox ────────────────────────────────────────
+  async function runCpp(code) {
+    setStatus("Compiling…", "running");
+    $("pg-run-btn").disabled = true;
+    try {
+      const res = await fetch("https://wandbox.org/api/compile.json", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ compiler: "gcc-head", code, options: "warning" }),
+      });
+      if (!res.ok) throw new Error("Wandbox returned HTTP " + res.status);
+      const data = await res.json();
+      if (data.compiler_message && data.compiler_message.trim())
+        data.compiler_message.trim().split("\n").forEach(l => appendConsole(l, "info"));
+      if (data.program_output && data.program_output.trim())
+        data.program_output.trim().split("\n").forEach(l => appendConsole(l, "out"));
+      if (data.program_error && data.program_error.trim())
+        data.program_error.trim().split("\n").forEach(l => appendConsole(l, "err"));
+      const ok = data.status === "0" && !data.program_error;
+      setStatus(ok ? "Done" : "Error", ok ? "done" : "error");
+    } catch (err) {
+      appendConsole(String(err), "err");
+      setStatus("Error", "error");
+    } finally {
+      $("pg-run-btn").disabled = false;
+    }
+  }
+
+  // ── Open playground ────────────────────────────────────────────
+  function open(lang, code, filename) {
+    currentLang    = lang || "python";
+    currentFileRef = filename || null;
+
+    const modal = $("playground-modal");
+    if (!modal) return;
+    modal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+
+    document.querySelectorAll(".pg-lang-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.lang === currentLang);
+    });
+
+    const fnEl = $("playground-filename");
+    if (fnEl) fnEl.textContent = filename || "";
+
+    clearConsole();
+
+    const targetCode = code !== undefined && code !== null ? code : TEMPLATES[currentLang];
+    loadMonaco(() => {
+      initEditor(targetCode);
+      if (currentLang === "python") initPyodide().catch(() => {});
+    });
+  }
+
+  function close() {
+    const modal = $("playground-modal");
+    if (modal) modal.classList.add("hidden");
+    document.body.style.overflow = "";
+  }
+
+  function runCurrent() {
+    if (!monacoEditor) return;
+    const code = monacoEditor.getValue();
+    clearConsole();
+    if (currentLang === "python")     runPython(code);
+    else if (currentLang === "javascript") runJavaScript(code);
+    else if (currentLang === "cpp")   runCpp(code);
+  }
+
+  function switchLang(lang) {
+    if (lang === currentLang) return;
+    currentLang = lang;
+    document.querySelectorAll(".pg-lang-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.lang === lang);
+    });
+    clearConsole();
+    if (monacoEditor && window.monaco) {
+      const model = monacoEditor.getModel();
+      if (model) window.monaco.editor.setModelLanguage(model, monacoLang(lang));
+      // Only reset to template if no specific file was loaded for the new lang
+      monacoEditor.setValue(TEMPLATES[lang]);
+    }
+    if (lang === "python") initPyodide().catch(() => {});
+  }
+
+  function syncTheme(isLight) {
+    if (monacoEditor && window.monaco) {
+      window.monaco.editor.setTheme(isLight ? "vs" : "vs-dark");
+    }
+  }
+
+  // ── Wire DOM events ────────────────────────────────────────────
+  document.addEventListener("DOMContentLoaded", () => {
+    const closeBtn  = $("pg-close-btn");
+    const runBtn    = $("pg-run-btn");
+    const clearBtn  = $("pg-clear-btn");
+    const dockBtn   = $("dock-playground");
+    const topRunBtn = $("btn-run-playground");
+
+    if (closeBtn) closeBtn.addEventListener("click", close);
+    if (runBtn)   runBtn.addEventListener("click",   runCurrent);
+    if (clearBtn) clearBtn.addEventListener("click", clearConsole);
+    if (dockBtn)  dockBtn.addEventListener("click",  () => open(currentLang));
+
+    if (topRunBtn) {
+      topRunBtn.addEventListener("click", async () => {
+        const file = state.currentFile;
+        if (!file) return;
+        const ext    = file.split(".").pop().toLowerCase();
+        const langMap = { py: "python", js: "javascript", cpp: "cpp" };
+        const lang    = langMap[ext];
+        if (!lang) return;
+
+        // Fetch current file content if it's a code file
+        let code = null;
+        try {
+          const res = await fetch("src/" + file);
+          if (res.ok) code = await res.text();
+        } catch (_) {}
+
+        open(lang, code, file.split("/").pop());
+      });
+    }
+
+    document.querySelectorAll(".pg-lang-btn").forEach(btn => {
+      btn.addEventListener("click", () => switchLang(btn.dataset.lang));
+    });
+
+    // Escape closes playground before the global handler sees it
+    document.addEventListener("keydown", e => {
+      const modal = $("playground-modal");
+      if (e.key === "Escape" && modal && !modal.classList.contains("hidden")) {
+        e.stopPropagation();
+        close();
+      }
+    }, true);
+  });
+
+  return { open, close, syncTheme };
+})();
 
 // ── Init ─────────────────────────────────────────────────────────
 function init() {
