@@ -502,7 +502,7 @@ function buildLanguageNav() {
     li.setAttribute("aria-label", `Language: ${lang.label}`);
 
     li.innerHTML = `
-      <span class="module-num" aria-hidden="true">${lang.tag}</span>
+      <span class="module-num lang-nav-icon" aria-hidden="true">${lang.icon}</span>
       <span class="module-name">${lang.label}</span>
     `;
 
