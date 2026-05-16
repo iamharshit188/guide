@@ -3172,3 +3172,300 @@ body.light-mode .iv-summary-sub { color: rgba(0,0,0,0.6); }
 
 body.light-mode .sr-done-title,
 body.light-mode .iv-summary-title { color: #000; }
+
+/* ── Inline MCQ Checkpoints ─────────────────────────────────────── */
+.checkpoint-block {
+  margin: 28px 0;
+  border: 2px solid rgba(230,255,0,0.2);
+  border-radius: 6px;
+  padding: 20px 24px;
+  background: rgba(230,255,0,0.03);
+}
+
+.cp-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.cp-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--yellow);
+  text-transform: uppercase;
+  background: rgba(230,255,0,0.1);
+  border: 1px solid rgba(230,255,0,0.2);
+  padding: 2px 8px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.cp-title {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--white);
+  display: block;
+  margin-top: 10px;
+  line-height: 1.45;
+}
+
+.cp-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.cp-option {
+  text-align: left;
+  padding: 10px 14px;
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  background: transparent;
+  color: rgba(255,255,255,0.65);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.cp-option:hover:not(:disabled) {
+  border-color: rgba(255,255,255,0.3);
+  color: #fff;
+  background: rgba(255,255,255,0.04);
+}
+
+.cp-option:disabled { cursor: default; }
+
+.cp-option .cp-letter {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--yellow);
+  min-width: 18px;
+  font-weight: 700;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.cp-option.correct {
+  border-color: #00E676;
+  background: rgba(0,230,118,0.08);
+  color: #00E676;
+}
+
+.cp-option.wrong {
+  border-color: #FF1744;
+  background: rgba(255,23,68,0.08);
+  color: #FF1744;
+}
+
+.cp-done {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  color: #00E676;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* Light mode overrides */
+body.light-mode .checkpoint-block {
+  border-color: rgba(0,0,0,0.15);
+  background: rgba(0,0,0,0.02);
+}
+
+body.light-mode .cp-title { color: #000; }
+
+body.light-mode .cp-option {
+  border-color: rgba(0,0,0,0.15);
+  color: rgba(0,0,0,0.6);
+}
+
+body.light-mode .cp-option:hover:not(:disabled) {
+  border-color: rgba(0,0,0,0.35);
+  color: #000;
+  background: rgba(0,0,0,0.03);
+}
+
+body.light-mode .cp-option .cp-letter { color: #000; }
+
+/* ── Table of Contents Panel ────────────────────────────────── */
+#toc-panel {
+  position: fixed;
+  top: 80px;
+  right: 16px;
+  width: 200px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  background: rgba(10,10,10,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 16px;
+  z-index: 400;
+  transition: opacity 0.2s;
+  font-family: var(--font-mono);
+}
+
+#toc-panel.hidden { display: none; }
+
+#toc-header {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.25);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+#toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+#toc-list li {
+  font-size: 11px;
+  line-height: 1.4;
+  cursor: pointer;
+  color: rgba(255,255,255,0.4);
+  padding: 4px 6px;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#toc-list li:hover {
+  color: rgba(255,255,255,0.85);
+  background: rgba(255,255,255,0.05);
+}
+
+#toc-list li.toc-active {
+  color: var(--yellow);
+  background: rgba(230,255,0,0.07);
+}
+
+#toc-list li.toc-h3 {
+  padding-left: 16px;
+  font-size: 10px;
+}
+
+@media (max-width: 1200px) {
+  #toc-panel { display: none; }
+}
+
+/* Light mode — ToC panel */
+body.light-mode #toc-panel {
+  background: rgba(255,245,225,0.92);
+  border-color: rgba(0,0,0,0.1);
+}
+
+body.light-mode #toc-header { color: rgba(0,0,0,0.25); }
+
+body.light-mode #toc-list li { color: rgba(0,0,0,0.4); }
+
+body.light-mode #toc-list li:hover {
+  color: rgba(0,0,0,0.8);
+  background: rgba(0,0,0,0.04);
+}
+
+body.light-mode #toc-list li.toc-active {
+  color: #000;
+  background: rgba(0,0,0,0.06);
+}
+
+/* ── Concept Visualizers ────────────────────────────────────── */
+.viz-wrap {
+  margin: 24px 0 32px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.viz-title {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.25);
+  text-transform: uppercase;
+  align-self: flex-start;
+}
+
+.viz-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.viz-btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 5px 14px;
+  border: 1.5px solid rgba(255,255,255,0.2);
+  background: transparent;
+  color: rgba(255,255,255,0.6);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.viz-btn:hover {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+.viz-btn.active {
+  background: rgba(230,255,0,0.1);
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+.viz-info {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  text-align: center;
+}
+
+/* Light mode overrides */
+body.light-mode .viz-wrap {
+  background: rgba(0,0,0,0.02);
+  border-color: rgba(0,0,0,0.1);
+}
+
+body.light-mode .viz-title {
+  color: rgba(0,0,0,0.3);
+}
+
+body.light-mode .viz-info {
+  color: rgba(0,0,0,0.4);
+}
+
+body.light-mode .viz-btn {
+  border-color: rgba(0,0,0,0.2);
+  color: rgba(0,0,0,0.5);
+}
+
+body.light-mode .viz-btn:hover,
+body.light-mode .viz-btn.active {
+  border-color: #000;
+  color: #000;
+  background: rgba(0,0,0,0.05);
+}

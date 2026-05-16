@@ -724,6 +724,8 @@ async function openModule(file, label) {
         throw new Error(`HTTP ${res.status}`);
       }
       renderMarkdown(await res.text());
+      injectCheckpoints(file);
+      buildToc();
     } catch (err) {
       $("doc-rendered").innerHTML = `<div class="error-box"><strong>Error loading ${file}</strong><br>${err.message}</div>`;
     }
@@ -765,6 +767,7 @@ async function openProject(file, label) {
         throw new Error(`HTTP ${res.status}`);
       }
       renderMarkdown(await res.text());
+      buildToc();
     } catch (err) {
       $("doc-rendered").innerHTML = `<div class="error-box"><strong>Error loading ${file}</strong><br>${err.message}</div>`;
     }
@@ -807,6 +810,7 @@ async function openCode(file, label) {
       else if (ext === "sql")       ext = "sql";
 
       renderMarkdown("```" + ext + "\n" + text + "\n```");
+      hideToc();
     } catch (err) {
       $("doc-rendered").innerHTML = `<div class="error-box"><strong>Error loading ${file}</strong><br>${err.message}</div>`;
     }
@@ -837,10 +841,88 @@ async function openLanguage(file, label) {
       const res = await fetch(`docs/${file}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       renderMarkdown(await res.text());
+      buildToc();
     } catch (err) {
       $("doc-rendered").innerHTML = `<div class="error-box"><strong>Error loading ${file}</strong><br>${err.message}</div>`;
     }
   });
+}
+
+// ── Table of Contents ────────────────────────────────────────────
+function hideToc() {
+  const toc = $("toc-panel");
+  if (toc) toc.classList.add("hidden");
+}
+
+function buildToc() {
+  const toc     = $("toc-panel");
+  const tocList = $("toc-list");
+  if (!toc || !tocList) return;
+
+  const headings = Array.from($("doc-rendered").querySelectorAll("h2, h3"));
+  if (headings.length === 0) { hideToc(); return; }
+
+  // Assign ids to headings that don't have one
+  headings.forEach(h => {
+    if (!h.id) {
+      h.id = h.textContent
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-");
+    }
+  });
+
+  // Build list items
+  tocList.innerHTML = "";
+  const items = [];
+
+  headings.forEach(h => {
+    const li = document.createElement("li");
+    li.textContent = h.textContent;
+    li.title       = h.textContent;
+    li.className   = h.tagName === "H3" ? "toc-h3" : "";
+    li.addEventListener("click", () => {
+      h.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    tocList.appendChild(li);
+    items.push({ li, h });
+  });
+
+  toc.classList.remove("hidden");
+
+  // IntersectionObserver — root is #content-area (the scrolling container)
+  const root = $("content-area");
+  if (!root) return;
+
+  // Disconnect any prior observer stored on the panel
+  if (toc._tocObserver) { toc._tocObserver.disconnect(); }
+
+  let activeIndex = -1;
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      const idx = items.findIndex(({ h }) => h === entry.target);
+      if (idx === -1) return;
+      items[idx]._visible = entry.isIntersecting;
+    });
+
+    // Highlight the first visible heading
+    const firstVisible = items.findIndex(({ _visible }) => _visible);
+    if (firstVisible !== -1 && firstVisible !== activeIndex) {
+      if (activeIndex !== -1 && items[activeIndex]) items[activeIndex].li.classList.remove("toc-active");
+      activeIndex = firstVisible;
+      items[activeIndex].li.classList.add("toc-active");
+    }
+  }, {
+    root,
+    rootMargin: "-20% 0px -70% 0px",
+    threshold:  0,
+  });
+
+  items.forEach(({ h }) => observer.observe(h));
+  toc._tocObserver = observer;
 }
 
 // ── Render markdown ──────────────────────────────────────────────
@@ -2286,6 +2368,225 @@ function updateSRBadge(pool, deckState) {
   });
 })();
 
+
+// ── Inline MCQ Checkpoints ───────────────────────────────────────
+const MODULE_CHECKPOINTS = {
+  "01-math.md": [
+    {
+      afterHeading: "Eigenvalues & Eigenvectors",
+      id: "01-eigen",
+      question: "What does an eigenvector of matrix A represent?",
+      options: [
+        "A vector that changes direction when multiplied by A",
+        "A vector that only scales (not rotates) when multiplied by A",
+        "The diagonal entries of A",
+        "The inverse of A's column space"
+      ],
+      correct: 1
+    },
+    {
+      afterHeading: "Probability & Statistics",
+      id: "01-prob",
+      question: "Maximum Likelihood Estimation finds parameters that:",
+      options: [
+        "Minimise the prior probability",
+        "Maximise the posterior distribution",
+        "Maximise the probability of the observed data",
+        "Minimise model complexity"
+      ],
+      correct: 2
+    }
+  ],
+  "02-ml-basics.md": [
+    {
+      afterHeading: "Bias–Variance Tradeoff",
+      id: "02-biasvar",
+      question: "A model with high variance and low bias is most likely:",
+      options: ["Underfitting", "Overfitting", "Well-generalised", "Poorly initialised"],
+      correct: 1
+    },
+    {
+      afterHeading: "Support Vector Machines",
+      id: "02-svm",
+      question: "The SVM kernel trick allows:",
+      options: [
+        "Faster gradient descent",
+        "Classification in the original feature space only",
+        "Implicit mapping to higher-dimensional space without computing it explicitly",
+        "Reducing the number of support vectors"
+      ],
+      correct: 2
+    }
+  ],
+  "03-databases.md": [
+    {
+      afterHeading: "Vector Databases",
+      id: "03-vecdb",
+      question: "HNSW (Hierarchical Navigable Small World) is used for:",
+      options: [
+        "Exact nearest-neighbour search in high dimensions",
+        "Approximate nearest-neighbour search with sub-linear time",
+        "B-tree indexing of embeddings",
+        "Storing JSON documents"
+      ],
+      correct: 1
+    }
+  ],
+  "04-backend.md": [
+    {
+      afterHeading: "REST vs gRPC",
+      id: "04-grpc",
+      question: "gRPC uses which serialisation format by default?",
+      options: ["JSON", "XML", "Protocol Buffers", "MessagePack"],
+      correct: 2
+    }
+  ],
+  "05-deep-learning.md": [
+    {
+      afterHeading: "Backpropagation",
+      id: "05-backprop",
+      question: "The vanishing gradient problem occurs when:",
+      options: [
+        "Learning rate is too high",
+        "Gradients become exponentially small in early layers",
+        "Batch size is too large",
+        "The network is too shallow"
+      ],
+      correct: 1
+    }
+  ],
+  "06-genai-core.md": [
+    {
+      afterHeading: "Attention Mechanism",
+      id: "06-attn",
+      question: "In scaled dot-product attention, why divide by √d_k?",
+      options: [
+        "To normalise the output to [0,1]",
+        "To prevent dot products from growing large and pushing softmax into low-gradient regions",
+        "To reduce memory usage",
+        "To make Q and K orthogonal"
+      ],
+      correct: 1
+    }
+  ],
+  "07-transformers.md": [
+    {
+      afterHeading: "Positional Encoding",
+      id: "07-pos",
+      question: "RoPE (Rotary Position Embedding) encodes position by:",
+      options: [
+        "Adding a fixed sinusoidal vector to embeddings",
+        "Rotating query and key vectors by position-dependent angles",
+        "Prepending a learned position token",
+        "Using a separate position embedding table"
+      ],
+      correct: 1
+    }
+  ]
+};
+
+function buildCheckpointBlock(cp, savedState) {
+  const letters = ["A", "B", "C", "D"];
+  const block = document.createElement("div");
+  block.className = "checkpoint-block";
+  block.dataset.cpId = cp.id;
+
+  const header = document.createElement("div");
+  header.className = "cp-header";
+
+  const tag = document.createElement("span");
+  tag.className = "cp-tag";
+  tag.textContent = "CHECKPOINT";
+
+  const title = document.createElement("span");
+  title.className = "cp-title";
+  title.textContent = cp.question;
+
+  header.appendChild(tag);
+  header.appendChild(title);
+  block.appendChild(header);
+
+  const optionsWrap = document.createElement("div");
+  optionsWrap.className = "cp-options";
+
+  const alreadyCorrect = savedState === "correct";
+
+  cp.options.forEach((text, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "cp-option";
+    btn.dataset.idx = idx;
+    btn.disabled = alreadyCorrect;
+
+    const letter = document.createElement("span");
+    letter.className = "cp-letter";
+    letter.textContent = letters[idx];
+
+    const label = document.createElement("span");
+    label.textContent = text;
+
+    btn.appendChild(letter);
+    btn.appendChild(label);
+
+    if (alreadyCorrect && idx === cp.correct) {
+      btn.classList.add("correct");
+    }
+
+    btn.addEventListener("click", () => handleCheckpointClick(cp, block, optionsWrap, idx));
+    optionsWrap.appendChild(btn);
+  });
+
+  block.appendChild(optionsWrap);
+
+  if (alreadyCorrect) {
+    const done = document.createElement("div");
+    done.className = "cp-done";
+    done.textContent = "Correct! ✓";
+    block.appendChild(done);
+  }
+
+  return block;
+}
+
+function handleCheckpointClick(cp, block, optionsWrap, chosenIdx) {
+  const btns = optionsWrap.querySelectorAll(".cp-option");
+  btns.forEach(b => { b.disabled = true; });
+
+  if (chosenIdx === cp.correct) {
+    btns[chosenIdx].classList.add("correct");
+
+    const saved = JSON.parse(localStorage.getItem("aiml_checkpoints") || "{}");
+    saved[cp.id] = "correct";
+    localStorage.setItem("aiml_checkpoints", JSON.stringify(saved));
+
+    const done = document.createElement("div");
+    done.className = "cp-done";
+    done.textContent = "Correct! ✓";
+    block.appendChild(done);
+  } else {
+    btns[chosenIdx].classList.add("wrong");
+    btns[cp.correct].classList.add("correct");
+  }
+}
+
+function injectCheckpoints(file) {
+  const checks = MODULE_CHECKPOINTS[file];
+  if (!checks) return;
+  const saved = JSON.parse(localStorage.getItem("aiml_checkpoints") || "{}");
+  const container = $("doc-rendered");
+  if (!container) return;
+
+  checks.forEach(cp => {
+    const headings = container.querySelectorAll("h2, h3");
+    let targetHeading = null;
+    for (const h of headings) {
+      if (h.textContent.includes(cp.afterHeading)) { targetHeading = h; break; }
+    }
+    if (!targetHeading) return;
+
+    const block = buildCheckpointBlock(cp, saved[cp.id]);
+    targetHeading.insertAdjacentElement("afterend", block);
+  });
+}
 
 // ── Init ─────────────────────────────────────────────────────────
 function init() {
