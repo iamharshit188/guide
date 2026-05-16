@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="style.css" />
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
 
   <link id="hljs-theme" rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/onedark.min.css" />
@@ -120,6 +121,12 @@
           </svg>
           FOCUS MODE
         </button>
+        <button id="btn-run-playground" class="nav-btn hidden" aria-label="Run in playground">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="14" height="14">
+            <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+          </svg>
+          RUN
+        </button>
         <button id="btn-complete" class="complete-btn hidden" onclick="toggleComplete()"
                 aria-label="Toggle module completion">
           MARK COMPLETE
@@ -157,6 +164,12 @@
             <div class="welcome-tag">PLACEMENT PREP</div>
             <h2 id="welcome-title">AI/ML/GenAI/Backend<br>Learning Platform</h2>
             <p id="welcome-sub">14 modules &nbsp;·&nbsp; 42 projects &nbsp;·&nbsp; 4 languages &nbsp;·&nbsp; Math to Multimodal. Select a module to begin.</p>
+          </div>
+
+          <div id="study-heatmap-wrap">
+            <div id="study-heatmap-label">Past year activity</div>
+            <div id="study-heatmap" aria-label="Study activity heatmap"></div>
+            <div id="study-heatmap-tooltip" aria-hidden="true"></div>
           </div>
         </div>
 
@@ -247,6 +260,50 @@
       <span class="dock-label">Notes</span>
     </button>
 
+    <button class="dock-item" id="dock-streak" title="Study streak" aria-label="Study streak">
+      <span class="dock-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 2c0 0-6 5-6 11a6 6 0 0012 0c0-6-6-11-6-11z"/>
+          <path d="M12 12c0 0-2.5 2-2.5 4a2.5 2.5 0 005 0c0-2-2.5-4-2.5-4z" fill="currentColor" stroke="none"/>
+        </svg>
+      </span>
+      <span class="dock-label" id="dock-streak-label">0 day streak</span>
+    </button>
+
+    <button class="dock-item" id="dock-playground" title="Code Playground" aria-label="Open code playground">
+      <span class="dock-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 18 22 12 16 6"/>
+          <polyline points="8 6 2 12 8 18"/>
+        </svg>
+      </span>
+      <span class="dock-label">Playground</span>
+    </button>
+
+    <button class="dock-item" id="dock-cards" title="Flashcard Deck (R)" aria-label="Open flashcard deck">
+      <span class="dock-icon-wrap" style="position:relative;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="4" width="20" height="14" rx="2"/>
+          <path d="M8 4v14M16 4v14"/>
+          <line x1="2" y1="11" x2="22" y2="11"/>
+        </svg>
+        <span id="dock-cards-badge" class="dock-badge hidden"></span>
+      </span>
+      <span class="dock-label">Cards</span>
+    </button>
+
+    <button class="dock-item" id="dock-interview" title="Interview Simulator (I)" aria-label="Open interview simulator">
+      <span class="dock-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2"/>
+          <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+          <line x1="12" y1="12" x2="12" y2="16"/>
+          <line x1="10" y1="14" x2="14" y2="14"/>
+        </svg>
+      </span>
+      <span class="dock-label">Interview</span>
+    </button>
+
     <div class="dock-sep" aria-hidden="true"></div>
 
     <button class="dock-item dock-danger" id="dock-reset" title="Reset all progress" aria-label="Reset progress">
@@ -295,6 +352,156 @@
       <button id="close-notes" aria-label="Close notes">✕</button>
     </div>
     <textarea id="notes-content" placeholder="Jot down your local notes here. They save automatically..."></textarea>
+  </div>
+
+  <!-- Playground Modal -->
+  <div id="playground-modal" class="hidden" role="dialog" aria-modal="true" aria-label="Code Playground">
+    <div id="playground-inner">
+
+      <!-- Top bar -->
+      <div id="playground-topbar">
+        <div id="playground-lang-group" role="group" aria-label="Select language">
+          <button class="pg-lang-btn active" data-lang="python">Python</button>
+          <button class="pg-lang-btn" data-lang="javascript">JavaScript</button>
+          <button class="pg-lang-btn" data-lang="cpp">C++</button>
+        </div>
+        <span id="playground-filename"></span>
+        <div id="playground-topbar-actions">
+          <button id="pg-run-btn" aria-label="Run code">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Run
+          </button>
+          <button id="pg-close-btn" aria-label="Close playground">&#x2715; Close</button>
+        </div>
+      </div>
+
+      <!-- Editor + Console split -->
+      <div id="playground-body">
+        <div id="playground-editor-wrap">
+          <div id="playground-loading-runtime" class="hidden">Loading Python runtime&#x2026;</div>
+          <div id="monaco-container"></div>
+        </div>
+        <div id="playground-console-wrap">
+          <div id="playground-console-header">
+            <span>Output</span>
+            <div id="playground-console-actions">
+              <span id="pg-status"></span>
+              <button id="pg-clear-btn" aria-label="Clear output">Clear</button>
+            </div>
+          </div>
+          <div id="playground-console" aria-live="polite" aria-label="Program output"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Spaced Repetition Modal -->
+  <div id="sr-modal" class="hidden" aria-modal="true" role="dialog" aria-label="Flashcard Deck">
+    <div class="sr-container">
+      <div class="sr-header">
+        <div class="sr-header-left">
+          <span class="sr-title-tag">FLASHCARDS</span>
+          <span id="sr-queue-label" class="sr-queue-label"></span>
+        </div>
+        <button id="sr-close" class="sr-close-btn" aria-label="Close flashcards">✕</button>
+      </div>
+
+      <div id="sr-empty" class="sr-empty hidden">
+        <div class="sr-empty-icon">✓</div>
+        <div class="sr-empty-title">All caught up</div>
+        <div class="sr-empty-sub">No cards due today. Come back tomorrow.</div>
+      </div>
+
+      <div id="sr-card-view" class="hidden">
+        <div class="sr-progress-row">
+          <span id="sr-card-counter" class="sr-card-counter"></span>
+          <span id="sr-source-tag" class="sr-source-tag"></span>
+        </div>
+        <div id="sr-card" class="sr-card">
+          <div id="sr-question" class="sr-question"></div>
+          <div id="sr-answer" class="sr-answer hidden"></div>
+        </div>
+        <div id="sr-show-btn-wrap" class="sr-show-btn-wrap">
+          <button id="sr-show-answer" class="sr-show-btn">Show Answer <kbd>Space</kbd></button>
+        </div>
+        <div id="sr-rating-row" class="sr-rating-row hidden">
+          <button class="sr-rate-btn sr-easy"  data-q="5">Easy <kbd>1</kbd></button>
+          <button class="sr-rate-btn sr-good"  data-q="4">Good <kbd>2</kbd></button>
+          <button class="sr-rate-btn sr-hard"  data-q="2">Hard <kbd>3</kbd></button>
+          <button class="sr-rate-btn sr-miss"  data-q="1">Missed <kbd>4</kbd></button>
+        </div>
+      </div>
+
+      <div id="sr-done" class="sr-done hidden">
+        <div class="sr-empty-icon">🎯</div>
+        <div class="sr-empty-title">Session complete</div>
+        <div id="sr-done-stats" class="sr-done-stats"></div>
+        <button id="sr-restart" class="sr-show-btn">Review missed cards</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interview Simulator Modal -->
+  <div id="interview-modal" class="hidden" aria-modal="true" role="dialog" aria-label="Interview Simulator">
+    <div class="iv-container">
+
+      <div id="iv-setup" class="iv-screen">
+        <button id="iv-close-setup" class="sr-close-btn iv-close-btn" aria-label="Close interview simulator">✕</button>
+        <div class="iv-setup-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="36" height="36"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+        </div>
+        <h2 class="iv-setup-title">Interview Simulator</h2>
+        <p class="iv-setup-sub">Timed Q&A pulled from the flashcard pool. Self-assess after each answer.</p>
+        <div class="iv-count-row">
+          <span class="iv-count-label">Questions:</span>
+          <div class="iv-count-options">
+            <button class="iv-count-btn" data-n="5">5</button>
+            <button class="iv-count-btn active" data-n="10">10</button>
+            <button class="iv-count-btn" data-n="20">20</button>
+          </div>
+        </div>
+        <button id="iv-start-btn" class="iv-start-btn">Start Session <kbd>Enter</kbd></button>
+      </div>
+
+      <div id="iv-question" class="iv-screen hidden">
+        <div class="iv-top-bar">
+          <span id="iv-q-counter" class="iv-q-counter"></span>
+          <div class="iv-timer-wrap">
+            <div id="iv-timer-bar-track" class="iv-timer-bar-track">
+              <div id="iv-timer-bar" class="iv-timer-bar"></div>
+            </div>
+            <span id="iv-timer-num" class="iv-timer-num">60</span>
+          </div>
+          <button id="iv-close-q" class="sr-close-btn" aria-label="Exit simulator">✕</button>
+        </div>
+        <div id="iv-source-tag" class="sr-source-tag iv-source-tag"></div>
+        <div id="iv-question-text" class="iv-question-text"></div>
+        <div id="iv-answer-reveal" class="iv-answer-reveal hidden">
+          <div class="iv-answer-label">Answer</div>
+          <div id="iv-answer-text" class="iv-answer-text"></div>
+        </div>
+        <div id="iv-show-wrap" class="sr-show-btn-wrap">
+          <button id="iv-show-answer" class="sr-show-btn">Show Answer <kbd>Space</kbd></button>
+        </div>
+        <div id="iv-rating-row" class="sr-rating-row hidden">
+          <button class="sr-rate-btn sr-easy" data-q="5">Easy <kbd>1</kbd></button>
+          <button class="sr-rate-btn sr-hard" data-q="2">Hard <kbd>2</kbd></button>
+          <button class="sr-rate-btn sr-miss" data-q="1">Missed <kbd>3</kbd></button>
+        </div>
+      </div>
+
+      <div id="iv-summary" class="iv-screen hidden">
+        <div class="iv-summary-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="40" height="40"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h2 class="iv-setup-title">Session Complete</h2>
+        <div id="iv-score-grid" class="iv-score-grid"></div>
+        <button id="iv-again-btn" class="iv-start-btn" style="margin-top:24px;">New Session</button>
+        <button id="iv-close-summary" class="sr-show-btn" style="margin-top:10px;">Close</button>
+      </div>
+
+    </div>
   </div>
 
   <script src="app.js"></script>

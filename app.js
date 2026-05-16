@@ -691,6 +691,7 @@ function updateProgressBar() {
 async function openModule(file, label) {
   state.currentFile = file;
   state.currentType = "module";
+  recordStudyActivity();
 
   document.querySelectorAll("#module-list li").forEach(li =>
     li.classList.toggle("active", li.dataset.file === file));
@@ -729,6 +730,7 @@ async function openModule(file, label) {
 async function openProject(file, label) {
   state.currentFile = file;
   state.currentType = "project";
+  recordStudyActivity();
 
   document.querySelectorAll("#module-list li").forEach(li =>
     li.classList.remove("active"));
@@ -801,6 +803,7 @@ async function openCode(file, label) {
 async function openLanguage(file, label) {
   state.currentFile = file;
   state.currentType = "language";
+  recordStudyActivity();
 
   document.querySelectorAll("#module-list li").forEach(li => li.classList.remove("active"));
   document.querySelectorAll("#project-list li").forEach(li => li.classList.remove("active"));
@@ -1045,6 +1048,7 @@ $("dock-home").addEventListener("click",   goHome);
 $("dock-focus").addEventListener("click",  toggleFocusMode);
 $("dock-theme").addEventListener("click",  toggleTheme);
 $("dock-reset").addEventListener("click",  resetProgress);
+$("dock-streak").addEventListener("click", goHome);
 
 // ── Notes ────────────────────────────────────────────────────────
 (function setupNotes() {
@@ -1099,30 +1103,15 @@ $("dock-reset").addEventListener("click",  resetProgress);
   });
 
   searchInput.addEventListener("input", e => {
-    const q = e.target.value.toLowerCase().trim();
+    const q = e.target.value.trim();
     searchResults.innerHTML = "";
     selectedIndex = -1;
     if (!q) return;
 
-    const res = [];
-    MODULE_META.forEach(m => {
-      if (m.label.toLowerCase().includes(q) || m.file.toLowerCase().includes(q))
-        res.push({ type: "Module", label: m.label, execute: () => openModule(m.file, m.label) });
-    });
-    PROJECT_META.forEach(p => {
-      if (p.label.toLowerCase().includes(q) || p.file.toLowerCase().includes(q))
-        res.push({ type: "Project", label: p.label, execute: () => openProject(p.file, p.label) });
-    });
-    LANGUAGE_META.forEach(l => {
-      if (l.label.toLowerCase().includes(q) || l.file.toLowerCase().includes(q))
-        res.push({ type: "Language", label: l.label, execute: () => openLanguage(l.file, l.label) });
-    });
-    CODE_META.forEach(c => {
-      if (c.label.toLowerCase().includes(q) || c.file.toLowerCase().includes(q))
-        res.push({ type: "Code", label: c.label, execute: () => openCode(c.file, c.label) });
-    });
+    const results = fuse.search(q).slice(0, 12);
 
-    res.slice(0, 12).forEach((item, idx) => {
+    results.forEach((result, idx) => {
+      const item = result.item;
       const li = document.createElement("li");
       li.innerHTML = `<span>${item.label}</span><span class="sr-type">${item.type}</span>`;
       li.addEventListener("click", () => { closeSearch(); item.execute(); });
@@ -1161,6 +1150,143 @@ $("dock-reset").addEventListener("click",  resetProgress);
   });
 })();
 
+// ── Study Streak & Heatmap ───────────────────────────────────────
+function recordStudyActivity() {
+  const today = new Date().toISOString().split('T')[0];
+  const log = JSON.parse(localStorage.getItem('aiml_study_log') || '{}');
+  log[today] = (log[today] || 0) + 1;
+  localStorage.setItem('aiml_study_log', JSON.stringify(log));
+  updateStreak();
+}
+
+function computeStreak() {
+  const log = JSON.parse(localStorage.getItem('aiml_study_log') || '{}');
+  let streak = 0;
+  const d = new Date();
+  while (true) {
+    const key = d.toISOString().split('T')[0];
+    if (log[key]) { streak++; d.setDate(d.getDate() - 1); }
+    else break;
+  }
+  return streak;
+}
+
+function updateStreak() {
+  const streak = computeStreak();
+  const btn = $('dock-streak');
+  const lbl = $('dock-streak-label');
+  if (!btn || !lbl) return;
+  btn.dataset.streak = streak;
+  if (streak === 0) {
+    lbl.textContent = 'Start streak';
+  } else if (streak === 1) {
+    lbl.textContent = '1 day streak';
+  } else {
+    lbl.textContent = streak + ' day streak';
+  }
+}
+
+function buildHeatmap() {
+  const container = $('study-heatmap');
+  const tooltip   = $('study-heatmap-tooltip');
+  if (!container) return;
+
+  const log = JSON.parse(localStorage.getItem('aiml_study_log') || '{}');
+
+  // Build 364-day grid: 52 cols x 7 rows, starting from 363 days ago
+  const cells = [];
+  const now = new Date();
+  // Align start to Monday of the week 52 weeks ago
+  const end = new Date(now);
+  const totalDays = 364;
+  const start = new Date(end);
+  start.setDate(start.getDate() - (totalDays - 1));
+
+  // Build array of dates in order
+  const dates = [];
+  for (let i = 0; i < totalDays; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+
+  container.innerHTML = '';
+
+  dates.forEach(dateStr => {
+    const count = log[dateStr] || 0;
+    const cell  = document.createElement('div');
+    cell.className = 'heatmap-cell';
+
+    let countKey;
+    if (count === 0)       countKey = '0';
+    else if (count === 1)  countKey = '1';
+    else if (count <= 4)   countKey = '2';
+    else                   countKey = '5plus';
+
+    cell.dataset.count = countKey;
+    cell.dataset.date  = dateStr;
+    cell.dataset.raw   = count;
+
+    // Tooltip on hover
+    cell.addEventListener('mouseenter', e => {
+      if (!tooltip) return;
+      const label = count === 0
+        ? `No activity on ${dateStr}`
+        : `${count} session${count > 1 ? 's' : ''} on ${dateStr}`;
+      tooltip.textContent = label;
+      tooltip.classList.add('visible');
+    });
+    cell.addEventListener('mousemove', e => {
+      if (!tooltip) return;
+      tooltip.style.left = (e.clientX + 12) + 'px';
+      tooltip.style.top  = (e.clientY - 28) + 'px';
+    });
+    cell.addEventListener('mouseleave', () => {
+      if (tooltip) tooltip.classList.remove('visible');
+    });
+
+    container.appendChild(cell);
+  });
+}
+
+// ── Fuse.js search index ──────────────────────────────────────────
+const searchItems = [
+  ...MODULE_META.map(m => ({
+    type: 'Module',
+    label: m.label,
+    tag: m.tag,
+    desc: '',
+    execute: () => openModule(m.file, m.label)
+  })),
+  ...PROJECT_META.map(p => ({
+    type: 'Project',
+    label: p.label,
+    tag: p.module,
+    desc: p.difficulty || '',
+    execute: () => openProject(p.file, p.label)
+  })),
+  ...LANGUAGE_META.map(l => ({
+    type: 'Language',
+    label: l.label,
+    tag: l.tag,
+    desc: l.desc,
+    execute: () => openLanguage(l.file, l.label)
+  })),
+  ...CODE_META.map(c => ({
+    type: 'Code',
+    label: c.label,
+    tag: c.module,
+    desc: '',
+    execute: () => openCode(c.file, c.label)
+  })),
+];
+
+const fuse = new Fuse(searchItems, {
+  keys: ['label', 'tag', 'desc'],
+  threshold: 0.4,
+  includeScore: true,
+});
+
 // ── Init ─────────────────────────────────────────────────────────
 function init() {
   // Apply saved theme before any content renders
@@ -1189,6 +1315,8 @@ function init() {
   setActiveTab(0);
   updateProgressBar();
   updateGreeting();
+  updateStreak();
+  buildHeatmap();
 
   if (window.location.hash) {
     const hashFile  = window.location.hash.slice(1);
