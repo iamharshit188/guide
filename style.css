@@ -855,6 +855,28 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
     0 8px 32px rgba(0,0,0,0.4);
 }
 
+.wmc-icon {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 12px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.wmc-icon svg {
+  width: 100%;
+  height: 100%;
+  stroke: currentColor;
+}
+.welcome-module-card:hover .wmc-icon { opacity: 1; }
+
+.wmc-lang-desc {
+  font-size: 10px;
+  color: #666;
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.3px;
+}
+
 .wmc-num {
   font-family: var(--font-mono);
   font-size: 10px;
@@ -921,6 +943,32 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
 .wpc-13 { border-top: 2px solid var(--lime);    }
 .wpc-14 { border-top: 2px solid var(--blue);    }
 .wpc-15 { border-top: 2px solid var(--orange);  }
+.wpc-16 { border-top: 2px solid var(--purple);  }
+.wpc-17 { border-top: 2px solid var(--green);   }
+.wpc-18 { border-top: 2px solid var(--red);     }
+.wpc-19 { border-top: 2px solid var(--yellow);  }
+.wpc-20 { border-top: 2px solid var(--cyan);    }
+.wpc-21 { border-top: 2px solid var(--pink);    }
+.wpc-22 { border-top: 2px solid var(--teal);    }
+.wpc-23 { border-top: 2px solid var(--indigo);  }
+.wpc-24 { border-top: 2px solid var(--lime);    }
+.wpc-25 { border-top: 2px solid var(--blue);    }
+.wpc-26 { border-top: 2px solid var(--orange);  }
+.wpc-27 { border-top: 2px solid var(--purple);  }
+.wpc-28 { border-top: 2px solid var(--green);   }
+.wpc-29 { border-top: 2px solid var(--red);     }
+.wpc-30 { border-top: 2px solid var(--yellow);  }
+.wpc-31 { border-top: 2px solid var(--cyan);    }
+.wpc-32 { border-top: 2px solid var(--pink);    }
+.wpc-33 { border-top: 2px solid var(--teal);    }
+.wpc-34 { border-top: 2px solid var(--indigo);  }
+.wpc-35 { border-top: 2px solid var(--lime);    }
+.wpc-36 { border-top: 2px solid var(--blue);    }
+.wpc-37 { border-top: 2px solid var(--orange);  }
+.wpc-38 { border-top: 2px solid var(--purple);  }
+.wpc-39 { border-top: 2px solid var(--green);   }
+.wpc-40 { border-top: 2px solid var(--red);     }
+.wpc-41 { border-top: 2px solid var(--yellow);  }
 
 /* Difficulty badge */
 .project-card { padding-bottom: 44px; }
@@ -939,10 +987,25 @@ body.focus-mode .focus-btn { color: var(--yellow); border-color: var(--yellow); 
   border-radius: 2px;
 }
 
+.diff-beginner    { background: rgba(0,230,118,0.15);  color: var(--green);  border: 1px solid rgba(0,230,118,0.3);  }
 .diff-starter     { background: rgba(0,230,118,0.15);  color: var(--green);  border: 1px solid rgba(0,230,118,0.3);  }
 .diff-intermediate{ background: rgba(230,255,0,0.12);  color: var(--yellow); border: 1px solid rgba(230,255,0,0.3);  }
 .diff-advanced    { background: rgba(255,107,0,0.12);  color: var(--orange); border: 1px solid rgba(255,107,0,0.3);  }
 .diff-expert      { background: rgba(255,0,127,0.12);  color: var(--pink);   border: 1px solid rgba(255,0,127,0.3);  }
+
+/* Project type tag (GUIDED / THINKING) */
+.proj-type-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  padding: 1px 5px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+.type-guided   { background: rgba(0,229,255,0.15); color: var(--cyan);   border: 1px solid rgba(0,229,255,0.3); }
+.type-thinking { background: rgba(230,255,0,0.12); color: var(--yellow); border: 1px solid rgba(230,255,0,0.3); }
 
 /* ── Language Cards ─────────────────────────────────────────── */
 .language-card { padding-bottom: 44px; position: relative; }
@@ -969,6 +1032,8 @@ body.light-mode .lang-c   { background: rgba(0,149,255,0.10); }
 body.light-mode .lang-cpp { background: rgba(101,31,255,0.08); }
 body.light-mode .lang-py  { background: rgba(180,140,0,0.10); color: #8a7000; border-color: rgba(180,140,0,0.3); }
 body.light-mode .lang-js  { background: rgba(200,80,0,0.08); }
+body.light-mode .type-guided   { background: rgba(0,100,180,0.10); color: #006aad; border-color: rgba(0,100,180,0.25); }
+body.light-mode .type-thinking { background: rgba(160,130,0,0.10); color: #8a7000; border-color: rgba(160,130,0,0.25); }
 
 /* ── Code Panel — module-grouped ────────────────────────────── */
 #code-by-module {
@@ -1531,6 +1596,9 @@ body.light-mode .welcome-module-card { background: #EEEEED; border-color: rgba(0
 body.light-mode .welcome-module-card:hover { background: #E4E4E2; border-color: rgba(0,0,0,0.20); }
 body.light-mode .wmc-title       { color: #111; }
 body.light-mode .wmc-num         { color: #888; }
+body.light-mode .wmc-lang-desc   { color: #999; }
+body.light-mode .wmc-icon        { opacity: 0.5; }
+body.light-mode .welcome-module-card:hover .wmc-icon { opacity: 0.8; }
 
 body.light-mode .code-module-header { border-bottom-color: rgba(0,0,0,0.08); }
 body.light-mode .code-mod-name      { color: #888; }

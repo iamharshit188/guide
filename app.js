@@ -7,20 +7,20 @@ const LOAD_START      = Date.now();
 const MIN_LOAD_MS     = 1400;
 
 const MODULE_META = [
-  { file: "01-math.md",           label: "Math for ML",               tag: "01" },
-  { file: "02-ml-basics.md",      label: "ML Basics → Advanced",      tag: "02" },
-  { file: "03-databases.md",      label: "Databases & Vector DBs",    tag: "03" },
-  { file: "04-backend.md",        label: "Backend with Flask",        tag: "04" },
-  { file: "05-deep-learning.md",  label: "Deep Learning",             tag: "05" },
-  { file: "06-genai-core.md",     label: "GenAI Core",                tag: "06" },
-  { file: "07-transformers.md",   label: "Transformers from Scratch", tag: "07" },
-  { file: "08-rag.md",            label: "RAG Systems",               tag: "08" },
-  { file: "09-finetuning.md",     label: "Fine-Tuning & LoRA",        tag: "09" },
-  { file: "10-agents.md",         label: "LLM Agents & Tool Use",     tag: "10" },
-  { file: "11-deployment.md",     label: "Deployment & Production",   tag: "11" },
-  { file: "12-rlhf.md",           label: "RLHF & Alignment",          tag: "12" },
-  { file: "13-multimodal.md",     label: "Multimodal Models",         tag: "13" },
-  { file: "14-frontend.md",       label: "Frontend (React+Tailwind)", tag: "14" },
+  { file: "01-math.md",           label: "Math for ML",               tag: "01", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>` },
+  { file: "02-ml-basics.md",      label: "ML Basics → Advanced",      tag: "02", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>` },
+  { file: "03-databases.md",      label: "Databases & Vector DBs",    tag: "03", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>` },
+  { file: "04-backend.md",        label: "Backend with Flask",        tag: "04", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/><path d="M7 8h10M7 12h6"/></svg>` },
+  { file: "05-deep-learning.md",  label: "Deep Learning",             tag: "05", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="3" cy="6" r="2"/><circle cx="3" cy="18" r="2"/><circle cx="21" cy="6" r="2"/><circle cx="21" cy="18" r="2"/><path d="M5 6h4m6 0h4M5 18h4m6 0h4M10 10l-5-3m9 3l5-3M10 14l-5 3m9-3l5 3"/></svg>` },
+  { file: "06-genai-core.md",     label: "GenAI Core",                tag: "06", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h8M8 14h5"/></svg>` },
+  { file: "07-transformers.md",   label: "Transformers from Scratch", tag: "07", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="16" y="3" width="5" height="5" rx="1"/><rect x="3" y="16" width="5" height="5" rx="1"/><rect x="16" y="16" width="5" height="5" rx="1"/><path d="M8 5.5h8M5.5 8v8M18.5 8v8M8 18.5h8"/></svg>` },
+  { file: "08-rag.md",            label: "RAG Systems",               tag: "08", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>` },
+  { file: "09-finetuning.md",     label: "Fine-Tuning & LoRA",        tag: "09", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>` },
+  { file: "10-agents.md",         label: "LLM Agents & Tool Use",     tag: "10", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 8v4l3 3"/><circle cx="18" cy="5" r="3"/><path d="M18 2v3h3"/></svg>` },
+  { file: "11-deployment.md",     label: "Deployment & Production",   tag: "11", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>` },
+  { file: "12-rlhf.md",           label: "RLHF & Alignment",          tag: "12", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>` },
+  { file: "13-multimodal.md",     label: "Multimodal Models",         tag: "13", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>` },
+  { file: "14-frontend.md",       label: "Frontend (React+Tailwind)", tag: "14", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/><line x1="19" y1="12" x2="5" y2="12"/></svg>` },
 ];
 
 const CODE_META = [
@@ -92,29 +92,69 @@ const CODE_META = [
 ];
 
 const LANGUAGE_META = [
-  { file: "lang-c.md",      label: "C",          tag: "C",   badge: "lang-c",   desc: "Systems · Memory · Pointers"     },
-  { file: "lang-cpp.md",    label: "C++",         tag: "C++", badge: "lang-cpp", desc: "OOP · RAII · Templates · STL"    },
-  { file: "lang-python.md", label: "Python",      tag: "PY",  badge: "lang-py",  desc: "Internals · Async · Decorators"  },
-  { file: "lang-js.md",     label: "JavaScript",  tag: "JS",  badge: "lang-js",  desc: "V8 · Event Loop · Promises"      },
+  { file: "lang-c.md",      label: "C",          tag: "C",   badge: "lang-c",   desc: "Systems · Memory · Pointers",    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11.5a4.5 4.5 0 1 1 0 1"/><path d="M6 12a6 6 0 1 0 12 0 6 6 0 0 0-12 0z"/></svg>` },
+  { file: "lang-cpp.md",    label: "C++",         tag: "C++", badge: "lang-cpp", desc: "OOP · RAII · Templates · STL",   icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11.5a4.5 4.5 0 1 1 0 1"/><path d="M6 12a6 6 0 1 0 12 0 6 6 0 0 0-12 0z"/><line x1="19" y1="9" x2="19" y2="15"/><line x1="22" y1="12" x2="16" y2="12"/></svg>` },
+  { file: "lang-python.md", label: "Python",      tag: "PY",  badge: "lang-py",  desc: "Internals · Async · Decorators", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8 2 6 4 6 7v2h6v1H5c-2 0-3 1.5-3 4s1 4 3 4h1v-2.5c0-2 1-3 3-3h6c2 0 3-1 3-3V7c0-3-2-5-6-5z"/><path d="M12 22c4 0 6-2 6-5v-2h-6v-1h7c2 0 3-1.5 3-4s-1-4-3-4h-1v2.5c0 2-1 3-3 3H9c-2 0-3 1-3 3v3c0 3 2 5 6 5z"/><circle cx="9" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="17" r="1" fill="currentColor" stroke="none"/></svg>` },
+  { file: "lang-js.md",     label: "JavaScript",  tag: "JS",  badge: "lang-js",  desc: "V8 · Event Loop · Promises",     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M14 17c0 2-3 2-3 0v-5M8 12v5c0 2 4 2 4 0"/></svg>` },
 ];
 
 const PROJECT_META = [
-  { file: "p01-pca-compressor.md",      label: "PCA Image Compressor",        module: "01", difficulty: "Starter"      },
-  { file: "p02-titanic-pipeline.md",    label: "Titanic Survival Pipeline",   module: "02", difficulty: "Starter"      },
-  { file: "p03-semantic-search.md",     label: "Semantic Code Search Engine", module: "03", difficulty: "Intermediate" },
-  { file: "p04-ml-api.md",              label: "Production ML Serving API",   module: "04", difficulty: "Intermediate" },
-  { file: "p05-training-dashboard.md",  label: "NN Training Dashboard",       module: "05", difficulty: "Intermediate" },
-  { file: "p06-word-analogy.md",        label: "Word Analogy Explorer",       module: "06", difficulty: "Intermediate" },
-  { file: "p07-gpt-shakespeare.md",     label: "Shakespeare GPT",             module: "07", difficulty: "Advanced"     },
-  { file: "p08-document-qa.md",         label: "Personal Document Q&A",       module: "08", difficulty: "Advanced"     },
-  { file: "p09-domain-tuner.md",        label: "Domain-Specific Tuner",       module: "09", difficulty: "Expert"       },
-  { file: "p10-crypto-bot-agent.md",    label: "Multi-Agent Crypto Analyst",  module: "10", difficulty: "Expert"       },
-  { file: "p11-ab-test-deploy.md",      label: "A/B Testing Deployment API",  module: "11", difficulty: "Advanced"     },
-  { file: "p12-small-rlhf.md",          label: "Mini-RLHF Preference Tuner",  module: "12", difficulty: "Expert"       },
-  { file: "p13-multimodal-search.md",   label: "Image-Text Hybrid Search",    module: "13", difficulty: "Expert"       },
-  { file: "p14-fullstack-ai-blog.md",   label: "Full-Stack AI Blog",          module: "14", difficulty: "Advanced"     },
-  { file: "p15-voice-assistant.md",     label: "Real-Time Voice Assistant",   module: "13", difficulty: "Expert"       },
-  { file: "p16-mlops-feature-store.md", label: "MLOps Feature Store",         module: "11", difficulty: "Expert"       },
+  // Module 01 — Math for ML
+  { file: "m01a.md", label: "PCA Image Compressor",        module: "01", difficulty: "Beginner",     type: "guided"   },
+  { file: "m01b.md", label: "Gradient Descent Animator",   module: "01", difficulty: "Beginner",     type: "thinking" },
+  { file: "m01c.md", label: "Bayesian Spam Classifier",    module: "01", difficulty: "Intermediate", type: "thinking" },
+  // Module 02 — ML Basics
+  { file: "m02a.md", label: "Titanic ML Pipeline",         module: "02", difficulty: "Beginner",     type: "guided"   },
+  { file: "m02b.md", label: "Credit Risk Predictor",       module: "02", difficulty: "Intermediate", type: "thinking" },
+  { file: "m02c.md", label: "Customer Churn XGBoost",      module: "02", difficulty: "Intermediate", type: "thinking" },
+  // Module 03 — Databases & Vector DBs
+  { file: "m03a.md", label: "Semantic Code Search",        module: "03", difficulty: "Intermediate", type: "guided"   },
+  { file: "m03b.md", label: "Hybrid BM25+Dense Search",    module: "03", difficulty: "Intermediate", type: "thinking" },
+  { file: "m03c.md", label: "Recipe Recommender",          module: "03", difficulty: "Intermediate", type: "thinking" },
+  // Module 04 — Backend with Flask
+  { file: "m04a.md", label: "Production ML API",           module: "04", difficulty: "Intermediate", type: "guided"   },
+  { file: "m04b.md", label: "Rate-Limited API Gateway",    module: "04", difficulty: "Intermediate", type: "thinking" },
+  { file: "m04c.md", label: "Real-Time WebSocket Server",  module: "04", difficulty: "Advanced",     type: "thinking" },
+  // Module 05 — Deep Learning & MLOps
+  { file: "m05a.md", label: "NN Training Dashboard",       module: "05", difficulty: "Intermediate", type: "guided"   },
+  { file: "m05b.md", label: "ONNX Export Pipeline",        module: "05", difficulty: "Advanced",     type: "thinking" },
+  { file: "m05c.md", label: "Drift Detection System",      module: "05", difficulty: "Advanced",     type: "thinking" },
+  // Module 06 — GenAI Core
+  { file: "m06a.md", label: "Word Analogy Explorer",       module: "06", difficulty: "Intermediate", type: "guided"   },
+  { file: "m06b.md", label: "Semantic Document Retrieval", module: "06", difficulty: "Intermediate", type: "thinking" },
+  { file: "m06c.md", label: "Embedding Eval Benchmark",    module: "06", difficulty: "Advanced",     type: "thinking" },
+  // Module 07 — Transformers
+  { file: "m07a.md", label: "Shakespeare GPT",             module: "07", difficulty: "Advanced",     type: "guided"   },
+  { file: "m07b.md", label: "Custom BPE Tokenizer",        module: "07", difficulty: "Advanced",     type: "thinking" },
+  { file: "m07c.md", label: "Mini Translation Model",      module: "07", difficulty: "Expert",       type: "thinking" },
+  // Module 08 — RAG
+  { file: "m08a.md", label: "Personal Document Q&A",       module: "08", difficulty: "Advanced",     type: "guided"   },
+  { file: "m08b.md", label: "Multi-Source Research Bot",   module: "08", difficulty: "Advanced",     type: "thinking" },
+  { file: "m08c.md", label: "RAGAS-Driven RAG Optimizer",  module: "08", difficulty: "Expert",       type: "thinking" },
+  // Module 09 — Fine-Tuning
+  { file: "m09a.md", label: "Domain LoRA Fine-Tuner",      module: "09", difficulty: "Expert",       type: "guided"   },
+  { file: "m09b.md", label: "Instruction Dataset Builder", module: "09", difficulty: "Advanced",     type: "thinking" },
+  { file: "m09c.md", label: "PEFT Method Comparison",      module: "09", difficulty: "Expert",       type: "thinking" },
+  // Module 10 — Agents
+  { file: "m10a.md", label: "Multi-Agent Crypto Analyst",  module: "10", difficulty: "Expert",       type: "guided"   },
+  { file: "m10b.md", label: "Research Assistant Agent",    module: "10", difficulty: "Advanced",     type: "thinking" },
+  { file: "m10c.md", label: "Self-Debugging Code Agent",   module: "10", difficulty: "Expert",       type: "thinking" },
+  // Module 11 — Deployment
+  { file: "m11a.md", label: "A/B Testing Deploy API",      module: "11", difficulty: "Advanced",     type: "guided"   },
+  { file: "m11b.md", label: "Canary Deployment Monitor",   module: "11", difficulty: "Advanced",     type: "thinking" },
+  { file: "m11c.md", label: "Multi-Model Serving Gateway", module: "11", difficulty: "Expert",       type: "thinking" },
+  // Module 12 — RLHF & Alignment
+  { file: "m12a.md", label: "Mini-RLHF Preference Tuner", module: "12", difficulty: "Expert",       type: "guided"   },
+  { file: "m12b.md", label: "Reward Model Evaluator",      module: "12", difficulty: "Expert",       type: "thinking" },
+  { file: "m12c.md", label: "DPO Dataset Curator",         module: "12", difficulty: "Expert",       type: "thinking" },
+  // Module 13 — Multimodal
+  { file: "m13a.md", label: "Image-Text Hybrid Search",    module: "13", difficulty: "Expert",       type: "guided"   },
+  { file: "m13b.md", label: "Zero-Shot Image Classifier",  module: "13", difficulty: "Advanced",     type: "thinking" },
+  { file: "m13c.md", label: "Visual Q&A System",           module: "13", difficulty: "Expert",       type: "thinking" },
+  // Module 14 — Frontend
+  { file: "m14a.md", label: "Full-Stack AI Blog",          module: "14", difficulty: "Advanced",     type: "guided"   },
+  { file: "m14b.md", label: "Real-Time Voice Assistant",   module: "14", difficulty: "Expert",       type: "thinking" },
+  { file: "m14c.md", label: "Interactive ML Dashboard",    module: "14", difficulty: "Advanced",     type: "thinking" },
 ];
 
 // ── State ───────────────────────────────────────────────────────
@@ -396,7 +436,7 @@ function buildProjectNav() {
     li.setAttribute("aria-label", `Project: ${proj.label}${completed ? " (completed)" : ""}`);
 
     li.innerHTML = `
-      <span class="module-num" aria-hidden="true">P${proj.module}</span>
+      <span class="module-num" aria-hidden="true">${proj.type === "guided" ? "▶" : "◈"} ${proj.module}</span>
       <span class="module-name">${proj.label}</span>
       <span class="status-dot" aria-hidden="true"></span>
     `;
@@ -489,9 +529,10 @@ function buildLanguagesGrid() {
     card.setAttribute("aria-label", `Open language: ${lang.label}`);
 
     card.innerHTML = `
+      <div class="wmc-icon" aria-hidden="true">${lang.icon}</div>
       <span class="wmc-num" aria-hidden="true">LANGUAGE</span>
       <div class="wmc-title">${lang.label}</div>
-      <div style="font-size:11px;color:#666;margin-top:4px;font-family:var(--font-mono)">${lang.desc}</div>
+      <div class="wmc-lang-desc">${lang.desc}</div>
       <span class="lang-badge ${lang.badge}" aria-label="${lang.label}">${lang.tag}</span>
       <div class="wmc-status" aria-hidden="true"></div>
     `;
@@ -520,6 +561,7 @@ function buildWelcomeGrid() {
     card.setAttribute("aria-label", `Open module ${mod.tag}: ${mod.label}`);
 
     card.innerHTML = `
+      <div class="wmc-icon" aria-hidden="true">${mod.icon}</div>
       <span class="wmc-num" aria-hidden="true">MODULE ${mod.tag}</span>
       <div class="wmc-title">${mod.label}</div>
       <div class="wmc-status ${completed ? "done" : ""}" aria-hidden="true"></div>
@@ -548,8 +590,12 @@ function buildProjectsGrid() {
     card.setAttribute("tabindex", "0");
     card.setAttribute("aria-label", `Open project: ${proj.label} (${proj.difficulty})`);
 
+    const projIcon = proj.type === "guided"
+      ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
     card.innerHTML = `
-      <span class="wmc-num" aria-hidden="true">PROJECT · MOD ${proj.module}</span>
+      <div class="wmc-icon" aria-hidden="true">${projIcon}</div>
+      <span class="wmc-num" aria-hidden="true">MOD ${proj.module} · <span class="proj-type-tag type-${proj.type}">${proj.type === "guided" ? "GUIDED" : "THINKING"}</span></span>
       <div class="wmc-title">${proj.label}</div>
       <span class="difficulty-badge diff-${proj.difficulty.toLowerCase()}" aria-label="Difficulty: ${proj.difficulty}">${proj.difficulty}</span>
       <div class="wmc-status ${completed ? "done" : ""}" aria-hidden="true"></div>
